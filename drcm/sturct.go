@@ -12,12 +12,13 @@ package drcm
 import (
 	"sync"
 	
+	"github.com/idcsource/Insight-0-0-lib/roles"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/rolesplus"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/bridges"
-	"github.com/idcsource/Insight-0-0-lib/rolesio"
+	"github.com/idcsource/Insight-0-0-lib/hardstore"
 )
 
 // 常量区域
@@ -147,21 +148,16 @@ type loopCacheMap map[string]interface{}
 
 
 // 锆存储。
-// 这是一个带缓存的存储体系，基本上是hardstore与rcontrol的合并（虽然还有很大不同）。
+// 这是一个带缓存的存储体系，基本功能方面可以看作是hardstore与rcontrol的合并（虽然还有很大不同），而增强方面它支持分布式存储。
 type ZrStorage struct {
-	*rolesplus.RolePlus
-	*rolesio.NilReadWrite
+	rolesplus.RolePlus
 	
 	/* 下面这部分是存储相关的 */
 	
 	// 配置信息
 	config				*cpool.Block
-	// 本地保存路径根路径
-	local_path			string
-	// 本地保存路径深度
-	path_deep			int64
-	// 关系保存文件的后缀
-	relation_name		string
+	// 本地存储
+	local_store			*hardstore.HardStore
 	
 	/* 下面这部分是缓存相关的 */
 	
@@ -182,10 +178,12 @@ type ZrStorage struct {
 	
 	// 分布式服务的模式，来自于常量DMODE_*
 	dmode					uint8
-	// 运行时UNID，用来注册桥的
-	runtimeid		string
+	// 自身的身份码，做服务的时候使用
+	code					string
 	// 请求slave执行或返回数据的连接，string为slave对应的管理第一个值的首字母，而那个切片则是做镜像的
 	slaves			map[string][]*slaveIn
+	// 监听的实例
+	listen			*nst.TcpServer
 	
 	// 日志
 	logs					*ilogs.Logs
