@@ -108,5 +108,80 @@ func (z *ZrStorage) startUseMaster () (err error) {
 	if err != nil {
 		return;
 	}
+	z.slaves = make(map[string][]*slaveIn);
+	// 获取slave的配置名
+	slaves, err := z.config.GetEnum("main.slave");
+	if err != nil {
+		err = fmt.Errorf("drcm:NewZrStorage: %v", err);
+		return;
+	}
+	// 遍历所以的slave配置名
+	for _, one := range slaves {
+		// 获取每个slave的配置
+		onecfg, err := z.config.GetSection(one);
+		if err != nil {
+			err = fmt.Errorf("drcm:NewZrStorage: %v", err);
+			z.closeSlavePool();
+			return err;
+		}
+		// 获取这个slave可管理的角色首字母
+		control_whos, err := onecfg.GetEnum("control");
+		if err != nil {
+			err = fmt.Errorf("drcm:NewZrStorage: %v", err);
+			z.closeSlavePool();
+			return err;
+		}
+		// 获取连接数
+		var conn_num int;
+		conn_num64, err := onecfg.TranInt64("conn_num");
+		if err != nil {
+			conn_num = 1;
+		}else{
+			conn_num = int(conn_num64);
+		}
+		// 获取身份验证码
+		code, err := onecfg.GetConfig("code");
+		if err != nil {
+			err = fmt.Errorf("drcm:NewZrStorage: %v", err);
+			z.closeSlavePool();
+			return err;
+		}
+		// 获取连接地址
+		addr, err := onecfg.GetConfig("address");
+		if err != nil {
+			err = fmt.Errorf("drcm:NewZrStorage: %v", err);
+			z.closeSlavePool();
+			return err;
+		}
+		// 创建连接和连接池，放到池子里主要是为了到时候出错了关闭方便
+		z.slavepool = make(map[string]*nst.TcpClient);
+		sconn, err := nst.NewTcpClient(addr, conn_num, z.logs);
+		if err != nil {
+			err = fmt.Errorf("drcm:NewZrStorage: %v", err);
+			z.closeSlavePool();
+			return err;
+		}
+		z.slavepool[one] = sconn;
+		// 遍历可管理角色首字母创建连接序列
+		for _, onewho := range control_whos {
+			// 序列里没有这个字母就建立一个
+			if _, have := z.slaves[onewho]; have == false {
+				z.slaves[onewho] = make([]*slaveIn,0);
+			}
+			// 将这个字母的序列中加入这个slave的名字
+			z.slaves[onewho] = append(z.slaves[onewho],&slaveIn{
+				name: one,
+				code: code,
+				tcpconn: sconn,
+			});
+		}
+	}
 	return;
+}
+
+// 关闭整个slavepool
+func (z *ZrStorage) closeSlavePool () {
+	for _, conn := range z.slavepool {
+		conn.Close();
+	}
 }

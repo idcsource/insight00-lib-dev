@@ -184,6 +184,8 @@ type ZrStorage struct {
 	slaves			map[string][]*slaveIn
 	// 监听的实例
 	listen			*nst.TcpServer
+	// slave的连接池，从这里分配给slaveIn
+	slavepool		map[string]*nst.TcpClient
 	
 	// 日志
 	logs					*ilogs.Logs
@@ -197,8 +199,9 @@ type oneRoleCache struct {
 
 // 一台从机的信息
 type slaveIn struct {
-	name string;
-	tcpconn *nst.TcpClient;
+	name string
+	code string
+	tcpconn *nst.TcpClient
 }
 
 // 关系存储类型
