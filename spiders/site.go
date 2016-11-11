@@ -19,6 +19,7 @@ import (
 	iconv "github.com/djimenez/iconv-go"
 	"github.com/saintfish/chardet"
 	"github.com/PuerkitoBio/goquery"
+	opencc "github.com/stevenyao/go-opencc"
 	
 	"github.com/idcsource/Insight-0-0-lib/rcontrol"
 	"github.com/idcsource/Insight-0-0-lib/random"
@@ -462,6 +463,13 @@ func (sm *SiteMachine) trimHtml (html string) string {
 	
 	b5_1, _ := regexp.Compile(`([\n]{2,})`);
 	html = b5_1.ReplaceAllString(html,"\n");
+	
+	// 将繁体中文转成简体中文
+	config_t2s := "/usr/share/opencc/t2s.json";
+	c := opencc.NewConverter(config_t2s);
+    defer c.Close();
+    html = c.Convert(html);
+	
 	return html;
 }
 
