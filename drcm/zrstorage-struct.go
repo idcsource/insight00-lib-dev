@@ -74,3 +74,11 @@ type slaveIn struct {
 	code string
 	tcpconn *nst.TcpClient
 }
+
+// 前缀状态
+type PrefixStat struct {
+	// 操作类型，从OPERATE_*
+	Operate		int
+	// 身份验证码
+	Code		string
+}

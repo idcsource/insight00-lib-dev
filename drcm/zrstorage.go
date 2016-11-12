@@ -194,3 +194,10 @@ func (z *ZrStorage) ExecTCP (tcp *nst.TCP) {
 	// 回应可以接收数据
 	// 转到相应方法
 }
+
+// 检查缓存数，如果超出则执行运行时保存
+func (z *ZrStorage) checkCacheNum () {
+	if z.cacheMax > 0 && z.rolesCount >= z.cacheMax && z.checkCacheNumOn == false {
+		z.cacheIsFull <- true;
+	}
+}
