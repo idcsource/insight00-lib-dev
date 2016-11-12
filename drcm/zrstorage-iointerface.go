@@ -18,12 +18,16 @@ import (
 
 // 从永久存储读出一个角色
 func (z *ZrStorage) ReadRole (id string) (role roles.Roleer, err error) {
+	// 如果启用了缓存，则启用全局的读锁。
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
 	// 查看缓存，如果缓存里有则从缓存里直接调用。
 	rolec, find := z.rolesCache[id];
 	if find == true {
 		return rolec.role, nil;
 	}
-	
 	connmode, conn := z.findConn(id);
 	if connmode == CONN_IS_LOCAL {
 		// 如果是本地，就调用配套的hardstore的方法
@@ -32,11 +36,6 @@ func (z *ZrStorage) ReadRole (id string) (role roles.Roleer, err error) {
 			err = fmt.Errorf("drcm[ZrStorage]ReadRole: %v",err);
 			return nil, err;
 		}
-		z.rolesCache[id] = oneRoleCache{
-			lock : new(sync.RWMutex),
-			role : role,
-		};
-		return role, nil;
 	} else {
 		// 如果没有，因为是读取，所以就随即从一个slave中调用
 		conncount := len(conn);
@@ -46,17 +45,31 @@ func (z *ZrStorage) ReadRole (id string) (role roles.Roleer, err error) {
 			err = fmt.Errorf("drcm[ZrStorage]ReadRole: %v",err);
 			return nil, err;
 		}
+	}
+	// 如果开启了缓存，则存入缓存，并使其检查缓存
+	if z.cacheMax >= 0 {
 		z.rolesCache[id] = oneRoleCache{
 			lock : new(sync.RWMutex),
 			role : role,
 		};
-		return role, nil;
+		z.rolesCount++;
 	}
+	if z.cacheMax > 0 {
+		z.checkCacheNum();
+	}
+	return role, nil;
 }
 
 // 从slave读取一个角色
-func (z *ZrStorage) readRole (conn *slaveIn, id string) (role roles.Roleer, err error) {
-	
+func (z *ZrStorage) readRole (slave *slaveIn, id string) (role roles.Roleer, err error) {
+	slavereceipt, err := z.sendPrefixStat(slave, OPERATE_READ_ROLE);
+	if err != nil {
+		return nil, err;
+	}
+	// 如果回执状态不是DATA_WILL_SEND，因为我们希望slave是应该把role发送给我们的
+	if slavereceipt.DataStat != DATA_WILL_SEND {
+		return nil, slavereceipt.Error;
+	}
 }
 
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
@@ -82,15 +95,22 @@ func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 }
 
 // 向slave发送前导状态，也就是身份验证码和要操作的状态，并获取slave是否可以继续传输的要求
-func (z *ZrStorage) sendPrefixStat (conn *slaveIn, operate int) (status uint8, err error) {
+func (z *ZrStorage) sendPrefixStat (slavein *slaveIn, operate int) (receipt SlaveReceipt, err error) {
 	thestat := PrefixStat{
 		Operate : operate,
-		Code : conn.code,
+		Code : slavein.code,
 	};
 	statbyte, err := nst.StructGobBytes(thestat);
 	if err != nil {
 		return;
 	}
+	rdata, err := slavein.tcpconn.SendAndReturn(statbyte);
+	if err != nil {
+		return;
+	}
+	receipt = SlaveReceipt{};
+	err = nst.BytesGobStruct(rdata, &receipt);
+	return;
 }
 
 // 查看是否被标记删除，标记删除则返回true。

@@ -14,6 +14,11 @@ const (
 	// 强制保存
 	OPERATE_TOSTORE
 	
+	// 获取一个角色
+	OPERATE_READ_ROLE
+	// 写入一个角色
+	OPERATE_WRITE_ROLE
+	
 	// 创建一个新角色
 	OPERATE_NEW_ROLE
 	// 删除一个角色
@@ -107,4 +112,20 @@ const (
 	CONN_IS_LOCAL				= iota
 	// 连接为slave
 	CONN_IS_SLAVE
+)
+
+// 数据标记状态
+const (
+	// 数据没有任何的状态
+	DATA_NOTHING				= iota
+	// 数据并不是期望的
+	DATA_NOT_EXPECT
+	// 数据一切正常
+	DATA_ALL_OK
+	// 数据终止
+	DATA_END
+	// 请发送数据
+	DATA_PLEASE
+	// 数据将发送
+	DATA_WILL_SEND
 )

@@ -9,6 +9,7 @@ package drcm
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/idcsource/Insight-0-0-lib/roles"
 	"github.com/idcsource/Insight-0-0-lib/rolesplus"
@@ -27,6 +28,7 @@ func NewZrStorage (config *cpool.Block, logs *ilogs.Logs) (z *ZrStorage, err err
 		},
 		config : config,
 		logs : logs,
+		lock : new(sync.RWMutex),
 	};
 	z.New(random.Unid(1,"ZrStorage"));
 	// 处理运行的模式

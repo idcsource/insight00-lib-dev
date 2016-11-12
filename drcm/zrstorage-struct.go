@@ -60,6 +60,8 @@ type ZrStorage struct {
 	
 	// 日志
 	logs					*ilogs.Logs
+	// 全局锁
+	lock					*sync.RWMutex
 }
 
 // 一个角色的缓存，提供了锁
@@ -75,10 +77,17 @@ type slaveIn struct {
 	tcpconn *nst.TcpClient
 }
 
-// 前缀状态
+// 前缀状态，每次向slave发信息都要先把这个状态发出去
 type PrefixStat struct {
 	// 操作类型，从OPERATE_*
 	Operate		int
 	// 身份验证码
 	Code		string
+}
+
+// slave回执，slave收到PrefixStat之后的第一步返回信息
+type SlaveReceipt struct {
+	// 数据状态，来自DATA_*
+	DataStat	uint8
+	Error		error
 }
