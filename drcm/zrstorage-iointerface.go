@@ -70,6 +70,14 @@ func (z *ZrStorage) readRole (slave *slaveIn, id string) (role roles.Roleer, err
 	if slavereceipt.DataStat != DATA_WILL_SEND {
 		return nil, slavereceipt.Error;
 	}
+	// 请求对方发送数据，使用DATA_PLEASE状态，并接收角色的byte流。
+	dataplace := nst.Uint8ToBytes(DATA_PLEASE);
+	rdata, err := slave.tcpconn.SendAndReturn(dataplace);
+	if err != nil {
+		return nil, err;
+	}
+	role, err = nst.BytesGobStructForRoleer(rdata);
+	return;
 }
 
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
