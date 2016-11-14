@@ -61,6 +61,13 @@ func (z *ZrStorage) ReadRole (id string) (role roles.Roleer, err error) {
 }
 
 // 从slave读取一个角色
+//
+//	--> OPERATE_READ_ROLE (前导)
+//	<-- DATA_ALL_OK (slave回执)
+//	--> 角色ID
+//	<-- DATA_WILL_SEND (slave回执)
+//	--> DATA_PLEASE (uint8)
+//	<-- Net_RoleSendAndReceive (结构体)
 func (z *ZrStorage) readRole (id string, slave *slaveIn) (role roles.Roleer, err error) {
 	cprocess := slave.tcpconn.OpenProgress();
 	defer cprocess.Close();
@@ -86,14 +93,14 @@ func (z *ZrStorage) readRole (id string, slave *slaveIn) (role roles.Roleer, err
 	if slavereceipt.DataStat != DATA_WILL_SEND {
 		return nil, slavereceipt.Error;
 	}
-	// 请求对方发送数据，使用DATA_PLEASE状态，并接收角色的byte流，这是一个RoleSendAndReceive的值。
+	// 请求对方发送数据，使用DATA_PLEASE状态，并接收角色的byte流，这是一个Net_RoleSendAndReceive的值。
 	dataplace := nst.Uint8ToBytes(DATA_PLEASE);
 	rdata, err := cprocess.SendAndReturn(dataplace);
 	if err != nil {
 		return nil, err;
 	}
-	// 解码RoleSendAndReceive。
-	rolegetstruct := RoleSendAndReceive{};
+	// 解码Net_RoleSendAndReceive。
+	rolegetstruct := Net_RoleSendAndReceive{};
 	err = nst.BytesGobStruct(rdata, &rolegetstruct);
 	if err != nil {
 		return nil, err;
@@ -144,13 +151,18 @@ func (z *ZrStorage) StoreRole (role roles.Roleer) (err error) {
 }
 
 // 将角色保存到slave中，因为是保存所以需要将所有镜像同时保存
+//
+//	--> OPERATE_WRITE_ROLE (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleSendAndReceive (结构体)
+//	<-- DATA_ALL_OK (salve回执)
 func (z *ZrStorage) storeRole (role roles.Roleer, conns []*slaveIn) (err error) {
-	// 将角色编码，并生成传输所需要的RoleSendAndReceive格式，并最终编码成为[]byte
+	// 将角色编码，并生成传输所需要的Net_RoleSendAndReceive格式，并最终编码成为[]byte
 	roleb, relab, err := z.local_store.EncodeRole(role);
 	if err != nil {
 		return err;
 	}
-	roleS := RoleSendAndReceive{
+	roleS := Net_RoleSendAndReceive{
 		RoleBody: roleb,
 		RoleRela: relab,
 	};
@@ -229,7 +241,12 @@ func (z *ZrStorage) DeleteRole (id string) (err error) {
 	return nil;
 }
 
-// 向slave要求删除一个角色，需要将所有镜像同时删除
+// 向slave要求删除一个角色，需要将所有镜像同时删除，slave上不存在也是返回正常的
+//
+//	--> OPERATE_DEL_ROLE (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> 角色ID
+//	<-- DATA_ALL_OK (slave回执)
 func (z *ZrStorage) deleteRole (id string, conns []*slaveIn) (err error) {
 	// 遍历slave的连接，如果slave出现错误就输出，继续下一个结点
 	var errstring string;
@@ -300,6 +317,11 @@ func (z *ZrStorage) WriteFather (id, father string) (err error) {
 }
 
 // 发送slave设置角色的父角色
+//
+//	--> OPERATE_SET_FATHER (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleFatherChange (结构)
+//	<-- DATA_ALL_OK (slave回执)
 func (z *ZrStorage) writeFather (id, father string, conns []*slaveIn) (err error) {
 	// 遍历slave的连接，如果slave出现错误就输出，继续下一个结点
 	var errstring string;
@@ -314,7 +336,7 @@ func (z *ZrStorage) writeFather (id, father string, conns []*slaveIn) (err error
 		}
 		if slavereceipt.DataStat == DATA_PLEASE {
 			// 构造要发送的信息
-			sd := RoleFatherChange{Id: id, Father: father};
+			sd := Net_RoleFatherChange{Id: id, Father: father};
 			sdb, err := nst.StructGobBytes(sd);
 			if err != nil {
 				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
@@ -368,15 +390,15 @@ func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 }
 
 // 从[]byte解码SlaveReceipt
-func (z *ZrStorage) decodeSlaveReceipt (b []byte) (receipt SlaveReceipt, err error) {
-	receipt = SlaveReceipt{};
+func (z *ZrStorage) decodeSlaveReceipt (b []byte) (receipt Net_SlaveReceipt, err error) {
+	receipt = Net_SlaveReceipt{};
 	err = nst.BytesGobStruct(b, &receipt);
 	return;
 }
 
 // 向slave发送前导状态，也就是身份验证码和要操作的状态，并获取slave是否可以继续传输的要求
-func (z *ZrStorage) sendPrefixStat (process *nst.ProgressData, code string, operate int) (receipt SlaveReceipt, err error) {
-	thestat := PrefixStat{
+func (z *ZrStorage) sendPrefixStat (process *nst.ProgressData, code string, operate int) (receipt Net_SlaveReceipt, err error) {
+	thestat := Net_PrefixStat{
 		Operate : operate,
 		Code : code,
 	};
@@ -388,7 +410,7 @@ func (z *ZrStorage) sendPrefixStat (process *nst.ProgressData, code string, oper
 	if err != nil {
 		return;
 	}
-	receipt = SlaveReceipt{};
+	receipt = Net_SlaveReceipt{};
 	err = nst.BytesGobStruct(rdata, &receipt);
 	return;
 }

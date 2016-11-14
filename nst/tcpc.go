@@ -70,6 +70,7 @@ func NewTcpClient (addr string, count int, logs *ilogs.Logs) (tc *TcpClient, err
 	return;
 }
 
+// 检查连接池的每个连接的状态，每30秒一次
 func (tc *TcpClient) checkConnRe () {
 	for {
 		time.Sleep(30 * time.Second);
@@ -79,9 +80,10 @@ func (tc *TcpClient) checkConnRe () {
 	}
 }
 
+// 检查某个连接的状态，发送心跳包，如果有问题就重新连接
 func (tc *TcpClient) checkOneConn(cnum int) {
-	tc.tcpc[cnum].lock.RLock();
-	defer tc.tcpc[cnum].lock.RUnlock();
+	tc.tcpc[cnum].lock.Lock();
+	defer tc.tcpc[cnum].lock.Unlock();
 	err := tc.tcpc[cnum].tcp.SendStat(HEART_BEAT);
 	if err != nil {
 		ipAdrr, _ := net.ResolveTCPAddr("tcp", tc.addr);

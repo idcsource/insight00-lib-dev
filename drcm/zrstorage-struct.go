@@ -78,7 +78,7 @@ type slaveIn struct {
 }
 
 // 前缀状态，每次向slave发信息都要先把这个状态发出去
-type PrefixStat struct {
+type Net_PrefixStat struct {
 	// 操作类型，从OPERATE_*
 	Operate		int
 	// 身份验证码
@@ -86,7 +86,7 @@ type PrefixStat struct {
 }
 
 // slave回执，slave收到PrefixStat之后的第一步返回信息
-type SlaveReceipt struct {
+type Net_SlaveReceipt struct {
 	// 数据状态，来自DATA_*
 	DataStat	uint8
 	// 返回的错误
@@ -94,7 +94,7 @@ type SlaveReceipt struct {
 }
 
 // 角色的接收与发送格式
-type RoleSendAndReceive struct {
+type Net_RoleSendAndReceive struct {
 	// 角色的身体
 	RoleBody	[]byte
 	// 角色的关系
@@ -102,7 +102,7 @@ type RoleSendAndReceive struct {
 }
 
 // 角色的father修改的数据格式
-type RoleFatherChange struct {
+type Net_RoleFatherChange struct {
 	Id			string
 	Father		string
 }
