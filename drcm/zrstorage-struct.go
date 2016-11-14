@@ -89,5 +89,14 @@ type PrefixStat struct {
 type SlaveReceipt struct {
 	// 数据状态，来自DATA_*
 	DataStat	uint8
+	// 返回的错误
 	Error		error
+}
+
+// 角色的接收与发送格式
+type RoleSendAndReceive struct {
+	// 角色的身体
+	RoleBody	[]byte
+	// 角色的关系
+	RoleRela	[]byte
 }

@@ -164,6 +164,25 @@ func (h *HardStore) ReadRole (id string) (roles.Roleer, error) {
 	return r_role, nil;
 }
 
+// 解码一个角色，将二进制的角色存储进行解码
+func (h *HardStore) DecodeRole (roleb, relab []byte) (role roles.Roleer, err error) {
+	role, err = nst.BytesGobStructForRoleer(roleb);
+	if err != nil {
+		return nil, fmt.Errorf("hardstore: DecodeRole: %v", err);
+	}
+	var r_ralation roleRelation;
+	err = nst.BytesGobStruct(relab, &r_ralation);
+	if err != nil {
+		return nil, fmt.Errorf("hardstore: DecodeRole: %v", err);
+	}
+	
+	role.SetFather(r_ralation.Father);
+	role.SetChildren(r_ralation.Children);
+	role.SetFriends(r_ralation.Friends);
+	role.SetContexts(r_ralation.Contexts);
+	return role, nil;
+}
+
 // 写入一个角色的本体到存储，需要提前用encoding/gob包中的Register方法注册符合roles.Roleer接口的数据类型。
 func (h *HardStore) StoreRole (role roles.Roleer) error {
 	id := role.ReturnId();
@@ -217,6 +236,26 @@ func (h *HardStore) StoreRole (role roles.Roleer) error {
 		}
 	}
 	return nil;
+}
+
+// 编码角色，将角色编码为两个部分的[]byte，一个是角色本身的数据roleb，一个是角色的关系relab
+func (h *HardStore) EncodeRole (role roles.Roleer) (roleb, relab []byte, err error) {
+	roleb, err = nst.StructGobBytesForRoleer(role);
+	if err != nil {
+		return nil, nil, fmt.Errorf("hardstore: EncodeRole: %v", err);
+	}
+	
+	r_ralation := roleRelation{
+		Father: role.GetFather(),
+		Children: role.GetChildren(),
+		Friends: role.GetFriends(),
+		Contexts: role.GetContexts(),
+	};
+	relab, err = nst.StructGobBytes(r_ralation);
+	if err != nil {
+		return nil, nil, fmt.Errorf("hardstore: EncodeRole: %v", err);
+	}
+	return;
 }
 
 // 删除掉名为name的角色
