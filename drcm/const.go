@@ -128,4 +128,6 @@ const (
 	DATA_PLEASE
 	// 数据将发送
 	DATA_WILL_SEND
+	// 数据返回有错误
+	DATA_RETURN_ERROR
 )

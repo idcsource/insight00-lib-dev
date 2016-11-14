@@ -100,3 +100,9 @@ type RoleSendAndReceive struct {
 	// 角色的关系
 	RoleRela	[]byte
 }
+
+// 角色的father修改的数据格式
+type RoleFatherChange struct {
+	Id			string
+	Father		string
+}

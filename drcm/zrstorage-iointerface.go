@@ -37,7 +37,7 @@ func (z *ZrStorage) ReadRole (id string) (role roles.Roleer, err error) {
 			return nil, err;
 		}
 	} else {
-		// 如果没有，因为是读取，所以就随即从一个slave中调用
+		// 如果没有，因为是读取，所以就随机从一个slave中调用
 		conncount := len(conn);
 		connrandom := random.GetRandNum(conncount - 1);
 		role, err = z.readRole(id, conn[connrandom]);
@@ -62,7 +62,9 @@ func (z *ZrStorage) ReadRole (id string) (role roles.Roleer, err error) {
 
 // 从slave读取一个角色
 func (z *ZrStorage) readRole (id string, slave *slaveIn) (role roles.Roleer, err error) {
-	slavereceipt, err := z.sendPrefixStat(slave, OPERATE_READ_ROLE);
+	cprocess := slave.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	slavereceipt, err := z.sendPrefixStat(cprocess, slave.code, OPERATE_READ_ROLE);
 	if err != nil {
 		return nil, err;
 	}
@@ -71,7 +73,7 @@ func (z *ZrStorage) readRole (id string, slave *slaveIn) (role roles.Roleer, err
 		return nil, slavereceipt.Error;
 	}
 	// 发送想要的id，并接收slave的返回
-	sreb, err := slave.tcpconn.SendAndReturn([]byte(id));
+	sreb, err := cprocess.SendAndReturn([]byte(id));
 	if err != nil {
 		return nil, err;
 	}
@@ -86,7 +88,7 @@ func (z *ZrStorage) readRole (id string, slave *slaveIn) (role roles.Roleer, err
 	}
 	// 请求对方发送数据，使用DATA_PLEASE状态，并接收角色的byte流，这是一个RoleSendAndReceive的值。
 	dataplace := nst.Uint8ToBytes(DATA_PLEASE);
-	rdata, err := slave.tcpconn.SendAndReturn(dataplace);
+	rdata, err := cprocess.SendAndReturn(dataplace);
 	if err != nil {
 		return nil, err;
 	}
@@ -159,30 +161,181 @@ func (z *ZrStorage) storeRole (role roles.Roleer, conns []*slaveIn) (err error) 
 	// 遍历slave的连接，如果slave出现错误就输出，继续下一个结点
 	var errstring string;
 	for _, onec := range conns {
+		cprocess := onec.tcpconn.OpenProgress();
+		defer cprocess.Close();
 		//发送前导
-		slavereceipt, err := z.sendPrefixStat(onec, OPERATE_WRITE_ROLE);
+		slavereceipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_WRITE_ROLE);
 		if err != nil {
-			errstring += fmt.Sprint(err, " | ");
+			errstring += fmt.Sprint(onec.name, ": ", err, " | ");
 			continue;
 		}
 		// 如果slave请求发送数据
 		if slavereceipt.DataStat == DATA_PLEASE {
-			srb, err := onec.tcpconn.SendAndReturn(roleS_b);
+			srb, err := cprocess.SendAndReturn(roleS_b);
 			if err != nil {
-				errstring += fmt.Sprint(err, " | ");
+				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
 				continue;
 			}
 			sr, err := z.decodeSlaveReceipt(srb);
 			if err != nil {
-				errstring += fmt.Sprint(err, " | ");
+				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
 				continue;
 			}
 			if sr.DataStat != DATA_ALL_OK {
-				errstring += fmt.Sprint(sr.Error, " | ");
+				errstring += fmt.Sprint(onec.name, ": ", sr.Error, " | ");
 				continue;
 			}
 		} else {
-			errstring += fmt.Sprint(slavereceipt.Error, " | ");
+			errstring += fmt.Sprint(onec.name, ": ", slavereceipt.Error, " | ");
+			continue;
+		}
+	}
+	if len(errstring) != 0 {
+		return fmt.Errorf(errstring);
+	}
+	return nil;
+}
+
+// 删除一个角色
+func (z *ZrStorage) DeleteRole (id string) (err error) {
+	// 如果启用了缓存，则启用全局的读锁
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+		// 检查自己的缓存里有没有这个家伙，如果有先删除之，因为是删除，所以就不触发缓存个数检查了
+		_, find := z.rolesCache[id];
+		if find == true {
+			delete(z.rolesCache, id);
+			z.rolesCount--;
+		}
+	}
+	// 检查这个角色应该保存在哪里
+	connmode, slaveconn := z.findConn(id);
+	if connmode == CONN_IS_LOCAL {
+		// 如果这个角色在本地，那么就调用本地的删除之
+		err = z.local_store.DeleteRole(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]DeleteRole: %v",err);
+			return;
+		}
+	} else {
+		// 如果是slave
+		err = z.deleteRole(id, slaveconn);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]DeleteRole: %v",err);
+		}
+		return err;
+	}
+	return nil;
+}
+
+// 向slave要求删除一个角色，需要将所有镜像同时删除
+func (z *ZrStorage) deleteRole (id string, conns []*slaveIn) (err error) {
+	// 遍历slave的连接，如果slave出现错误就输出，继续下一个结点
+	var errstring string;
+	for _, onec := range conns {
+		cprocess := onec.tcpconn.OpenProgress();
+		defer cprocess.Close();
+		//发送前导,OPERATE_DEL_ROLE
+		slavereceipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_DEL_ROLE);
+		if err != nil {
+			errstring += fmt.Sprint(onec.name, ": ", err, " | ");
+			continue;
+		}
+		// 如果slave请求发送数据
+		if slavereceipt.DataStat == DATA_PLEASE {
+			// 将id编码后发出去
+			srb, err := cprocess.SendAndReturn([]byte(id));
+			if err != nil {
+				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
+				continue;
+			}
+			// 解码返回值
+			sr, err := z.decodeSlaveReceipt(srb);
+			if err != nil {
+				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
+				continue;
+			}
+			if sr.DataStat != DATA_ALL_OK {
+				errstring += fmt.Sprint(onec.name, ": ", sr.Error, " | ");
+				continue;
+			}
+		} else {
+			errstring += fmt.Sprint(onec.name, ": ", slavereceipt.Error, " | ");
+			continue;
+		}
+	}
+	if len(errstring) != 0 {
+		return fmt.Errorf(errstring);
+	}
+	return nil;
+}
+
+// 设置父角色
+func (z *ZrStorage) WriteFather (id, father string) (err error) {
+	// 如果启用了缓存，则启用全局的读锁
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否为本地
+	connmode, slaveconn := z.findConn(id);
+	if connmode == CONN_IS_LOCAL {
+		// 如果为本地
+		role, err := z.ReadRole(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteFather: %v", err);
+			return err;
+		}
+		role.SetFather(father);
+		return nil;
+	} else {
+		// 如果是slave
+		err = z.writeFather(id, father, slaveconn);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteRole: %v",err);
+		}
+		return err;
+	}
+}
+
+// 发送slave设置角色的父角色
+func (z *ZrStorage) writeFather (id, father string, conns []*slaveIn) (err error) {
+	// 遍历slave的连接，如果slave出现错误就输出，继续下一个结点
+	var errstring string;
+	for _, onec := range conns {
+		cprocess := onec.tcpconn.OpenProgress();
+		defer cprocess.Close();
+		//发送前导，OPERATE_SET_FATHER
+		slavereceipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_SET_FATHER);
+		if err != nil {
+			errstring += fmt.Sprint(onec.name, ": ", err, " | ");
+			continue;
+		}
+		if slavereceipt.DataStat == DATA_PLEASE {
+			// 构造要发送的信息
+			sd := RoleFatherChange{Id: id, Father: father};
+			sdb, err := nst.StructGobBytes(sd);
+			if err != nil {
+				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
+				continue;
+			}
+			sre, err := cprocess.SendAndReturn(sdb);
+			if err != nil {
+				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
+				continue;
+			}
+			sr, err := z.decodeSlaveReceipt(sre);
+			if err != nil {
+				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
+				continue;
+			}
+			if sr.DataStat != DATA_ALL_OK {
+				errstring += fmt.Sprint(onec.name, ": ", sr.Error, " | ");
+				continue;
+			}
+		} else {
+			errstring += fmt.Sprint(onec.name, ": ", err, " | ");
 			continue;
 		}
 	}
@@ -222,16 +375,16 @@ func (z *ZrStorage) decodeSlaveReceipt (b []byte) (receipt SlaveReceipt, err err
 }
 
 // 向slave发送前导状态，也就是身份验证码和要操作的状态，并获取slave是否可以继续传输的要求
-func (z *ZrStorage) sendPrefixStat (slavein *slaveIn, operate int) (receipt SlaveReceipt, err error) {
+func (z *ZrStorage) sendPrefixStat (process *nst.ProgressData, code string, operate int) (receipt SlaveReceipt, err error) {
 	thestat := PrefixStat{
 		Operate : operate,
-		Code : slavein.code,
+		Code : code,
 	};
 	statbyte, err := nst.StructGobBytes(thestat);
 	if err != nil {
 		return;
 	}
-	rdata, err := slavein.tcpconn.SendAndReturn(statbyte);
+	rdata, err := process.SendAndReturn(statbyte);
 	if err != nil {
 		return;
 	}

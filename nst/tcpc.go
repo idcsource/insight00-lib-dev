@@ -30,6 +30,12 @@ type TcpClient struct {
 	tcpc					[]*tcpC										// 连接管理池
 }
 
+// 进程的数据队列
+type ProgressData struct {
+	tcpc		*tcpC
+	logs		*ilogs.Logs
+}
+
 type tcpC struct {
 	// TCP的连接返回
 	tcp			*TCP
@@ -94,6 +100,16 @@ func (tc *TcpClient) ReturnBridge () *bridges.Bridge {
 	return tc.bridge;
 }
 
+// 建立进程，将会固定在一个连接上进行
+func (tc *TcpClient) OpenProgress () *ProgressData {
+	cnum := random.GetRandNum(tc.ccount - 1);
+	tc.tcpc[cnum].lock.RLock();
+	return &ProgressData{
+		tcpc : tc.tcpc[cnum],
+		logs : tc.logs,
+	};
+}
+
 // Send 向服务器端发送一个数据流。
 // 此方法将服务器的返回数据构造成一个指向TcpReturn方法的bridges.BridgeData发送给注册的桥。
 // TcpReturn方法的原型为TcpReturn (key, id string, data []byte)。
@@ -104,8 +120,8 @@ func (tc *TcpClient) Send (data []byte) (err error) {
 		return;
 	}
 	cnum := random.GetRandNum(tc.ccount - 1);
-	tc.tcpc[cnum].lock.RLock();
-	defer tc.tcpc[cnum].lock.RUnlock();
+	tc.tcpc[cnum].lock.Lock();
+	defer tc.tcpc[cnum].lock.Unlock();
 	err = tc.tcpc[cnum].tcp.SendStat(NORMAL_DATA);
 	if err != nil {
 		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
@@ -134,8 +150,8 @@ func (tc *TcpClient) SendAndReturn (data []byte) (returndata []byte, err error) 
 		return;
 	}
 	cnum := random.GetRandNum(tc.ccount - 1);
-	tc.tcpc[cnum].lock.RLock();
-	defer tc.tcpc[cnum].lock.RUnlock();
+	tc.tcpc[cnum].lock.Lock();
+	defer tc.tcpc[cnum].lock.Unlock();
 	
 	err = tc.tcpc[cnum].tcp.SendStat(NORMAL_DATA);
 	if err != nil {
@@ -174,4 +190,30 @@ func (tc *TcpClient) logerr (err interface{}) {
 	} else {
 		fmt.Println(err);
 	}
+}
+
+
+// 发送一段数据并返回服务端的数据，而不是构造桥
+func (p *ProgressData) SendAndReturn (data []byte) (returndata []byte, err error) {
+	err = p.tcpc.tcp.SendStat(NORMAL_DATA);
+	if err != nil {
+		err = fmt.Errorf("nst: [ProgressData]SendAndReturn: %v", err);
+		return ;
+	}
+	
+	err = p.tcpc.tcp.SendData(data);
+	if err != nil { 
+		err = fmt.Errorf("nst[ProgressData]SendAndReturn: %v", err);
+		return ;
+	}
+	returndata, err = p.tcpc.tcp.GetData();
+	if err != nil {
+		err = fmt.Errorf("nst[ProgressData]SendAndReturn: %v", err);
+		return ;
+	}
+	return;
+}
+
+func (p *ProgressData) Close () {
+	p.tcpc.lock.Unlock();
 }
