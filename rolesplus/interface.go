@@ -26,5 +26,5 @@ type RolePluser interface {
 	RunLog (err interface{})
 	ReRunLog () []string
 	ReErrLog () []string
-	ExecTCP (tcp *nst.TCP)
+	ExecTCP (tcp *nst.TCP) error
 }

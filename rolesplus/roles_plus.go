@@ -82,7 +82,7 @@ func doRolesBridge (key string, br *bridges.BridgeBind, role_value reflect.Value
 		if ok == false {
 			return;
 		} else {
-			doOneBridgeData(key, b_data, role_value, logs);
+			go doOneBridgeData(key, b_data, role_value, logs);
 		}
 	}
 }
@@ -114,11 +114,12 @@ func doOneBridgeData(key string, data bridges.BridgeData, role_value reflect.Val
 }
 
 // ExecTCP nst的ConnExecer接口，只做样子
-func (r *RolePlus) ExecTCP (tcp *nst.TCP) {
+func (r *RolePlus) ExecTCP (tcp *nst.TCP) error {
 	for {
 		aa, _ := tcp.GetData();
 		fmt.Println(aa);
 	}
+	return nil;
 }
 
 // Logerr 做错误日志

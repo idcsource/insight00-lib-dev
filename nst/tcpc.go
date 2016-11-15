@@ -28,6 +28,8 @@ type TcpClient struct {
 	logs					*ilogs.Logs									// 日志
 	ccount					int											// 启动几个连接
 	tcpc					[]*tcpC										// 连接管理池
+	alloc_count				int											// 连接分配计数
+	lock					*sync.RWMutex								// 连接分配计数的锁
 }
 
 // 进程的数据队列
@@ -37,10 +39,13 @@ type ProgressData struct {
 }
 
 type tcpC struct {
+	id			int
 	// TCP的连接返回
 	tcp			*TCP
 	// 读写锁
 	lock		*sync.RWMutex
+	// 自发读写锁
+	slock		chan bool
 }
 
 // 建立一个TCP的客户端，并与addr的地址建立连接
@@ -52,6 +57,8 @@ func NewTcpClient (addr string, count int, logs *ilogs.Logs) (tc *TcpClient, err
 		logs : logs,
 		ccount : count,
 		tcpc : make([]*tcpC,count),
+		alloc_count : 0,
+		lock : new(sync.RWMutex),
 	};
 	tc.setBridgeBind();
 	ipAdrr, err := net.ResolveTCPAddr("tcp", tc.addr);
@@ -62,8 +69,10 @@ func NewTcpClient (addr string, count int, logs *ilogs.Logs) (tc *TcpClient, err
 		//err2 = connecter.SetKeepAlive(true);
 		//if err2 != nil { return nil, err2; }
 		tc.tcpc[i] = &tcpC{
+			id : i,
 			tcp : NewTCP(connecter),
 			lock : new(sync.RWMutex),
+			slock : make(chan bool,1),
 		};
 	}
 	go tc.checkConnRe();
@@ -82,13 +91,20 @@ func (tc *TcpClient) checkConnRe () {
 
 // 检查某个连接的状态，发送心跳包，如果有问题就重新连接
 func (tc *TcpClient) checkOneConn(cnum int) {
-	tc.tcpc[cnum].lock.Lock();
-	defer tc.tcpc[cnum].lock.Unlock();
-	err := tc.tcpc[cnum].tcp.SendStat(HEART_BEAT);
-	if err != nil {
-		ipAdrr, _ := net.ResolveTCPAddr("tcp", tc.addr);
-		connecter, _ := net.DialTCP("tcp", nil, ipAdrr);
-		tc.tcpc[cnum].tcp = NewTCP(connecter);
+	tc.lock.Lock();
+	defer tc.lock.Unlock();
+	select {
+		case tc.tcpc[cnum].slock <- true :
+			err := tc.tcpc[cnum].tcp.SendStat(HEART_BEAT);
+			if err != nil {
+				ipAdrr, _ := net.ResolveTCPAddr("tcp", tc.addr);
+				connecter, _ := net.DialTCP("tcp", nil, ipAdrr);
+				tc.tcpc[cnum].tcp = NewTCP(connecter);
+			}
+			<- tc.tcpc[cnum].slock;
+			tc.logs.RunLog("心跳分配了一个连接：", cnum);
+		default:
+			tc.logs.RunLog("心跳跳过了一个分配:", cnum);
 	}
 }
 
@@ -104,8 +120,7 @@ func (tc *TcpClient) ReturnBridge () *bridges.Bridge {
 
 // 建立进程，将会固定在一个连接上进行
 func (tc *TcpClient) OpenProgress () *ProgressData {
-	cnum := random.GetRandNum(tc.ccount - 1);
-	tc.tcpc[cnum].lock.RLock();
+	cnum := tc.connAlloc();
 	return &ProgressData{
 		tcpc : tc.tcpc[cnum],
 		logs : tc.logs,
@@ -121,21 +136,20 @@ func (tc *TcpClient) Send (data []byte) (err error) {
 		err = errors.New("nst[TcpClient]Send: Connect not exiest.");
 		return;
 	}
-	cnum := random.GetRandNum(tc.ccount - 1);
-	tc.tcpc[cnum].lock.Lock();
-	defer tc.tcpc[cnum].lock.Unlock();
-	err = tc.tcpc[cnum].tcp.SendStat(NORMAL_DATA);
+	onec := tc.OpenProgress();
+	defer onec.Close();
+	err = onec.tcpc.tcp.SendStat(NORMAL_DATA);
 	if err != nil {
 		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
 		return ;
 	}
-	err = tc.tcpc[cnum].tcp.SendData(data);
+	err = onec.tcpc.tcp.SendData(data);
 	if err != nil {
 		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
 		return ;
 	}
 	var redata []byte;
-	redata, err = tc.tcpc[cnum].tcp.GetData();
+	redata, err = onec.tcpc.tcp.GetData();
 	if err != nil {
 		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
 		return ;
@@ -151,22 +165,21 @@ func (tc *TcpClient) SendAndReturn (data []byte) (returndata []byte, err error) 
 		err = errors.New("nst[TcpClient]SendAndReturn: Connect not exiest.");
 		return;
 	}
-	cnum := random.GetRandNum(tc.ccount - 1);
-	tc.tcpc[cnum].lock.Lock();
-	defer tc.tcpc[cnum].lock.Unlock();
+	onec := tc.OpenProgress();
+	defer onec.Close();
 	
-	err = tc.tcpc[cnum].tcp.SendStat(NORMAL_DATA);
+	err = onec.tcpc.tcp.SendStat(NORMAL_DATA);
 	if err != nil {
 		err = fmt.Errorf("nst: [TcpClient]SendAndReturn: %v", err);
 		return ;
 	}
 	
-	err = tc.tcpc[cnum].tcp.SendData(data);
+	err = onec.tcpc.tcp.SendData(data);
 	if err != nil { 
 		err = fmt.Errorf("nst[TcpClient]SendAndReturn: %v", err);
 		return ;
 	}
-	returndata, err = tc.tcpc[cnum].tcp.GetData();
+	returndata, err = onec.tcpc.tcp.GetData();
 	if err != nil {
 		err = fmt.Errorf("nst[TcpClient]SendAndReturn: %v", err);
 		return ;
@@ -182,6 +195,30 @@ func (tc *TcpClient) Close () (err error) {
 	}
 	return ;
 }
+
+// 连接分配
+func (tc *TcpClient) connAlloc () (num int) {
+	tc.lock.Lock();
+	defer tc.lock.Unlock();
+	for {
+		select {
+			case tc.tcpc[tc.alloc_count].slock <- true :
+				num = tc.alloc_count;
+				tc.alloc_count++;
+				if tc.alloc_count >= len(tc.tcpc){
+					tc.alloc_count = 0;
+				}
+				tc.logs.RunLog("分配了一个连接：", num);
+				return num;
+			default:
+				tc.alloc_count++;
+				if tc.alloc_count >= len(tc.tcpc){
+					tc.alloc_count = 0;
+				}
+				tc.logs.RunLog("跳过了一个分配");
+		}
+	}
+} 
 
 
 // 处理错误和日志
@@ -217,5 +254,7 @@ func (p *ProgressData) SendAndReturn (data []byte) (returndata []byte, err error
 }
 
 func (p *ProgressData) Close () {
-	p.tcpc.lock.Unlock();
+	p.logs.RunLog("释放了一个连接？", p.tcpc.id);
+	<- p.tcpc.slock;
+	p.logs.RunLog("释放了一个连接：", p.tcpc.id);
 }

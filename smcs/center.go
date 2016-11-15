@@ -76,35 +76,34 @@ func (cs *CenterSmcs) GetNodeStatus (node string) (ns NodeSend, err error) {
 }
 
 // nst.ConnExecer接口的实现
-func (cs *CenterSmcs) ExecTCP (tcp *nst.TCP) {
-	defer tcp.Close();
-	for {
-		var pullstruct NodeSend ;
-		err1 := tcp.GetStruct(&pullstruct);
-		if err1 != nil {
-			if fmt.Sprint(err1) == "EOF" {
-				return;
-			} else {
-				cs.logerr(fmt.Errorf("smcs [CenterSmcs]ExecTCP: %v",err1)) ; continue; 
-			}
-		}
-		nodename := pullstruct.Type + "-" + pullstruct.Name;
-		cs.getnode[nodename] = pullstruct;
-		push, ok := cs.tonode[nodename];
-		//fmt.Println("center要发送：",nodename);
-		if ok == false {
-			newblock := cpool.NewBlock(nodename,"");
-			blockencode := newblock.EncodeBlock();
-			push = CenterSend{
-				NextWorkSet : WORK_SET_NO,
-				SetStartTime : 0,
-				NewConfig : false,
-				Config : blockencode,
-			};
-		}
-		err2 := tcp.SendStruct(push);
-		if err2 != nil { cs.logerr(fmt.Errorf("smcs [CenterSmcs]ExecTCP: ",err2)) ; continue; }
+func (cs *CenterSmcs) ExecTCP (tcp *nst.TCP) error {
+	var pullstruct NodeSend ;
+	err1 := tcp.GetStruct(&pullstruct);
+	if err1 != nil {
+		cs.logerr(fmt.Errorf("smcs [CenterSmcs]ExecTCP: %v",err1)) ;
+		return err1;
 	}
+	nodename := pullstruct.Type + "-" + pullstruct.Name;
+	cs.getnode[nodename] = pullstruct;
+	push, ok := cs.tonode[nodename];
+	fmt.Println("center要发送：",nodename);
+	if ok == false {
+		newblock := cpool.NewBlock(nodename,"");
+		blockencode := newblock.EncodeBlock();
+		push = CenterSend{
+			NextWorkSet : WORK_SET_NO,
+			SetStartTime : 0,
+			NewConfig : false,
+			Config : blockencode,
+		};
+	}
+	err2 := tcp.SendStruct(push);
+	fmt.Println("center发送完：",nodename);
+	if err2 != nil { 
+		cs.logerr(fmt.Errorf("smcs [CenterSmcs]ExecTCP: ",err2)) ; 
+		return nil;
+	}
+	return nil;
 }
 
 func (cs *CenterSmcs) logerr (err interface{}) {

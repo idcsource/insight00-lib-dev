@@ -17,5 +17,5 @@ const (
 
 // TcpServer的转交方法所需要符合的接口
 type ConnExecer interface {
-	ExecTCP (tcp *TCP)
+	ExecTCP (tcp *TCP) error
 }

@@ -55,16 +55,24 @@ func (ts *TcpServer) doConn (conn *net.TCPConn) {
 		}
 	}()
 	tcp := NewTCP(conn);
-	stat, err := tcp.GetStat();
-	if err != nil {
-		ts.logerr(fmt.Errorf("mst[TcpServer]doConn: %v", err));
-		return;
-	}
-	if stat == NORMAL_DATA {
-		in := make([]reflect.Value, 1);
-		in[0] = reflect.ValueOf(tcp);
-		// 注册的方法需要符合ConnExecer，整个连接将交给注册的方法去执行
-		ts.role.MethodByName("ExecTCP").Call(in);
+	for {
+		stat, err := tcp.GetStat();
+		if err != nil {
+			ts.logerr(fmt.Errorf("mst[TcpServer]doConn: %v", err));
+			return;
+		}
+		if stat == NORMAL_DATA {
+			in := make([]reflect.Value, 1);
+			in[0] = reflect.ValueOf(tcp);
+			// 注册的方法需要符合ConnExecer，整个连接将交给注册的方法去执行
+			rr := ts.role.MethodByName("ExecTCP").Call(in);
+			err := rr[0].Interface().(error);
+			if fmt.Sprint(err) == "EOF" {
+				tcp.Close();
+				ts.logs.RunLog("nst[TcpServer]doConn: Connect Closed.");
+				return;
+			}
+		}
 	}
 }
 
