@@ -151,11 +151,6 @@ func (z *ZrStorage) StoreRole (role roles.Roleer) (err error) {
 }
 
 // 将角色保存到slave中，因为是保存所以需要将所有镜像同时保存
-//
-//	--> OPERATE_WRITE_ROLE (前导)
-//	<-- DATA_PLEASE (slave回执)
-//	--> Net_RoleSendAndReceive (结构体)
-//	<-- DATA_ALL_OK (salve回执)
 func (z *ZrStorage) storeRole (role roles.Roleer, conns []*slaveIn) (err error) {
 	// 将角色编码，并生成传输所需要的Net_RoleSendAndReceive格式，并最终编码成为[]byte
 	roleb, relab, err := z.local_store.EncodeRole(role);
@@ -173,40 +168,48 @@ func (z *ZrStorage) storeRole (role roles.Roleer, conns []*slaveIn) (err error) 
 	// 遍历slave的连接，如果slave出现错误就输出，继续下一个结点
 	var errstring string;
 	for _, onec := range conns {
-		cprocess := onec.tcpconn.OpenProgress();
-		defer cprocess.Close();
-		//发送前导
-		slavereceipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_WRITE_ROLE);
-		if err != nil {
-			errstring += fmt.Sprint(onec.name, ": ", err, " | ");
-			continue;
-		}
-		// 如果slave请求发送数据
-		if slavereceipt.DataStat == DATA_PLEASE {
-			srb, err := cprocess.SendAndReturn(roleS_b);
-			if err != nil {
-				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
-				continue;
-			}
-			sr, err := z.decodeSlaveReceipt(srb);
-			if err != nil {
-				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
-				continue;
-			}
-			if sr.DataStat != DATA_ALL_OK {
-				errstring += fmt.Sprint(onec.name, ": ", sr.Error, " | ");
-				continue;
-			}
-		} else {
-			errstring += fmt.Sprint(onec.name, ": ", slavereceipt.Error, " | ");
-			continue;
-		}
+		err = z.storeRole_one(roleS_b, onec);
+		errstring += fmt.Sprint(onec.name, ": ", err, " | ");
 	}
 	if len(errstring) != 0 {
 		return fmt.Errorf(errstring);
 	}
 	return nil;
 }
+
+// 存储的一个slave连接
+//
+//	--> OPERATE_WRITE_ROLE (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleSendAndReceive (结构体)
+//	<-- DATA_ALL_OK (salve回执)
+func (z *ZrStorage) storeRole_one (roleS_b []byte, onec *slaveIn) (err error) {
+	cprocess := onec.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	//发送前导
+	slavereceipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_WRITE_ROLE);
+	if err != nil {
+		return err;
+	}
+	// 如果slave请求发送数据
+	if slavereceipt.DataStat == DATA_PLEASE {
+		srb, err := cprocess.SendAndReturn(roleS_b);
+		if err != nil {
+			return err;
+		}
+		sr, err := z.decodeSlaveReceipt(srb);
+		if err != nil {
+			return err;
+		}
+		if sr.DataStat != DATA_ALL_OK {
+			return sr.Error;
+		}
+		return nil;
+	} else {
+		return slavereceipt.Error;
+	}
+}
+
 
 // 删除一个角色
 func (z *ZrStorage) DeleteRole (id string) (err error) {
@@ -242,50 +245,54 @@ func (z *ZrStorage) DeleteRole (id string) (err error) {
 }
 
 // 向slave要求删除一个角色，需要将所有镜像同时删除，slave上不存在也是返回正常的
-//
-//	--> OPERATE_DEL_ROLE (前导)
-//	<-- DATA_PLEASE (slave回执)
-//	--> 角色ID
-//	<-- DATA_ALL_OK (slave回执)
 func (z *ZrStorage) deleteRole (id string, conns []*slaveIn) (err error) {
 	// 遍历slave的连接，如果slave出现错误就输出，继续下一个结点
 	var errstring string;
 	for _, onec := range conns {
-		cprocess := onec.tcpconn.OpenProgress();
-		defer cprocess.Close();
-		//发送前导,OPERATE_DEL_ROLE
-		slavereceipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_DEL_ROLE);
+		err = z.deleteRole_one(id, onec);
 		if err != nil {
 			errstring += fmt.Sprint(onec.name, ": ", err, " | ");
-			continue;
-		}
-		// 如果slave请求发送数据
-		if slavereceipt.DataStat == DATA_PLEASE {
-			// 将id编码后发出去
-			srb, err := cprocess.SendAndReturn([]byte(id));
-			if err != nil {
-				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
-				continue;
-			}
-			// 解码返回值
-			sr, err := z.decodeSlaveReceipt(srb);
-			if err != nil {
-				errstring += fmt.Sprint(onec.name, ": ", err, " | ");
-				continue;
-			}
-			if sr.DataStat != DATA_ALL_OK {
-				errstring += fmt.Sprint(onec.name, ": ", sr.Error, " | ");
-				continue;
-			}
-		} else {
-			errstring += fmt.Sprint(onec.name, ": ", slavereceipt.Error, " | ");
-			continue;
 		}
 	}
 	if len(errstring) != 0 {
 		return fmt.Errorf(errstring);
 	}
 	return nil;
+}
+
+// 删除的一个slave链接
+//
+//	--> OPERATE_DEL_ROLE (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> 角色ID
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) deleteRole_one (id string, onec *slaveIn) (err error) {
+	cprocess := onec.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	//发送前导,OPERATE_DEL_ROLE
+	slavereceipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_DEL_ROLE);
+	if err != nil {
+		return err;
+	}
+	// 如果slave请求发送数据
+	if slavereceipt.DataStat == DATA_PLEASE {
+		// 将id编码后发出去
+		srb, err := cprocess.SendAndReturn([]byte(id));
+		if err != nil {
+			return err;
+		}
+		// 解码返回值
+		sr, err := z.decodeSlaveReceipt(srb);
+		if err != nil {
+			return err;
+		}
+		if sr.DataStat != DATA_ALL_OK {
+			return sr.Error;
+		}
+		return nil;
+	} else {
+		return slavereceipt.Error;
+	}
 }
 
 // 设置父角色
