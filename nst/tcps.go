@@ -51,14 +51,14 @@ func (ts *TcpServer) startServer () {
 func (ts *TcpServer) doConn (conn *net.TCPConn) {
 	defer func(){
 		if e := recover(); e != nil {
-			ts.logerr(fmt.Errorf("nst: doConn: ",e));
+			ts.logerr(fmt.Errorf("nst[TcpServer]doConn: ",e));
 		}
 	}()
 	tcp := NewTCP(conn);
 	for {
 		stat, err := tcp.GetStat();
 		if err != nil {
-			ts.logerr(fmt.Errorf("mst[TcpServer]doConn: %v", err));
+			ts.logerr(fmt.Errorf("nst[TcpServer]doConn: %v", err));
 			return;
 		}
 		if stat == NORMAL_DATA {
@@ -66,7 +66,11 @@ func (ts *TcpServer) doConn (conn *net.TCPConn) {
 			in[0] = reflect.ValueOf(tcp);
 			// 注册的方法需要符合ConnExecer，整个连接将交给注册的方法去执行
 			rr := ts.role.MethodByName("ExecTCP").Call(in);
-			err := rr[0].Interface().(error);
+			erri := rr[0].Interface();
+			var err error;
+			if erri != nil {
+				err = erri.(error);
+			}
 			if fmt.Sprint(err) == "EOF" {
 				tcp.Close();
 				ts.logs.RunLog("nst[TcpServer]doConn: Connect Closed.");

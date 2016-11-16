@@ -40,6 +40,8 @@ type ProgressData struct {
 
 type tcpC struct {
 	id			int
+	// 地址，为重新连接准备
+	addr		string
 	// TCP的连接返回
 	tcp			*TCP
 	// 读写锁
@@ -70,6 +72,7 @@ func NewTcpClient (addr string, count int, logs *ilogs.Logs) (tc *TcpClient, err
 		//if err2 != nil { return nil, err2; }
 		tc.tcpc[i] = &tcpC{
 			id : i,
+			addr : addr,
 			tcp : NewTCP(connecter),
 			lock : new(sync.RWMutex),
 			slock : make(chan bool,1),
@@ -98,8 +101,12 @@ func (tc *TcpClient) checkOneConn(cnum int) {
 			err := tc.tcpc[cnum].tcp.SendStat(HEART_BEAT);
 			if err != nil {
 				ipAdrr, _ := net.ResolveTCPAddr("tcp", tc.addr);
-				connecter, _ := net.DialTCP("tcp", nil, ipAdrr);
-				tc.tcpc[cnum].tcp = NewTCP(connecter);
+				connecter, err := net.DialTCP("tcp", nil, ipAdrr);
+				if err != nil {
+					tc.logs.ErrLog("nst[TcpClient]checkOneConn: Can't reconnect the server: " , err);
+				} else {
+					tc.tcpc[cnum].tcp = NewTCP(connecter);
+				}
 			}
 			<- tc.tcpc[cnum].slock;
 			tc.logs.RunLog("心跳分配了一个连接：", cnum);
@@ -138,7 +145,7 @@ func (tc *TcpClient) Send (data []byte) (err error) {
 	}
 	onec := tc.OpenProgress();
 	defer onec.Close();
-	err = onec.tcpc.tcp.SendStat(NORMAL_DATA);
+	err = onec.checkOneConnInSend();
 	if err != nil {
 		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
 		return ;
@@ -168,7 +175,7 @@ func (tc *TcpClient) SendAndReturn (data []byte) (returndata []byte, err error) 
 	onec := tc.OpenProgress();
 	defer onec.Close();
 	
-	err = onec.tcpc.tcp.SendStat(NORMAL_DATA);
+	err = onec.checkOneConnInSend();
 	if err != nil {
 		err = fmt.Errorf("nst: [TcpClient]SendAndReturn: %v", err);
 		return ;
@@ -234,7 +241,7 @@ func (tc *TcpClient) logerr (err interface{}) {
 
 // 发送一段数据并返回服务端的数据，而不是构造桥
 func (p *ProgressData) SendAndReturn (data []byte) (returndata []byte, err error) {
-	err = p.tcpc.tcp.SendStat(NORMAL_DATA);
+	err = p.checkOneConnInSend();
 	if err != nil {
 		err = fmt.Errorf("nst: [ProgressData]SendAndReturn: %v", err);
 		return ;
@@ -251,6 +258,25 @@ func (p *ProgressData) SendAndReturn (data []byte) (returndata []byte, err error
 		return ;
 	}
 	return;
+}
+
+// 运行时检查服务端连接，并且会发送NORMAL_DATA位
+func (p *ProgressData) checkOneConnInSend () (err error) {
+	err = p.tcpc.tcp.SendStat(NORMAL_DATA);
+	if err != nil {
+		ipAdrr, _ := net.ResolveTCPAddr("tcp", p.tcpc.addr);
+		connecter, err := net.DialTCP("tcp", nil, ipAdrr);
+		if err != nil {
+			p.logs.ErrLog("nst[TcpClient]checkOneConnInSend: Can't reconnect the server: " , err);
+			return err;
+		} else {
+			p.tcpc.tcp = NewTCP(connecter);
+			err = p.tcpc.tcp.SendStat(NORMAL_DATA);
+			return err;
+		}
+	} else {
+		return nil;
+	}
 }
 
 func (p *ProgressData) Close () {
