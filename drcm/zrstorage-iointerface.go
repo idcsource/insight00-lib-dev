@@ -480,6 +480,11 @@ func (z *ZrStorage) readFather (id string, conn *slaveIn) (father string, err er
 	}
 }
 
+// 重置父角色，这里只是调用WriteFather
+func (z *ZrStorage) ResetFather (id string) error {
+	return z.WriteFather(id, "");
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
