@@ -3,7 +3,7 @@
 // Insight 0+0 [ 洞悉 0+0 ]
 // InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
 // Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
-// Use of this souDMODE_MASTERrce code is governed by GNU LGPL v3 license
+// Use of this source code is governed by GNU LGPL v3 license
 
 package drcm
 
