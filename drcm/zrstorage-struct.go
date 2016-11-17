@@ -33,7 +33,7 @@ type ZrStorage struct {
 	/* 下面这部分是缓存相关的 */
 	
 	// 角色缓存
-	rolesCache				map[string]oneRoleCache
+	rolesCache				map[string]*oneRoleCache
 	// 最大缓存角色数
 	cacheMax				int64
 	// 缓存数量

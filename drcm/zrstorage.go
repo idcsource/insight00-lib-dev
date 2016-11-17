@@ -64,7 +64,7 @@ func (z *ZrStorage) buildCache () (err error) {
 		err = fmt.Errorf("drcm:NewZrStorage: %v", err);
 		return;
 	}
-	z.rolesCache = make(map[string]oneRoleCache);
+	z.rolesCache = make(map[string]*oneRoleCache);
 	z.deleteCache = make([]string,0);
 	z.cacheIsFull = make(chan bool);
 	z.rolesCount = 0;
