@@ -576,6 +576,106 @@ func (z *ZrStorage) readChildren (id string, conn *slaveIn) (children []string, 
 	}
 }
 
+// 写入角色的所有子角色名
+func (z *ZrStorage) WriteChildren (id string, children []string) (err error) {
+	// 如果启用了缓存，则启用全局的读锁
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 如果在本地
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteChildren: %v", err);
+			return err;
+		}
+		// 锁住这个角色
+		rolec.lock.Lock();
+		defer rolec.lock.Unlock();
+		rolec.role.SetChildren(children);
+		return nil;
+	} else {
+		// 如果在slave
+		err = z.writeChildren(id, children, conn);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteChildren: %v", err);
+		}
+		return err;
+	}
+}
+
+// 在slave上设置children
+func (z *ZrStorage) writeChildren (id string, children []string, conns []*slaveIn) (err error) {
+	// 构造要传输的信息
+	children_b , err := nst.StructGobBytes(children);
+	if err != nil {
+		return err;
+	}
+	// 遍历所有的连接
+	var errstring string;
+	for _, onec := range conns {
+		err = z.writeChildren_one (id, children_b, onec);
+		if err != nil {
+			errstring += fmt.Sprint(onec.name, ": ", err, " | ");
+		}
+	}
+	if len(errstring) != 0 {
+		return fmt.Errorf(errstring);
+	} else {
+		return nil;
+	}
+}
+
+// 向某一个slavev发送设置children的内容
+//
+//	分配连接
+//	--> OPREATE_SET_CHILDREN (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> role's id
+//	<-- DATA_PLEASE (slave回执)
+//	--> children's []byte
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) writeChildren_one (id string, children_b []byte, onec *slaveIn) (err error) {
+	cprocess := onec.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// OPREATE_SET_CHILDREN 前导
+	slave_receipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_SET_CHILDREN);
+	if err != nil {
+		return err;
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return slave_receipt.Error;
+	}
+	// 发送角色id
+	slave_receipt_b, err := cprocess.SendAndReturn([]byte(id));
+	if err != nil {
+		return err;
+	}
+	slave_receipt, err = z.decodeSlaveReceipt(slave_receipt_b);
+	if err != nil {
+		return err;
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return slave_receipt.Error;
+	}
+	// 发送children
+	slave_receipt_b, err = cprocess.SendAndReturn(children_b);
+	if err != nil {
+		return err;
+	}
+	slave_receipt, err = z.decodeSlaveReceipt(slave_receipt_b);
+	if err != nil {
+		return err;
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		return slave_receipt.Error;
+	}
+	return nil;
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
