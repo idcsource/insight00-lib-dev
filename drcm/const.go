@@ -38,6 +38,8 @@ const (
 	
 	// 设置children
 	OPERATE_SET_CHILDREN
+	// 获取children
+	OPERATE_GET_CHILDREN
 	// 重置children
 	OPERATE_RESET_CHILDREN
 	

@@ -62,6 +62,12 @@ func (z *ZrStorage) ReadRole (id string) (role roles.Roleer, err error) {
 
 // 本地的角色小读取，不带锁，但会加入缓存，并会检查缓存，返回的是oneRoleCache
 func (z *ZrStorage) readRole_small (id string) (rolec *oneRoleCache, err error) {
+	// 如果开启了缓存，就去找缓存
+	if z.cacheMax >= 0 {
+		if _, find := z.rolesCache[id]; find == true {
+			return z.rolesCache[id], nil;
+		}
+	}
 	role, err := z.local_store.ReadRole(id);
 	if err != nil {
 		err = fmt.Errorf("drcm[ZrStorage]readRole_small: %v",err);
@@ -483,6 +489,91 @@ func (z *ZrStorage) readFather (id string, conn *slaveIn) (father string, err er
 // 重置父角色，这里只是调用WriteFather
 func (z *ZrStorage) ResetFather (id string) error {
 	return z.WriteFather(id, "");
+}
+
+// 读取角色的所有子角色名
+func (z *ZrStorage) ReadChildren (id string) (children []string, err error) {
+	// 如果启用了缓存，则启用全局读锁
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否为本地
+	connmode, conn := z.findConn(id);
+	if connmode == CONN_IS_LOCAL {
+		// 本地的解决方案
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadChildren: %v", err);
+			return children, err;
+		}
+		// 给这个角色加读锁
+		rolec.lock.RLock();
+		defer rolec.lock.RUnlock();
+		// 从角色获得信息
+		children = rolec.role.GetChildren();
+		return children, nil;
+	} else {
+		// 如果需要来slave
+		conn_count := len(conn);
+		conn_random := random.GetRandNum(conn_count - 1);
+		children, err = z.readChildren(id, conn[conn_random]);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadChildren: %v", err);
+			return children, err;
+		}else{
+			return children, nil;
+		}
+	}
+}
+
+// 从slave读出一个角色的children
+//
+//	分配连接进程
+//	--> OPERATE_GET_CHILDREN (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> role's id (角色的id)
+//	<-- DATA_WILL_SEND (slave回执)
+//	--> DATA_PLEASE (uint8)
+//	<-- children's id ([]string)
+func (z *ZrStorage) readChildren (id string, conn *slaveIn) (children []string, err error) {
+	// 分配连接进程
+	cprocess := conn.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导 OPERATE_GET_CHILDREN
+	sr, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_GET_CHILDREN);
+	if err != nil {
+		return;
+	}
+	if sr.DataStat == DATA_PLEASE {
+		// 发送要查询的id
+		sr2_b, err := cprocess.SendAndReturn([]byte(id));
+		if err != nil {
+			return children, err;
+		}
+		// 解码slave返回
+		sr2, err := z.decodeSlaveReceipt(sr2_b);
+		if err != nil {
+			return children, err;
+		}
+		if sr2.DataStat == DATA_WILL_SEND {
+			// 请slave发送
+			data_please := nst.Uint8ToBytes(DATA_PLEASE);
+			children_b, err := cprocess.SendAndReturn(data_please);
+			if err != nil {
+				return children, err;
+			}
+			children = make([]string, 0);
+			err = nst.BytesGobStruct(children_b, &children);
+			return children, err;
+		} else {
+			err = sr2.Error;
+			return children, err;
+		}
+	} else {
+		err = sr.Error;
+		return children, err;
+	}
 }
 
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
