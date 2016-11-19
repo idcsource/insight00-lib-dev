@@ -106,3 +106,9 @@ type Net_RoleFatherChange struct {
 	Id			string
 	Father		string
 }
+
+// 角色的单个子角色关系的网络数据格式
+type Net_RoleAndChild struct {
+	Id			string
+	Child		string
+}

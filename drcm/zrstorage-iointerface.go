@@ -676,6 +676,98 @@ func (z *ZrStorage) writeChildren_one (id string, children_b []byte, onec *slave
 	return nil;
 }
 
+// 重置角色的子角色关系，只是调用WriteCildren
+func (z *ZrStorage) ResetChildren (id string) (err error) {
+	children := make([]string,0);
+	return z.WriteChildren(id, children);
+}
+
+// 写入一个子角色关系
+func (z *ZrStorage) WriteChild (id, child string) (err error) {
+	// 如果启用了缓存，启用全局读锁
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 检查是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 如果是本地，则读出或查看缓存什么的
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteChild: %v", err);
+			return err;
+		}
+		// 给这个role加锁
+		rolec.lock.Lock();
+		defer rolec.lock.Unlock();
+		// 设置关系
+		rolec.role.AddChild(child);
+		return nil;
+	} else {
+		// 如果是slave的
+		err = z.writeChild(id, child, conn);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteChild: %v", err);
+		}
+		return err;
+	}
+}
+
+// 向slave发送添加child关系的命令
+func (z *ZrStorage) writeChild (id , child string, conns []*slaveIn) (err error) {
+	// 构建要发送的信息
+	role_child := Net_RoleAndChild{
+		Id : id,
+		Child : child,
+	};
+	role_child_b, err := nst.StructGobBytes(role_child);
+	if err != nil {
+		return err;
+	}
+	//遍历slave连接
+	var errstr string;
+	for _, onec := range conns {
+		err = z.writeChild_one(role_child_b, onec);
+		if err != nil {
+			errstr += fmt.Sprint(onec.name, ": ", err, " | ");
+		}
+	}
+	if len(errstr) != 0 {
+		return fmt.Errorf(errstr);
+	}else{
+		return nil;
+	}
+}
+
+// 向其中一个slave发送添加child的命令
+//
+//	--> OPERATE_ADD_CHILD (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndChild (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) writeChild_one (role_child_b []byte, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导
+	slave_reply, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_ADD_CHILD);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return slave_reply.Error;
+	}
+	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, role_child_b);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_ALL_OK {
+		return slave_reply.Error;
+	}
+	return nil;
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
@@ -702,6 +794,16 @@ func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 func (z *ZrStorage) decodeSlaveReceipt (b []byte) (receipt Net_SlaveReceipt, err error) {
 	receipt = Net_SlaveReceipt{};
 	err = nst.BytesGobStruct(b, &receipt);
+	return;
+}
+
+// 发送数据并解码返回的SlaveReceipt
+func (z *ZrStorage) sendAndDecodeSlaveReceipt (cprocess *nst.ProgressData, data []byte) (receipt Net_SlaveReceipt, err error) {
+	s_r_b, err := cprocess.SendAndReturn(data);
+	if err != nil {
+		return;
+	}
+	receipt, err = z.decodeSlaveReceipt(s_r_b);
 	return;
 }
 
