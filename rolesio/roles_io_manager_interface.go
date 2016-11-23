@@ -42,8 +42,6 @@ type RolesInOutManager interface {
 	DeleteChild (id, child string) error
 	// 查询是否有这个子角色
 	ExistChild (id, child string) (have bool, err error)
-	// 获取相同远近关系下的所有朋友的ID
-	ReadSameBindFriendsId (id, bind int64) ([]string, error)
 	
 	// 读取name角色的所有朋友关系
 	ReadFriends (id string) (map[string]roles.Status, error)
@@ -51,6 +49,8 @@ type RolesInOutManager interface {
 	WriteFriends (id string, friends map[string]roles.Status) error
 	// 删除name角色的所有朋友关系（重置）
 	ResetFriends (id string) error
+	// 获取相同远近关系下的所有朋友的ID
+	ReadSameBindFriendsId (id, bind int64) ([]string, error)
 	
 	// 往永久存储里加入一个朋友关系，并绑定，已有关系将只是修改绑定值
 	WriteFriend (id, friend string, bind int64) error

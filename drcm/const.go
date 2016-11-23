@@ -47,6 +47,8 @@ const (
 	OPERATE_ADD_CHILD
 	// 删除一个child
 	OPERATE_DEL_CHILD
+	// 存在某个child
+	OPERATE_EXIST_CHILD
 	
 	// 设置friends
 	OPERATE_SET_FRIENDS
@@ -132,4 +134,8 @@ const (
 	DATA_WILL_SEND
 	// 数据返回有错误
 	DATA_RETURN_ERROR
+	// 数据返回为True
+	DATA_RETURN_IS_TRUE
+	// 束缚返回为flase
+	DATA_RETURN_IS_FALSE
 )
