@@ -52,6 +52,8 @@ const (
 	
 	// 设置friends
 	OPERATE_SET_FRIENDS
+	// 获取children
+	OPERATE_GET_FRIENDS
 	// 重置friends
 	OPERATE_RESET_FRIENDS
 	

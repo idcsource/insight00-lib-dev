@@ -927,6 +927,79 @@ func (z *ZrStorage) existChild (id, child string, conn *slaveIn) (have bool, err
 	}
 }
 
+// 读取id的所有朋友关系
+func (z *ZrStorage) ReadFriends (id string) (status map[string]roles.Status, err error) {
+	// 如果启用缓存，则全局读锁
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 本地的处理
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drdcm[ZrStorage]ReadFriends: %v", err);
+			return nil, err;
+		}
+		rolec.lock.RLock();
+		defer rolec.lock.RUnlock();
+		// 从角色获取信息
+		status := rolec.role.GetFriends();
+		return status, nil;
+	} else {
+		// slave上处理
+		conn_count := len(conn);
+		conn_random := random.GetRandNum(conn_count - 1);
+		status, err = z.readFriends(id, conn[conn_random]);
+		if err != nil {
+			err = fmt.Errorf("drdcm[ZrStorage]ReadFriends: %v", err);
+		}
+		return status, err;
+	}
+}
+
+// 从slave中读取一个角色的friends关系
+//
+//	--> OPERATE_GET_FRIENDS (前导词)
+//	<-- DATA_PLEASE (slave回执)
+//	--> role's id (角色ID)
+//	<-- DATA_WILL_SEND (slave回执)
+//	--> DATA_PLEASE (uint8)
+//	<-- friends's status (map[string]roles.Status)
+func (z *ZrStorage) readFriends (id string, conn *slaveIn) (status map[string]roles.Status, err error) {
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导OPERATE_GET_FRIENDS
+	slave_reply, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_GET_FRIENDS);
+	if err != nil {
+		return nil, err;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return nil, slave_reply.Error;
+	}
+	// 发送角色的ID
+	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, []byte(id));
+	if err != nil {
+		return nil, err;
+	}
+	if slave_reply.DataStat != DATA_WILL_SEND {
+		return nil, slave_reply.Error;
+	}
+	// 发送DATA_PLEASE让slave发送信息
+	data_please_b := nst.Uint8ToBytes(DATA_PLEASE);
+	status_b, err := cprocess.SendAndReturn(data_please_b);
+	if err != nil {
+		return nil, err;
+	}
+	// 解码status
+	status = make(map[string]roles.Status);
+	err = nst.BytesGobStruct(status_b, &status);
+	return status, err;
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
