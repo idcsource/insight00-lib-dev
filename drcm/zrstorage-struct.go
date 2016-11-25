@@ -22,16 +22,16 @@ import (
 // 这是一个带缓存的存储体系，基本功能方面可以看作是hardstore与rcontrol的合并（虽然还有很大不同），而增强方面它支持分布式存储。
 type ZrStorage struct {
 	rolesplus.RolePlus
-	
+
 	/* 下面这部分是存储相关的 */
-	
+
 	// 配置信息
 	config				*cpool.Block
 	// 本地存储
 	local_store			*hardstore.HardStore
-	
+
 	/* 下面这部分是缓存相关的 */
-	
+
 	// 角色缓存
 	rolesCache				map[string]*oneRoleCache
 	// 最大缓存角色数
@@ -44,9 +44,9 @@ type ZrStorage struct {
 	deleteCache				[]string
 	// 检查缓存数量中
 	checkCacheNumOn			bool
-	
+
 	/* 下面是分布式服务相关的 */
-	
+
 	// 分布式服务的模式，来自于常量DMODE_*
 	dmode					uint8
 	// 自身的身份码，做服务的时候使用
@@ -57,7 +57,7 @@ type ZrStorage struct {
 	listen			*nst.TcpServer
 	// slave的连接池，从这里分配给slaveIn
 	slavepool		map[string]*nst.TcpClient
-	
+
 	// 日志
 	logs					*ilogs.Logs
 	// 全局锁
@@ -111,4 +111,12 @@ type Net_RoleFatherChange struct {
 type Net_RoleAndChild struct {
 	Id			string
 	Child		string
+}
+
+// 角色的单个朋友角色关系的网络数据格式
+type Net_RoleAndFriend struct {
+	Id			string
+	Friend		string
+	Bind		int64
+	Status		roles.Status
 }

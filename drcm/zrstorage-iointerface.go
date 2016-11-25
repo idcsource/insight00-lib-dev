@@ -1098,6 +1098,111 @@ func (z *ZrStorage) ResetFriends (id string) (err error) {
 	return z.WriteFriends(id, friends);
 }
 
+// 获取相同远近关系下的所有朋友ID
+func (z *ZrStorage) ReadSameBindFriendsId (id string, bind int64) (friends []string, err error) {
+	// 这个方法放到随后完成，因为这里应该是作为绑定状态的特例存在
+	return;
+}
+
+// 加入一个朋友关系，并绑定，已经有的关系将之修改绑定值
+func (z *ZrStorage) WriteFriend (id, friend string, bind int64) (err error) {
+	// 这个方法放到随后完成，因为这里是绑定状态的特例
+	return;
+}
+
+// 是否存在一个朋友关系，并返回绑定值
+func (z *ZrStorage) ExistFriend (id, friend string) (bind int64, have bool, err error) {
+	// 这个方法放到随后完成，因为这里是绑定状态的特例
+	return;
+}
+
+// 删除一个朋友关系，如果没有则忽略
+func (z *ZrStorage) DeleteFriend (id, friend string) (err error) {
+	// 如果启动缓存，启动全局读锁
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 如果是本地
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]DeleteFriend: %v", err);
+			return err;
+		}
+		// 加锁
+		rolec.lock.Lock();
+		defer rolec.lock.Unlock();
+		// 调用角色的接口
+		rolec.role.DeleteFriend(friend);
+		return nil;
+	} else {
+		// 如果是slave
+		err = z.deleteFriend(id, friend, conn);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]DeleteFriend: %v", err);
+		}
+		return err;
+	}
+}
+
+// 如果为slave的删除朋友关系
+func (z *ZrStorage) deleteFriend (id, friend string, conns []*slaveIn) (err error) {
+	// 构造要发送的信息
+	role_friend := Net_RoleAndFriend{
+		Id: id,
+		Friend : friend,
+	};
+	role_friend_b, err := nst.StructGobBytes(role_friend);
+	if err != nil {
+		return err;
+	}
+	// 遍历连接
+	var errstr string;
+	for _, onec := range conns {
+		err = z.deleteFriend_one(role_friend_b, onec);
+		if err != nil {
+			errstr += fmt.Sprint(onec.name, ": ", err, " | ");
+		}
+	}
+	if len(errstr) != 0 {
+		return fmt.Errorf(errstr);
+	} else {
+		return nil;
+	}
+}
+
+// 一个slave的删除朋友关系
+//
+//	--> OPERATE_DEL_FRIEND (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndFriend (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) deleteFriend_one(role_friend_b []byte, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导
+	slave_reply, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_DEL_FRIEND);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return slave_reply.Error;
+	}
+	// 发送数据
+	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, role_friend_b);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_ALL_OK {
+		return slave_reply.Error;
+	}
+	return nil;
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地

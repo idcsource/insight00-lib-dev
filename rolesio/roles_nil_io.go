@@ -9,10 +9,10 @@ package rolesio
 
 import(
 	"github.com/idcsource/Insight-0-0-lib/roles"
-	
+
 	"errors"
 )
- 
+
 // NilReadWrite 为Roles的空输入输出方法
 // 只是单纯的实现了RolesInOutManager接口的所有方法，但并没有任何实际用处
 // 提供此方法目的在于当不需要Roles拥有读取写入永久应存储时的占位
@@ -78,7 +78,7 @@ func (io *NilReadWrite) ExistChild (id, child string) (have bool, err error) {
 	return;
 }
 
-func (io *NilReadWrite) ReadSameBindFriendsId (id, bind int64) (roles []string, err error){
+func (io *NilReadWrite) ReadSameBindFriendsId (id string, bind int64) (roles []string, err error){
 	err = io.err;
 	return;
 }
@@ -86,7 +86,7 @@ func (io *NilReadWrite) ReadSameBindFriendsId (id, bind int64) (roles []string, 
 func (io *NilReadWrite) ReadFriends (name string)(binds map[string]roles.Status, err error) {
 	err = io.err;
 	return;
-}	
+}
 
 func (io *NilReadWrite) WriteFriends (name string, friends map[string]roles.Status) error {
 	return io.err;
