@@ -13,50 +13,50 @@ const (
 	OPERATE_NOTHING					= iota
 	// 强制保存
 	OPERATE_TOSTORE
-	
+
 	// 获取一个角色
 	OPERATE_READ_ROLE
 	// 写入一个角色
 	OPERATE_WRITE_ROLE
-	
+
 	// 创建一个新角色
 	OPERATE_NEW_ROLE
 	// 删除一个角色
 	OPERATE_DEL_ROLE
-	
+
 	// 获取角色的一个值
 	OPERATE_GET_DATA
 	// 设置角色的一个值
 	OPERATE_SET_DATA
-	
+
 	// 设置father
 	OPERATE_SET_FATHER
 	// 获取father
 	OPERATE_GET_FATHER
 	// 重置father
 	OPERATE_RESET_FATHER
-	
+
 	// 设置children
 	OPERATE_SET_CHILDREN
 	// 获取children
 	OPERATE_GET_CHILDREN
 	// 重置children
 	OPERATE_RESET_CHILDREN
-	
+
 	// 添加一个child
 	OPERATE_ADD_CHILD
 	// 删除一个child
 	OPERATE_DEL_CHILD
 	// 存在某个child
 	OPERATE_EXIST_CHILD
-	
+
 	// 设置friends
 	OPERATE_SET_FRIENDS
-	// 获取children
+	// 获取friends
 	OPERATE_GET_FRIENDS
 	// 重置friends
 	OPERATE_RESET_FRIENDS
-	
+
 	// 添加一个friend
 	OPERATE_ADD_FRIEND
 	// 删除一个friend
@@ -65,14 +65,14 @@ const (
 	OPERATE_CHANGE_FRIEND
 	// 获取同样绑定值的friend
 	OPERATE_SAME_BIND_FRIEND
-	
+
 	// 添加一个空的上下文组
 	OPERATE_ADD_CONTEXT
 	// 删除一个上下文组
 	OPERATE_DEL_CONTEXT
 	// 获取所有上下文的名称
 	OPERATE_GET_CONTEXTS_NAME
-	
+
 	// 添加一个上文
 	OPERATE_ADD_CONTEXT_UP
 	// 删除上文
@@ -81,7 +81,7 @@ const (
 	OPERATE_CHANGE_CONTEXT_UP
 	// 返回同样绑定的上文
 	OPERATE_SAME_BIND_CONTEXT_UP
-	
+
 	// 添加一个下文
 	OPERATE_ADD_CONTEXT_DOWN
 	// 删除下文
@@ -90,12 +90,12 @@ const (
 	OPERATE_CHANGE_CONTEXT_DOWN
 	// 返回同样绑定的下文
 	OPERATE_SAME_BIND_CONTEXT_DOWN
-	
+
 	// 设置朋友的状态
 	OPERATE_SET_FRIEND_STATUS
 	// 获取朋友的状态
 	OPERATE_GET_FRIEND_STATUS
-	
+
 	// 设置上下文的状态
 	OPERATE_SET_CONTEXT_STATUS
 	// 获取上下文的状态
