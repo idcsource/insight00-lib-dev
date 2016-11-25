@@ -1092,6 +1092,12 @@ func (z *ZrStorage) writeFriends_one (id string, friends_b []byte, onec *slaveIn
 	return nil;
 }
 
+// 重置角色的所有朋友关系，也就是发送一个空的朋友关系给WriteFriends
+func (z *ZrStorage) ResetFriends (id string) (err error) {
+	friends := make(map[string]roles.Status);
+	return z.WriteFriends(id, friends);
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
