@@ -120,3 +120,15 @@ type Net_RoleAndFriend struct {
 	Bind		int64
 	Status		roles.Status
 }
+
+// 角色的单个上下文关系的网络数据格式
+type Net_RoleAndContext struct {
+	Id			string
+	// 上下文的名字
+	Context		string
+	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
+	UpOrDown	uint8
+	// 要操作的绑定角色的ID
+	BindRole	string
+	Status		roles.Status
+}
