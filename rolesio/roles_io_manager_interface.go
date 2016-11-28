@@ -61,20 +61,16 @@ type RolesInOutManager interface {
 
 	// 创建一个空的上下文，如果已经存在则忽略
 	CreateContext (id, contextname string) error
-	// 删除一个上下文的上游，upname是对应绑定的角色id
-	DeleteContextUp (id, contextname, upname string) error
-	// 删除一个上下文的下游，downname时对应绑定的角色id
-	DeleteContextDown (id, contextname, downname string) error
 	// 清除一个上下文，也就是删除它
 	DropContext (id, contextname string) error
 	// 是否含有某个上下文
 	ExistContext (id, contextname string) (have bool, err error)
 	// 返回某个上下文的全部信息
 	ReadContext (id, contextname string) (context roles.Context, have bool, err error)
-	// 返回某个上下文中的上游同样绑定值的所有
-	ReadContextUpSameBind (contextname string, bind int64) (rolesid []string, have bool, err error)
-	// 返回某个上下文中的下游同样绑定值的所有
-	ReadContextDownSameBind (contextname string, bind int64) (rolesid []string, have bool, err error)
+	// 删除一个上下文绑定，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN，bindrole是对应绑定的角色id
+	DeleteContextBind (id, contextname string, upordown uint8, bindrole string) (err error)
+	// 返回某个上下文中的上游同样绑定值的所有，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
+	ReadContextSameBind (contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error)
 	// 返回所有上下文组的名称
 	ReadContextsName () (names []string, err error)
 
@@ -82,9 +78,9 @@ type RolesInOutManager interface {
 	WriteFriendStatus (id, friends string, bindbit int, value interface{}) (err error)
 	// 获取朋友的状态属性
 	ReadFriendStatus (id, friends string, bindbit int, value interface{}) (err error)
-	// 设置上下文的状态属性
+	// 设置上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
 	WriteContextStatus (id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error)
-	// 获取上下文的状态属性
+	// 获取上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
 	ReadContextStatus (id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error)
 
 	// 设定上下文

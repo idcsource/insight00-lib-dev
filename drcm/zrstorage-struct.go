@@ -119,6 +119,16 @@ type Net_RoleAndFriend struct {
 	Friend		string
 	Bind		int64
 	Status		roles.Status
+	// 单一的绑定属性修改，1为int，2为float，3为complex
+	Single		uint8
+	// 单一的绑定修改所对应的位置，也就是0到9
+	Bit			uint8
+	// 单一修改的Int
+	Int			int64
+	// 单一修改的Float
+	Float		float64
+	// 单一修改的Complex
+	Complex		complex128
 }
 
 // 角色的单个上下文关系的网络数据格式
@@ -131,4 +141,14 @@ type Net_RoleAndContext struct {
 	// 要操作的绑定角色的ID
 	BindRole	string
 	Status		roles.Status
+	// 单一的绑定属性修改，1为int，2为float，3为complex
+	Single		uint8
+	// 单一的绑定修改所对应的位置，也就是0到9
+	Bit			uint8
+	// 单一修改的Int
+	Int			int64
+	// 单一修改的Float
+	Float		float64
+	// 单一修改的Complex
+	Complex		complex128
 }

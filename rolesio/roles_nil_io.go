@@ -113,11 +113,7 @@ func (io *NilReadWrite) CreateContext (id, contextname string) error {
 	return io.err;
 }
 
-func (io *NilReadWrite) DeleteContextUp (id, contextname, upname string) error {
-	return io.err;
-}
-
-func (io *NilReadWrite) DeleteContextDown (id, contextname, downname string) error {
+func (io *NilReadWrite) DeleteContextBind (id, contextname string, upordown uint8, upname string) error {
 	return io.err;
 }
 
@@ -135,12 +131,7 @@ func (io *NilReadWrite) ReadContext (id, contextname string) (context roles.Cont
 	return;
 }
 
-func (io *NilReadWrite) ReadContextUpSameBind (contextname string, bind int64) (rolesid []string, have bool, err error) {
-	err = io.err;
-	return;
-}
-
-func (io *NilReadWrite) ReadContextDownSameBind (contextname string, bind int64) (rolesid []string, have bool, err error) {
+func (io *NilReadWrite) ReadContextSameBind (contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
 	err = io.err;
 	return;
 }
