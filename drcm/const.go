@@ -69,7 +69,7 @@ const (
 	// 添加一个空的上下文组
 	OPERATE_ADD_CONTEXT
 	// 删除一个上下文组
-	OPERATE_DEL_CONTEXT
+	OPERATE_DROP_CONTEXT
 	// 获取所有上下文的名称
 	OPERATE_GET_CONTEXTS_NAME
 

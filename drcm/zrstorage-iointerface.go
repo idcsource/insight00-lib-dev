@@ -1290,6 +1290,91 @@ func (z *ZrStorage) createContext_one(role_context_b []byte, onec *slaveIn) (err
 	}
 }
 
+// 清除一个上下文，也就是删除
+func (z *ZrStorage) DropContext (id, contextname string) (err error) {
+	// 如果启动了缓存，则全局读锁
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 本地
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]DropContext: %v", err);
+			return err;
+		}
+		rolec.lock.Lock();
+		defer rolec.lock.Unlock();
+		rolec.role.DelContext(contextname);
+		return nil;
+	} else {
+		// slave
+		err = z.dropContext(id, contextname, conn);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]DropContext: %v", err);
+		}
+		return err;
+	}
+}
+
+// 让slave清除上下文
+func (z *ZrStorage) dropContext (id, contextname string, conns []*slaveIn) (err error) {
+	// 构造要发送的信息
+	role_context := Net_RoleAndContext{
+		Id : id,
+		Context: contextname,
+	};
+	role_context_b, err := nst.StructGobBytes(role_context);
+	if err != nil {
+		return err;
+	}
+	// 遍历slave
+	var errstr string;
+	for _, onec := range conns {
+		err = z.dropContext_one(role_context_b, onec);
+		if err != nil {
+			errstr += fmt.Sprint(onec.name, ": ", err, " | ");
+		}
+	}
+	if len(errstr) != 0 {
+		return fmt.Errorf(errstr);
+	} else {
+		return nil;
+	}
+}
+
+// 向某一个slave发送drop上下文的请求
+//
+//	--> OPERATE_DROP_CONTEXT (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) dropContext_one(role_context_b []byte, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导
+	slave_reply, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_DROP_CONTEXT);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return slave_reply.Error;
+	}
+	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, role_context_b);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_ALL_OK {
+		return slave_reply.Error;
+	} else {
+		return nil;
+	}
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
