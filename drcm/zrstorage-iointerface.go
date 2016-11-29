@@ -1375,6 +1375,96 @@ func (z *ZrStorage) dropContext_one(role_context_b []byte, onec *slaveIn) (err e
 	}
 }
 
+// 返回某个上下文的全部信息，如果没有这个上下文则have返回false
+func (z *ZrStorage) ReadContext (id, contextname string) (context roles.Context, have bool, err error) {
+	// 如果启动了缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 本地
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContext: %v", err);
+			return context, false, err;
+		}
+		// 加锁
+		rolec.lock.RLock();
+		defer rolec.lock.RUnlock();
+		// 读取
+		context, have = rolec.role.GetContext(contextname);
+		return context, have, nil;
+	} else {
+		// slave，随即获取一个连接
+		conn_count := len(conn);
+		conn_random := random.GetRandNum(conn_count - 1);
+		context, have, err = z.readContext(id, contextname, conn[conn_random]);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContext: %v", err);
+		}
+		return context, have, err;
+	}
+}
+
+// slave上的readContext
+//
+//	--> OPERATE_READ_CONTEXT (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext (结构体)
+//	<-- DATA_WILL_SEND (slave回执)
+//	--> DATA_PLEASE (uint8)
+//	<-- context (roles.Context)
+func (z *ZrStorage) readContext (id, contextname string, conn *slaveIn) (context roles.Context, have bool, err error) {
+	have = false;
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 前导
+	slave_reply, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_READ_CONTEXT);
+	if err != nil {
+		return;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		err = slave_reply.Error;
+		return;
+	}
+	// 构造要发送的结构体
+	role_context := Net_RoleAndContext{
+		Id: id,
+		Context: contextname,
+	};
+	role_context_b, err := nst.StructGobBytes(role_context);
+	if err != nil {
+		return;
+	}
+	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, role_context_b);
+	if err != nil {
+		return;
+	}
+	// 看看slave是没有找到还是其他错误
+	if slave_reply.DataStat != DATA_WILL_SEND {
+		if slave_reply.DataStat == DATA_RETURN_IS_FALSE {
+			return context, false, nil;
+		} else {
+			return context, false, slave_reply.Error;
+		}
+	}
+	// 发送请求数据
+	data_please := nst.Uint8ToBytes(DATA_PLEASE);
+	context_b, err := cprocess.SendAndReturn(data_please);
+	if err != nil {
+		return;
+	}
+	err = nst.BytesGobStruct(context_b, &context);
+	if err != nil {
+		return;
+	}
+	return context, true, nil;
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地

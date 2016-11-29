@@ -133,22 +133,36 @@ type Net_RoleAndFriend struct {
 
 // 角色的单个上下文关系的网络数据格式
 type Net_RoleAndContext struct {
-	Id			string
+	Id				string
 	// 上下文的名字
-	Context		string
+	Context			string
 	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
-	UpOrDown	uint8
+	UpOrDown		uint8
 	// 要操作的绑定角色的ID
-	BindRole	string
-	Status		roles.Status
+	BindRole		string
+}
+
+// 角色的单个上下文关系数据的网络数据格式
+type Net_RoleAndContext_Data struct {
+	Id				string
+	// 上下文的名字
+	Context			string
+	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
+	UpOrDown		uint8
+	// 要操作的绑定角色的ID
+	BindRole		string
+	// 一个的状态位结构
+	Status			roles.Status
+	// 上下文的结构
+	ContextBody		roles.Context
 	// 单一的绑定属性修改，1为int，2为float，3为complex
-	Single		uint8
+	Single			uint8
 	// 单一的绑定修改所对应的位置，也就是0到9
-	Bit			uint8
+	Bit				uint8
 	// 单一修改的Int
-	Int			int64
+	Int				int64
 	// 单一修改的Float
-	Float		float64
+	Float			float64
 	// 单一修改的Complex
-	Complex		complex128
+	Complex			complex128
 }

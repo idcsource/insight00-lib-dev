@@ -72,6 +72,8 @@ const (
 	OPERATE_DROP_CONTEXT
 	// 获取所有上下文的名称
 	OPERATE_GET_CONTEXTS_NAME
+	// 读取一个上下文的全部
+	OPERATE_READ_CONTEXT
 
 	// 添加一个上文
 	OPERATE_ADD_CONTEXT_UP
@@ -138,6 +140,6 @@ const (
 	DATA_RETURN_ERROR
 	// 数据返回为True
 	DATA_RETURN_IS_TRUE
-	// 束缚返回为flase
+	// 数据返回为flase
 	DATA_RETURN_IS_FALSE
 )

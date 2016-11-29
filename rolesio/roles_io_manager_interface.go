@@ -64,7 +64,7 @@ type RolesInOutManager interface {
 	// 清除一个上下文，也就是删除它
 	DropContext (id, contextname string) error
 	// 是否含有某个上下文
-	ExistContext (id, contextname string) (have bool, err error)
+	//ExistContext (id, contextname string) (have bool, err error)
 	// 返回某个上下文的全部信息
 	ReadContext (id, contextname string) (context roles.Context, have bool, err error)
 	// 删除一个上下文绑定，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN，bindrole是对应绑定的角色id

@@ -121,10 +121,10 @@ func (io *NilReadWrite) DropContext (id, contextname string) error {
 	return io.err;
 }
 
-func (io *NilReadWrite) ExistContext (id, contextname string) (have bool, err error) {
+/*func (io *NilReadWrite) ExistContext (id, contextname string) (have bool, err error) {
 	err = io.err;
 	return;
-}
+}*/
 
 func (io *NilReadWrite) ReadContext (id, contextname string) (context roles.Context, have bool, err error) {
 	err = io.err;
