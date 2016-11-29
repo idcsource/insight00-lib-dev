@@ -115,6 +115,27 @@ func (tc *TcpClient) checkOneConn(cnum int) {
 	}
 }
 
+// 检查某个连接的状态，发送NORMAL_DATA，如果有问题就重新连接，再发送NORMAL_DATA
+func (tc *TcpClient) checkOneConn2 (cnum int) (err error) {
+	err = tc.tcpc[cnum].tcp.SendStat(NORMAL_DATA);
+	if err != nil {
+		ipAdrr, _ := net.ResolveTCPAddr("tcp", tc.addr);
+		connecter, err := net.DialTCP("tcp", nil, ipAdrr);
+		if err != nil {
+			tc.logs.ErrLog("nst[TcpClient]checkOneConn2: Can't reconnect the server: " , err);
+			return err;
+		} else {
+			tc.tcpc[cnum].tcp = NewTCP(connecter);
+			err = tc.tcpc[cnum].tcp.SendStat(NORMAL_DATA);
+			if err != nil {
+				tc.logs.ErrLog("nst[TcpClient]checkOneConn2: Can't reconnect the server: " , err);
+				return err;
+			}
+		}
+	}
+	return nil;
+}
+
 // 将自己绑定到自己创建的桥中
 func (tc *TcpClient) setBridgeBind () {
 	tc.bridgeb = tc.bridge.Register(tc.runtimeid);
@@ -127,14 +148,40 @@ func (tc *TcpClient) ReturnBridge () *bridges.Bridge {
 
 // 建立进程，将会固定在一个连接上进行
 func (tc *TcpClient) OpenProgress () *ProgressData {
-	cnum := tc.connAlloc();
+	tc.lock.Lock();
+	defer tc.lock.Unlock();
+	var cnum int;
+	for {
+		select {
+			case tc.tcpc[tc.alloc_count].slock <- true :
+				cnum = tc.alloc_count;
+				tc.alloc_count++;
+				if tc.alloc_count >= len(tc.tcpc){
+					tc.alloc_count = 0;
+				}
+				err := tc.checkOneConn2(cnum);
+				if err != nil {
+					<- tc.tcpc[cnum].slock;
+					continue;
+				}else{
+					tc.logs.RunLog("分配了一个连接：", cnum);
+					break;
+				}
+			default:
+				tc.alloc_count++;
+				if tc.alloc_count >= len(tc.tcpc){
+					tc.alloc_count = 0;
+				}
+				tc.logs.RunLog("跳过了一个分配");
+		}
+	}
 	return &ProgressData{
 		tcpc : tc.tcpc[cnum],
 		logs : tc.logs,
 	};
 }
 
-// Send 向服务器端发送一个数据流。
+// Send 向服务器端发送一个数据流。会创建连接进程，并首先发送DATA_GOON。
 // 此方法将服务器的返回数据构造成一个指向TcpReturn方法的bridges.BridgeData发送给注册的桥。
 // TcpReturn方法的原型为TcpReturn (key, id string, data []byte)。
 // 此方法采用加锁的机制，防止在沟通的时候，被别的进程抢入。
@@ -145,7 +192,12 @@ func (tc *TcpClient) Send (data []byte) (err error) {
 	}
 	onec := tc.OpenProgress();
 	defer onec.Close();
-	err = onec.checkOneConnInSend();
+	/*err = onec.checkOneConnInSend();
+	if err != nil {
+		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
+		return ;
+	}*/
+	err = onec.tcpc.tcp.SendStat(DATA_GOON);
 	if err != nil {
 		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
 		return ;
@@ -166,7 +218,7 @@ func (tc *TcpClient) Send (data []byte) (err error) {
 	return;
 }
 
-// 发送一段数据并返回服务端的数据，而不是构造桥
+// 发送一段数据并返回服务端的数据，而不是构造桥，会创建连接进程，并首先发送DATA_GOON。
 func (tc *TcpClient) SendAndReturn (data []byte) (returndata []byte, err error) {
 	if tc.tcpc == nil {
 		err = errors.New("nst[TcpClient]SendAndReturn: Connect not exiest.");
@@ -175,9 +227,14 @@ func (tc *TcpClient) SendAndReturn (data []byte) (returndata []byte, err error) 
 	onec := tc.OpenProgress();
 	defer onec.Close();
 	
-	err = onec.checkOneConnInSend();
+	/*err = onec.checkOneConnInSend();
 	if err != nil {
 		err = fmt.Errorf("nst: [TcpClient]SendAndReturn: %v", err);
+		return ;
+	}*/
+	err = onec.tcpc.tcp.SendStat(DATA_GOON);
+	if err != nil {
+		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
 		return ;
 	}
 	
@@ -204,6 +261,7 @@ func (tc *TcpClient) Close () (err error) {
 }
 
 // 连接分配
+/*
 func (tc *TcpClient) connAlloc () (num int) {
 	tc.lock.Lock();
 	defer tc.lock.Unlock();
@@ -211,6 +269,7 @@ func (tc *TcpClient) connAlloc () (num int) {
 		select {
 			case tc.tcpc[tc.alloc_count].slock <- true :
 				num = tc.alloc_count;
+				err = p.checkOneConnInSend();
 				tc.alloc_count++;
 				if tc.alloc_count >= len(tc.tcpc){
 					tc.alloc_count = 0;
@@ -226,7 +285,7 @@ func (tc *TcpClient) connAlloc () (num int) {
 		}
 	}
 } 
-
+*/
 
 // 处理错误和日志
 func (tc *TcpClient) logerr (err interface{}) {
@@ -239,14 +298,18 @@ func (tc *TcpClient) logerr (err interface{}) {
 }
 
 
-// 发送一段数据并返回服务端的数据，而不是构造桥
+// 发送一段数据并返回服务端的数据，而不是构造桥，会创建连接进程，并首先发送DATA_GOON。
 func (p *ProgressData) SendAndReturn (data []byte) (returndata []byte, err error) {
-	err = p.checkOneConnInSend();
+	/*err = p.checkOneConnInSend();
 	if err != nil {
 		err = fmt.Errorf("nst: [ProgressData]SendAndReturn: %v", err);
 		return ;
+	}*/
+	err = p.tcpc.tcp.SendStat(DATA_GOON);
+	if err != nil {
+		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
+		return ;
 	}
-	
 	err = p.tcpc.tcp.SendData(data);
 	if err != nil { 
 		err = fmt.Errorf("nst[ProgressData]SendAndReturn: %v", err);
@@ -261,6 +324,7 @@ func (p *ProgressData) SendAndReturn (data []byte) (returndata []byte, err error
 }
 
 // 运行时检查服务端连接，并且会发送NORMAL_DATA位
+/*
 func (p *ProgressData) checkOneConnInSend () (err error) {
 	err = p.tcpc.tcp.SendStat(NORMAL_DATA);
 	if err != nil {
@@ -278,9 +342,12 @@ func (p *ProgressData) checkOneConnInSend () (err error) {
 		return nil;
 	}
 }
+*/
 
+// 关闭分配的连接进程，并发送DATA_CLOSE
 func (p *ProgressData) Close () {
 	p.logs.RunLog("释放了一个连接？", p.tcpc.id);
+	p.tcpc.tcp.SendStat(DATA_CLOSE);
 	<- p.tcpc.slock;
 	p.logs.RunLog("释放了一个连接：", p.tcpc.id);
 }

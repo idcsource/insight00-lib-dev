@@ -13,6 +13,8 @@ package nst
 const (
 	HEART_BEAT				= iota
 	NORMAL_DATA
+	DATA_GOON
+	DATA_CLOSE
 )
 
 // TcpServer的转交方法所需要符合的接口
