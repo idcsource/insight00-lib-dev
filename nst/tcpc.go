@@ -207,6 +207,18 @@ func (tc *TcpClient) Send (data []byte) (err error) {
 		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
 		return ;
 	}
+	// 接受是不是DATA_GOON或DATA_CLOSE
+	var stat uint8;
+	stat, err = onec.tcpc.tcp.GetStat();
+	if err != nil {
+		err = fmt.Errorf("nst: [TcpClient]Send: %v", err);
+		return ;
+	}
+	if stat == DATA_CLOSE {
+		err = fmt.Errorf("DATA_CLOSE");
+		return ;
+	}
+	
 	var redata []byte;
 	redata, err = onec.tcpc.tcp.GetData();
 	if err != nil {
@@ -243,6 +255,19 @@ func (tc *TcpClient) SendAndReturn (data []byte) (returndata []byte, err error) 
 		err = fmt.Errorf("nst[TcpClient]SendAndReturn: %v", err);
 		return ;
 	}
+	
+	// 接受是不是DATA_GOON或DATA_CLOSE
+	var stat uint8;
+	stat, err = onec.tcpc.tcp.GetStat();
+	if err != nil {
+		err = fmt.Errorf("nst: [TcpClient]SendAndReturn: %v", err);
+		return ;
+	}
+	if stat == DATA_CLOSE {
+		err = fmt.Errorf("DATA_CLOSE");
+		return ;
+	}
+	
 	returndata, err = onec.tcpc.tcp.GetData();
 	if err != nil {
 		err = fmt.Errorf("nst[TcpClient]SendAndReturn: %v", err);
@@ -315,6 +340,19 @@ func (p *ProgressData) SendAndReturn (data []byte) (returndata []byte, err error
 		err = fmt.Errorf("nst[ProgressData]SendAndReturn: %v", err);
 		return ;
 	}
+	
+	// 接受是不是DATA_GOON或DATA_CLOSE
+	var stat uint8;
+	stat, err = p.tcpc.tcp.GetStat();
+	if err != nil {
+		err = fmt.Errorf("nst: [ProgressData]SendAndReturn: %v", err);
+		return ;
+	}
+	if stat == DATA_CLOSE {
+		err = fmt.Errorf("DATA_CLOSE");
+		return ;
+	}
+	
 	returndata, err = p.tcpc.tcp.GetData();
 	if err != nil {
 		err = fmt.Errorf("nst[ProgressData]SendAndReturn: %v", err);
