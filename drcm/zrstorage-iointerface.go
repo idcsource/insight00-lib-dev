@@ -1465,6 +1465,100 @@ func (z *ZrStorage) readContext (id, contextname string, conn *slaveIn) (context
 	return context, true, nil;
 }
 
+// 清除一个上下文的绑定，upordown为roles包中的CONTEXT_UP或CONTEXT_DOWN，binderole是绑定的角色id
+func (z *ZrStorage) DeleteContextBind (id, contextname string, upordown uint8, bindrole string) (err error) {
+	// 是否有缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 查看本地否
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 如果在本地，就读出来
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]DeleteContextBind: %v", err);
+			return err;
+		}
+		// 锁定角色
+		rolec.lock.Lock();
+		defer rolec.lock.Unlock();
+		// 调用角色接口
+		if upordown == roles.CONTEXT_UP {
+			rolec.role.DelContextUp(contextname, bindrole);
+		} else if upordown == roles.CONTEXT_DOWN {
+			rolec.role.DelContextDown(contextname, bindrole);
+		} else {
+			return fmt.Errorf("drcm[ZrStorage]DeleteContextBind: Must CONTEXT_UP or CONTEXT_DOWN.");
+		}
+		return nil;
+	} else {
+		// 如果slave
+		err = z.delContextBind(id, contextname, upordown, bindrole, conn);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]DeleteContextBind: %v", err);
+		}
+		return err;
+	}
+}
+
+// slave清除一个上下文的绑定
+func (z *ZrStorage) delContextBind(id, contextname string, upordown uint8, bindrole string, conns []*slaveIn) (err error) {
+	// 构造传输的信息
+	role_context := Net_RoleAndContext{
+		Id:			id,
+		Context:	contextname,
+		UpOrDown:	upordown,
+		BindRole:	bindrole,
+	};
+	role_context_b, err := nst.StructGobBytes(role_context);
+	if err != nil {
+		return err;
+	}
+	// 遍历连接
+	var errstr string;
+	for _, onec := range conns {
+		err = z.delContextBind_one(role_context_b, onec);
+		if err != nil {
+			errstr += fmt.Sprint(onec.name, ": ", err, " | ");
+		}
+	}
+	if len(errstr) != 0 {
+		return fmt.Errorf(errstr);
+	}
+	return nil;
+}
+
+// 一个的slave清除一个上下文的绑定
+//
+//	--> OPERATE_DEL_CONTEXT_BIND (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext ([]byte)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) delContextBind_one(role_context_b []byte, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 前导
+	slave_reply, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_DEL_CONTEXT_BIND);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return slave_reply.Error;
+	}
+	// 发送数据
+	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, role_context_b);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_ALL_OK {
+		return slave_reply.Error;
+	}
+	return nil;
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地

@@ -74,6 +74,15 @@ const (
 	OPERATE_GET_CONTEXTS_NAME
 	// 读取一个上下文的全部
 	OPERATE_READ_CONTEXT
+	
+	// 添加一个上下文绑定
+	OPERATE_ADD_CONTEXT_BIND
+	// 删除一个上下文绑定
+	OPERATE_DEL_CONTEXT_BIND
+	// 修改一个上下文的绑定
+	OPERATE_CHANGE_CONTEXT_BIND
+	// 返回上下文中同样绑定的元素
+	OPERATE_CONTEXT_SAME_BIND
 
 	// 添加一个上文
 	OPERATE_ADD_CONTEXT_UP
