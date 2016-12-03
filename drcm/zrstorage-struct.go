@@ -99,6 +99,8 @@ type Net_RoleSendAndReceive struct {
 	RoleBody	[]byte
 	// 角色的关系
 	RoleRela	[]byte
+	// 角色的版本
+	RoleVer		[]byte
 }
 
 // 角色的father修改的数据格式

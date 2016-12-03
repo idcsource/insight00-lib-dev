@@ -11,6 +11,10 @@ package roles
 type Roleer interface {
 	// 新建自己的方法
 	New (id string)
+	// 获取自己的版本
+	Version () int
+	// 设置自己的版本
+	SetVersion (version int)
 	
 	// 返回角色自身的ID
 	ReturnId() string

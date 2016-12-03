@@ -96,6 +96,16 @@ func (r *Role) New (id string){
 	r._be_delete = false;
 }
 
+// 获取自己的版本
+func (r *Role) Version () (version int) {
+	return r._role_version;
+}
+
+// 设置自己的版本（通常这个是在存储（如HardStore）来处理的时候才需要甬道）
+func (r *Role) SetVersion (version int) {
+	r._role_version = version;
+}
+
 // 返回status代表的部分是否被改变，被改变则返回true
 func (r *Role) ReturnChanged (status uint8) bool {
 	switch status {

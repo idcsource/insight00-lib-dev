@@ -37,8 +37,13 @@ type HardStore struct {
 	config				*cpool.Block
 	local_path			string
 	path_deep			int64
+	version_name		string
 	relation_name		string
-	context_name		string
+	body_name			string
+}
+
+type roleVersion struct {
+	Version				int
 }
 
 type roleRelation struct {
@@ -113,8 +118,9 @@ func NewHardStore (config *cpool.Block) (*HardStore, error) {
 		config: config,
 		local_path: local_path,
 		path_deep: path_deep,
+		version_name: "_version",
 		relation_name: "_relation",
-		context_name: "_context",
+		body_name: "_body",
 	};
 	return hardstore, nil;
 }
@@ -133,17 +139,23 @@ func (h *HardStore) ReadRole (id string) (roles.Roleer, error) {
 	path := h.findRoleFilePath(id);
 	f_name := path + id;
 	f_relation_name := f_name + h.relation_name;
-	if pubfunc.FileExist(f_name) == false || pubfunc.FileExist(f_relation_name) == false {
+	f_version_name := f_name + h.version_name;
+	f_body_name := f_name + h.body_name;
+	if pubfunc.FileExist(f_body_name) == false || pubfunc.FileExist(f_relation_name) == false || pubfunc.FileExist(f_version_name) == false  {
 		return nil, errors.New("hardstore: ReadRole: Can't find the Role " + id );
 	}
 	
-	r_byte, err := ioutil.ReadFile(f_name);
+	r_byte, err := ioutil.ReadFile(f_body_name);
 	if err != nil {
 		return nil, fmt.Errorf("hardstore: ReadRole: %v", err);
 	}
 	r_r_byte, err2 := ioutil.ReadFile(f_relation_name);
 	if err2 != nil {
 		return nil, fmt.Errorf("hardstore: ReadRole: %v", err2);
+	}
+	r_v_byte, err2_0 := ioutil.ReadFile(f_version_name);
+	if err2_0 != nil {
+		return nil, fmt.Errorf("hardstore: ReadRole: %v", err2_0);
 	}
 	
 	var r_role roles.Roleer;
@@ -156,16 +168,22 @@ func (h *HardStore) ReadRole (id string) (roles.Roleer, error) {
 	if err4 != nil {
 		return nil, fmt.Errorf("hardstore: ReadRole: %v", err4);
 	}
+	var r_version roleVersion;
+	err4_0 := nst.BytesGobStruct(r_v_byte, &r_version);
+	if err4_0 != nil {
+		return nil, fmt.Errorf("hardstore: ReadRole: %v", err4_0);
+	}
 	
 	r_role.SetFather(r_ralation.Father);
 	r_role.SetChildren(r_ralation.Children);
 	r_role.SetFriends(r_ralation.Friends);
 	r_role.SetContexts(r_ralation.Contexts);
+	r_role.SetVersion(r_version.Version);
 	return r_role, nil;
 }
 
 // 解码一个角色，将二进制的角色存储进行解码
-func (h *HardStore) DecodeRole (roleb, relab []byte) (role roles.Roleer, err error) {
+func (h *HardStore) DecodeRole (roleb, relab, verb []byte) (role roles.Roleer, err error) {
 	role, err = nst.BytesGobStructForRoleer(roleb);
 	if err != nil {
 		return nil, fmt.Errorf("hardstore: DecodeRole: %v", err);
@@ -175,11 +193,17 @@ func (h *HardStore) DecodeRole (roleb, relab []byte) (role roles.Roleer, err err
 	if err != nil {
 		return nil, fmt.Errorf("hardstore: DecodeRole: %v", err);
 	}
+	var r_version roleVersion;
+	err = nst.BytesGobStruct(verb, &r_version);
+	if err != nil {
+		return nil, fmt.Errorf("hardstore: DecodeRole: %v", err);
+	}
 	
 	role.SetFather(r_ralation.Father);
 	role.SetChildren(r_ralation.Children);
 	role.SetFriends(r_ralation.Friends);
 	role.SetContexts(r_ralation.Contexts);
+	role.SetVersion(r_version.Version);
 	return role, nil;
 }
 
@@ -193,12 +217,29 @@ func (h *HardStore) StoreRole (role roles.Roleer) error {
 	
 	f_name := path + id;
 	f_ralation_name := f_name + h.relation_name;
+	f_body_name := f_name + h.body_name;
+	f_version_name := f_name + h.version_name;
 	
-	if pubfunc.FileExist(f_name) == true && pubfunc.FileExist(f_ralation_name) == true{
+	if pubfunc.FileExist(f_body_name) == true && pubfunc.FileExist(f_ralation_name) == true && pubfunc.FileExist(f_version_name) == true{
 		if self_change == false && data_change == false {
 			return nil;
 		}
 	} 
+	
+	if pubfunc.FileExist(f_version_name) == false {
+		version := role.Version();
+		role_version := roleVersion{
+			Version : version,
+		};
+		role_version_b, err := nst.StructGobBytes(role_version);
+		if err != nil {
+			return fmt.Errorf("hardstore: StoreRole: %v", err);
+		}
+		err = ioutil.WriteFile(f_version_name, role_version_b, 0600);
+		if err != nil{
+			return fmt.Errorf("hardstore: StoreRole: %v", err);
+		}
+	}
 	
 	var r_byte []byte;
 	if data_change == true {
@@ -224,7 +265,7 @@ func (h *HardStore) StoreRole (role roles.Roleer) error {
 		}
 	}
 	if data_change == true || pubfunc.FileExist(f_name) == false {
-		err3 := ioutil.WriteFile(f_name, r_byte, 0600);
+		err3 := ioutil.WriteFile(f_body_name, r_byte, 0600);
 		if err3 != nil{
 			return fmt.Errorf("hardstore: StoreRole: %v", err3);
 		}
@@ -239,10 +280,10 @@ func (h *HardStore) StoreRole (role roles.Roleer) error {
 }
 
 // 编码角色，将角色编码为两个部分的[]byte，一个是角色本身的数据roleb，一个是角色的关系relab
-func (h *HardStore) EncodeRole (role roles.Roleer) (roleb, relab []byte, err error) {
+func (h *HardStore) EncodeRole (role roles.Roleer) (roleb, relab, verb []byte, err error) {
 	roleb, err = nst.StructGobBytesForRoleer(role);
 	if err != nil {
-		return nil, nil, fmt.Errorf("hardstore: EncodeRole: %v", err);
+		return nil, nil, nil, fmt.Errorf("hardstore: EncodeRole: %v", err);
 	}
 	
 	r_ralation := roleRelation{
@@ -253,7 +294,11 @@ func (h *HardStore) EncodeRole (role roles.Roleer) (roleb, relab []byte, err err
 	};
 	relab, err = nst.StructGobBytes(r_ralation);
 	if err != nil {
-		return nil, nil, fmt.Errorf("hardstore: EncodeRole: %v", err);
+		return nil, nil, nil, fmt.Errorf("hardstore: EncodeRole: %v", err);
+	}
+	verb, err = nst.StructGobBytes(role.Version());
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("hardstore: EncodeRole: %v", err);
 	}
 	return;
 }
@@ -262,12 +307,17 @@ func (h *HardStore) EncodeRole (role roles.Roleer) (roleb, relab []byte, err err
 func (h *HardStore) DeleteRole (name string) (err error) {
 	path := h.findRoleFilePath(name);
 	f_name := path + name;
+	f_body_name := f_name + h.body_name;
 	f_ralation_name := f_name + h.relation_name;
-	if pubfunc.FileExist(f_name) == true {
-		os.Remove(f_name);
+	f_version_name := f_name + h.version_name;
+	if pubfunc.FileExist(f_body_name) == true {
+		os.Remove(f_body_name);
 	}
 	if pubfunc.FileExist(f_ralation_name) == true {
 		os.Remove(f_ralation_name);
+	}
+	if pubfunc.FileExist(f_version_name) == true {
+		os.Remove(f_version_name);
 	}
 	return;
 }

@@ -133,7 +133,7 @@ func (z *ZrStorage) readRole (id string, slave *slaveIn) (role roles.Roleer, err
 		return nil, err;
 	}
 	// 合成出role来
-	role, err = z.local_store.DecodeRole(rolegetstruct.RoleBody, rolegetstruct.RoleRela);
+	role, err = z.local_store.DecodeRole(rolegetstruct.RoleBody, rolegetstruct.RoleRela, rolegetstruct.RoleVer);
 	return role, err;
 }
 
@@ -180,13 +180,14 @@ func (z *ZrStorage) StoreRole (role roles.Roleer) (err error) {
 // 将角色保存到slave中，因为是保存所以需要将所有镜像同时保存
 func (z *ZrStorage) storeRole (role roles.Roleer, conns []*slaveIn) (err error) {
 	// 将角色编码，并生成传输所需要的Net_RoleSendAndReceive格式，并最终编码成为[]byte
-	roleb, relab, err := z.local_store.EncodeRole(role);
+	roleb, relab, verb, err := z.local_store.EncodeRole(role);
 	if err != nil {
 		return err;
 	}
 	roleS := Net_RoleSendAndReceive{
 		RoleBody: roleb,
 		RoleRela: relab,
+		RoleVer: verb,
 	};
 	roleS_b, err := nst.StructGobBytes(roleS);
 	if err != nil {
