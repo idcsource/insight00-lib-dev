@@ -69,8 +69,8 @@ type RolesInOutManager interface {
 	ReadContext (id, contextname string) (context roles.Context, have bool, err error)
 	// 删除一个上下文绑定，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN，bindrole是对应绑定的角色id
 	DeleteContextBind (id, contextname string, upordown uint8, bindrole string) (err error)
-	// 返回某个上下文中的上游同样绑定值的所有，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
-	ReadContextSameBind (contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error)
+	// 返回某个上下文中的同样绑定值的所有，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
+	ReadContextSameBind (id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error)
 	// 返回所有上下文组的名称
 	ReadContextsName () (names []string, err error)
 

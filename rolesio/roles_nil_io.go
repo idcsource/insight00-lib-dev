@@ -131,7 +131,7 @@ func (io *NilReadWrite) ReadContext (id, contextname string) (context roles.Cont
 	return;
 }
 
-func (io *NilReadWrite) ReadContextSameBind (contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
+func (io *NilReadWrite) ReadContextSameBind (id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
 	err = io.err;
 	return;
 }

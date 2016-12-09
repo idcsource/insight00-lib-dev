@@ -1560,6 +1560,103 @@ func (z *ZrStorage) delContextBind_one(role_context_b []byte, onec *slaveIn) (er
 	return nil;
 }
 
+// 返回某个上下文中的同样绑定值的所有，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN，如果给定的contextname不存在，则have返回false。
+func (z *ZrStorage) ReadContextSameBind(id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
+	// 如果启动了缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 本地的解决方案
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContextSameBind: %v", err);
+			return nil, false, err;
+		}
+		// 加读锁
+		rolec.lock.RLock();
+		defer rolec.lock.RUnlock();
+		// 从角色获得信息
+		if upordown == roles.CONTEXT_UP {
+			rolesid, have = rolec.role.GetContextUpSameBind(contextname, bind);
+		} else {
+			rolesid, have = rolec.role.GetContextDownSameBind(contextname, bind);
+		}
+		return rolesid, have, nil;
+	} else {
+		// slave的解决方案
+		conn_count := len(conn);
+		conn_random := random.GetRandNum(conn_count - 1);
+		rolesid, have, err = z.readContextSameBind(id, contextname, upordown, bind, conn[conn_random]);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContextSameBind: %v", err);
+		}
+		return rolesid, have, err;
+	}
+}
+
+// 从一个slave读取某个上下文中的同样绑定值的所有
+//
+//	--> OPERATE_SAME_BIND_CONTEXT (前导)
+//	<-- DATA_PLEASE (slave 回执)
+//	--> Net_RoleAndContext_Data (结构体)
+//	<-- DATA_WILL_SEND (slave 回执)
+//	--> DATA_PLEASE (uint8)
+//	<-- rolesid []string ([]byte数据)
+func (z *ZrStorage) readContextSameBind(id, contextname string, upordown uint8, bind int64, conn *slaveIn) (rolesid []string, have bool, err error) {
+	// 构造发出的信息
+	contextsamebind := Net_RoleAndContext_Data{
+		Id			: id,
+		Context		: contextname,
+		UpOrDown	: upordown,
+		Single		: 1,
+		Bit			: 0,
+		Int			: bind,
+	};
+	contextsamebind_b, err := nst.StructGobBytes(contextsamebind);
+	if err != nil {
+		return nil, false, err;
+	}
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导
+	slave_receipt, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_SAME_BIND_CONTEXT);
+	if err != nil {
+		return nil, false, err;
+	}
+	// 查看回执
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return nil, false, slave_receipt.Error;
+	}
+	// 发送结构
+	slave_receipt, err = z.sendAndDecodeSlaveReceipt(cprocess, contextsamebind_b);
+	// 查看回执
+	if slave_receipt.DataStat == DATA_RETURN_IS_FALSE {
+		// 这是如果没有找到的解决方法
+		return nil, false, slave_receipt.Error;
+	}
+	if slave_receipt.DataStat != DATA_WILL_SEND {
+		// 这是不期望的发送
+		return nil, false, slave_receipt.Error;
+	}
+	// 发送DATA_PLEASE
+	dataplease := nst.Uint8ToBytes(DATA_PLEASE);
+	rolesid_b, err := cprocess.SendAndReturn(dataplease);
+	if err != nil {
+		return nil, false, err;
+	}
+	rolesid = make([]string,0);
+	err = nst.BytesGobStruct(rolesid_b, &rolesid);
+	if err != nil {
+		return nil, false, err;
+	}
+	return rolesid, true, nil;
+} 
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地

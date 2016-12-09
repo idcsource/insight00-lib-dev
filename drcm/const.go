@@ -74,6 +74,8 @@ const (
 	OPERATE_GET_CONTEXTS_NAME
 	// 读取一个上下文的全部
 	OPERATE_READ_CONTEXT
+	// 获取一个上下文中同样绑定值的角色id
+	OPERATE_SAME_BIND_CONTEXT
 	
 	// 添加一个上下文绑定
 	OPERATE_ADD_CONTEXT_BIND
