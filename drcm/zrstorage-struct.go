@@ -93,6 +93,16 @@ type Net_SlaveReceipt struct {
 	Error		error
 }
 
+// slave回执带数据体
+type Net_SlaveReceipt_Data struct {
+	// 数据状态，来自DATA_*
+	DataStat	uint8
+	// 返回的错误
+	Error		error
+	// 数据体
+	Data		[]byte
+}
+
 // 角色的接收与发送格式
 type Net_RoleSendAndReceive struct {
 	// 角色的身体

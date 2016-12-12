@@ -136,7 +136,7 @@ func (io *NilReadWrite) ReadContextSameBind (id, contextname string, upordown ui
 	return;
 }
 
-func (io *NilReadWrite) ReadContextsName () (names []string, err error) {
+func (io *NilReadWrite) ReadContextsName (id string) (names []string, err error) {
 	err = io.err;
 	return;
 }

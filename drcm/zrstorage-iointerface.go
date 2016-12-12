@@ -1655,7 +1655,72 @@ func (z *ZrStorage) readContextSameBind(id, contextname string, upordown uint8, 
 		return nil, false, err;
 	}
 	return rolesid, true, nil;
-} 
+}
+
+// 返回所有上下文组的名称
+func (z *ZrStorage) ReadContextsName(id string) (names []string, err error) {
+	// 如果启用了缓存，则启用全局读锁
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 本地
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContextsName: %v", err);
+			return nil, err;
+		}
+		// 角色加读锁
+		rolec.lock.RLock();
+		defer rolec.lock.RUnlock();
+		// 角色的接口
+		names = rolec.role.GetContextsName();
+		return names, nil;
+	} else {
+		// slave
+		conn_count := len(conn);
+		conn_random := random.GetRandNum(conn_count - 1);
+		names, err = z.readContextsName(id, conn[conn_random]);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContextsName: %v", err);
+		}
+		return names, err;
+	}
+}
+
+// slave上的返回所有上下文组的名称
+//
+//	--> OPERATE_GET_CONTEXTS_NAME (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> role's id
+//	<-- names (slave回执带数据体)
+func (z *ZrStorage) readContextsName(id string, conn *slaveIn) (names []string, err error) {
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导
+	slave_reply, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_GET_CONTEXTS_NAME);
+	if err != nil {
+		return;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return nil, slave_reply.Error;
+	}
+	// 发送id，并接收带数据体的slave回执
+	slave_reply_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, []byte(id));
+	if err != nil {
+		return;
+	}
+	if slave_reply_data.DataStat != DATA_ALL_OK {
+		return nil, slave_reply_data.Error;
+	}
+	names = make([]string, 0);
+	err = nst.BytesGobStruct(slave_reply_data.Data, &names);
+	return;
+}
 
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
@@ -1686,6 +1751,13 @@ func (z *ZrStorage) decodeSlaveReceipt (b []byte) (receipt Net_SlaveReceipt, err
 	return;
 }
 
+// 从[]byte解码SlaveReceipt带数据体
+func (z *ZrStorage) decodeSlaveReceiptData (b []byte) (receipt Net_SlaveReceipt_Data, err error) {
+	receipt = Net_SlaveReceipt_Data{};
+	err = nst.BytesGobStruct(b, &receipt);
+	return;
+}
+
 // 发送数据并解码返回的SlaveReceipt
 func (z *ZrStorage) sendAndDecodeSlaveReceipt (cprocess *nst.ProgressData, data []byte) (receipt Net_SlaveReceipt, err error) {
 	s_r_b, err := cprocess.SendAndReturn(data);
@@ -1693,6 +1765,16 @@ func (z *ZrStorage) sendAndDecodeSlaveReceipt (cprocess *nst.ProgressData, data 
 		return;
 	}
 	receipt, err = z.decodeSlaveReceipt(s_r_b);
+	return;
+}
+
+// 发送数据并解码返回的SlaveReceipt_Data
+func (z *ZrStorage) sendAndDecodeSlaveReceiptData (cprocess *nst.ProgressData, data []byte) (receipt Net_SlaveReceipt_Data, err error) {
+	s_r_b, err := cprocess.SendAndReturn(data);
+	if err != nil {
+		return;
+	}
+	receipt, err = z.decodeSlaveReceiptData(s_r_b);
 	return;
 }
 

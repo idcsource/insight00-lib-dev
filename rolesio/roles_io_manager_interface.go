@@ -72,7 +72,7 @@ type RolesInOutManager interface {
 	// 返回某个上下文中的同样绑定值的所有，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
 	ReadContextSameBind (id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error)
 	// 返回所有上下文组的名称
-	ReadContextsName () (names []string, err error)
+	ReadContextsName (id string) (names []string, err error)
 
 	// 设置朋友的状态属性
 	WriteFriendStatus (id, friends string, bindbit int, value interface{}) (err error)
