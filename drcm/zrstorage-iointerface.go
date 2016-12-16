@@ -1770,11 +1770,11 @@ func (z *ZrStorage) writeFriendStatus(conns []*slaveIn, id, friend string, bindb
 		Bit			: bindbit,
 	};
 	switch statustype {
-		case 1:
+		case roles.STATUS_VALUE_TYPE_INT:
 			role_friend.Int = value.(int64);
-		case 2:
+		case roles.STATUS_VALUE_TYPE_FLOAT:
 			role_friend.Float = value.(float64);
-		case 3:
+		case roles.STATUS_VALUE_TYPE_COMPLEX:
 			role_friend.Complex = value.(complex128);
 		default:
 			role_friend.Single = 0;
@@ -1823,6 +1823,86 @@ func (z *ZrStorage) writeFriendStatus_one(role_friend_b []byte, onec *slaveIn) (
 		return slave_reply.Error;
 	}
 	return nil;
+}
+
+// 获取朋友的状态属性
+func (z *ZrStorage) ReadFriendStatus(id, friend string, bindbit int, value interface{}) (err error) {
+	// 如果启动了缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 本地
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadFriendStatus: %v", err);
+			return err;
+		}
+		// 加读锁
+		rolec.lock.RLock();
+		defer rolec.lock.RUnlock();
+		// 获取
+		err = rolec.role.GetFriendStatus(friend, bindbit, value);
+		return err;
+	} else {
+		// slave
+		conn_count := len(conn);
+		conn_random := random.GetRandNum(conn_count - 1);
+		err = z.readFriendStatus(conn[conn_random], id, friend, bindbit, value);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadFriendStatus: %v", err);
+		}
+		return err;
+	}
+}
+
+// slave获取朋友的状态属性
+//
+//	--> OPERATE_GET_FRIEND_STATUS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndFriend (结构体)
+//	<-- value (slave回执带数据体)
+func (z *ZrStorage) readFriendStatus(conn *slaveIn, id, friend string, bindbit int, value interface{}) (err error) {
+	// 看看要什么类型的值
+	valuetype := z.statusValueType(value);
+	if valuetype == roles.STATUS_VALUE_TYPE_NULL {
+		return fmt.Errorf("The value's type not int64, float64 or complex128.");
+	}
+	// 构造查询结构
+	role_friend := Net_RoleAndFriend{
+		Id					: id,
+		Friend				: friend,
+		Single				: valuetype,
+		Bit					: bindbit,
+	};
+	role_friend_b, err := nst.StructGobBytes(role_friend);
+	if err != nil {
+		return err;
+	}
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导
+	slave_reply, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_GET_FRIEND_STATUS);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return slave_reply.Error;
+	}
+	// 发送要查询的结构，并接收带数据体的slave回执
+	slave_reply_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, role_friend_b);
+	if err != nil {
+		return err;
+	}
+	if slave_reply_data.DataStat != DATA_ALL_OK {
+		return slave_reply_data.Error;
+	}
+	err = nst.BytesGobStruct(slave_reply_data.Data, value);
+	return err;
 }
 
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
@@ -1930,12 +2010,12 @@ func (z *ZrStorage) statusValueType(value interface{}) (types uint8) {
 	vname := valuer.Type().String();
 	switch vname {
 		case "int64":
-			return 1;
+			return roles.STATUS_VALUE_TYPE_INT;
 		case "float64":
-			return 2;
+			return roles.STATUS_VALUE_TYPE_FLOAT;
 		case "complex128":
-			return 3;
+			return roles.STATUS_VALUE_TYPE_COMPLEX;
 		default :
-			return 0;
+			return roles.STATUS_VALUE_TYPE_NULL;
 		}
 }

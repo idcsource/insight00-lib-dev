@@ -36,6 +36,17 @@ const (
 	CONTEXT_DOWN
 )
 
+const (
+	// 状态位的值类型：null
+	STATUS_VALUE_TYPE_NULL		= iota
+	// 状态位的值类型：int64
+	STATUS_VALUE_TYPE_INT
+	// 状态位的值类型：float64
+	STATUS_VALUE_TYPE_FLOAT
+	// 状态位的值类型：complex128
+	STATUS_VALUE_TYPE_COMPLEX
+)
+
 // Role为基本角色类型。
 // 此类型实现了Roleer接口，
 // 应被所有用户自定义角色类型所继承。
@@ -487,7 +498,7 @@ func (r *Role) GetContextsName () (names []string) {
 func (r *Role) SetFriendStatus (id string, bit int, value interface{}) (err error) {
 	defer func(){
 		if e := recover(); e != nil {
-			err = fmt.Errorf("rcontrol: GetData: %v", e);
+			err = fmt.Errorf("roles: SetFriendStatus: %v", e);
 		}
 	}()
 	_, findf := r._friends[id];
@@ -522,7 +533,7 @@ func (r *Role) SetFriendStatus (id string, bit int, value interface{}) (err erro
 func (r *Role) GetFriendStatus (id string, bit int, value interface{}) (err error) {
 	defer func(){
 		if e := recover(); e != nil {
-			err = fmt.Errorf("rcontrol: GetData: %v", e);
+			err = fmt.Errorf("roles: GetFriendStatus: %v", e);
 		}
 	}()
 	_, findf := r._friends[id];
@@ -551,7 +562,7 @@ func (r *Role) GetFriendStatus (id string, bit int, value interface{}) (err erro
 func (r *Role) SetContextStatus (contextname string, upordown uint8, id string, bit int, value interface{}) (err error) {
 	defer func(){
 		if e := recover(); e != nil {
-			err = fmt.Errorf("rcontrol: GetData: %v", e);
+			err = fmt.Errorf("roles: SetContextStatus: %v", e);
 		}
 	}()
 	if bit > 9 {
@@ -620,7 +631,7 @@ func (r *Role) SetContextStatus (contextname string, upordown uint8, id string, 
 func (r *Role) GetContextStatus (contextname string, upordown uint8, id string, bit int, value interface{}) (err error) {
 	defer func(){
 		if e := recover(); e != nil {
-			err = fmt.Errorf("rcontrol: GetData: %v", e);
+			err = fmt.Errorf("roles: GetContextStatus: %v", e);
 		}
 	}()
 	if bit > 9 {
