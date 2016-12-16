@@ -10,6 +10,7 @@ package drcm
 import (
 	"sync"
 	"fmt"
+	"reflect"
 	
 	"github.com/idcsource/Insight-0-0-lib/roles"
 	"github.com/idcsource/Insight-0-0-lib/random"
@@ -1105,9 +1106,10 @@ func (z *ZrStorage) ReadSameBindFriendsId (id string, bind int64) (friends []str
 	return;
 }
 
-// 加入一个朋友关系，并绑定，已经有的关系将之修改绑定值
+// 加入一个朋友关系，并绑定，已经有的关系将之修改绑定值。
+// 这是WriteFriendStatus绑定状态的特例，也就是绑定位为0,绑定值为int64类型。
 func (z *ZrStorage) WriteFriend (id, friend string, bind int64) (err error) {
-	// 这个方法放到随后完成，因为这里是绑定状态的特例
+	err = z.WriteFriendStatus(id, friend, 0, bind);
 	return;
 }
 
@@ -1722,6 +1724,107 @@ func (z *ZrStorage) readContextsName(id string, conn *slaveIn) (names []string, 
 	return;
 }
 
+// 设置朋友的状态属性
+func (z *ZrStorage) WriteFriendStatus(id, friend string, bindbit int, value interface{}) (err error) {
+	// 如果开启缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 检查是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 如果是本地
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteFriendStatus: %v", err);
+			return err;
+		}
+		// 给role加锁
+		rolec.lock.Lock();
+		defer rolec.lock.Unlock();
+		// 设定状态
+		err = rolec.role.SetFriendStatus(friend, bindbit, value);
+		return err;
+	} else {
+		// 如果是slave
+		err = z.writeFriendStatus(conn, id, friend, bindbit, value);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteFriendStatus: %v", err);
+		}
+		return err;
+	}
+}
+
+// slave的设置朋友的状态属性
+func (z *ZrStorage) writeFriendStatus(conns []*slaveIn, id, friend string, bindbit int, value interface{}) (err error) {
+	// 构建要发送的信息
+	statustype := z.statusValueType(value);
+	if statustype == 0 {
+		return fmt.Errorf("The value's type not int64, float64 or complex128.");
+	}
+	role_friend := Net_RoleAndFriend{
+		Id			: id,
+		Friend		: friend,
+		Single		: statustype,
+		Bit			: bindbit,
+	};
+	switch statustype {
+		case 1:
+			role_friend.Int = value.(int64);
+		case 2:
+			role_friend.Float = value.(float64);
+		case 3:
+			role_friend.Complex = value.(complex128);
+		default:
+			role_friend.Single = 0;
+	}
+	role_friend_b, err := nst.StructGobBytes(role_friend);
+	if err != nil {
+		return nil;
+	}
+	// 遍历连接
+	var errstr string;
+	for _, onec := range conns {
+		err = z.writeFriendStatus_one(role_friend_b, onec);
+		if err != nil {
+			errstr += fmt.Sprint(onec.name, ": ", err, " | ");
+		}
+	}
+	if len(errstr) != 0 {
+		return fmt.Errorf(errstr);
+	} else {
+		return nil;
+	}
+}
+
+// 一个slave的设置朋友的状态属性
+// 	--> OPERATE_SET_FRIEND_STATUS (前导词)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndFriend (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) writeFriendStatus_one(role_friend_b []byte, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导
+	slave_reply, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_SET_FRIEND_STATUS);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return slave_reply.Error;
+	}
+	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, role_friend_b);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_ALL_OK {
+		return slave_reply.Error;
+	}
+	return nil;
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
@@ -1819,4 +1922,20 @@ func (z *ZrStorage) checkDelById (id string) bool {
 		}
 	}
 	return false;
+}
+
+// 判断friend或context的状态的类型，types：1为int，2为float，3为complex
+func (z *ZrStorage) statusValueType(value interface{}) (types uint8) {
+	valuer := reflect.Indirect(reflect.ValueOf(value))
+	vname := valuer.Type().String();
+	switch vname {
+		case "int64":
+			return 1;
+		case "float64":
+			return 2;
+		case "complex128":
+			return 3;
+		default :
+			return 0;
+		}
 }

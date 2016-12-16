@@ -134,7 +134,7 @@ type Net_RoleAndFriend struct {
 	// 单一的绑定属性修改，1为int，2为float，3为complex
 	Single		uint8
 	// 单一的绑定修改所对应的位置，也就是0到9
-	Bit			uint8
+	Bit			int
 	// 单一修改的Int
 	Int			int64
 	// 单一修改的Float
@@ -170,7 +170,7 @@ type Net_RoleAndContext_Data struct {
 	// 单一的绑定属性修改，1为int，2为float，3为complex
 	Single			uint8
 	// 单一的绑定修改所对应的位置，也就是0到9
-	Bit				uint8
+	Bit				int8
 	// 单一修改的Int
 	Int				int64
 	// 单一修改的Float
