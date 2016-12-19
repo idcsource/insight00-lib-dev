@@ -1905,6 +1905,108 @@ func (z *ZrStorage) readFriendStatus(conn *slaveIn, id, friend string, bindbit i
 	return err;
 }
 
+// 设定上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
+func (z *ZrStorage) WriteContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+	// 如果开启缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 检查是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 如果是本地
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteContextStatus: %v", err);
+			return err;
+		}
+		// 加锁
+		rolec.lock.Lock();
+		defer rolec.lock.Unlock();
+		// 设定状态
+		err = rolec.role.SetContextStatus(contextname, upordown, bindroleid, bindbit, value);
+		return err;
+	} else {
+		// 如果是slave
+		err = z.writeContextStatus(conn, id, contextname, upordown, bindroleid, bindbit, value);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteContextStatus: %v", err);
+		}
+		return err;
+	}
+}
+
+// slave的设定上下文的状态属性
+func (z *ZrStorage) writeContextStatus(conns []*slaveIn, id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+	// 构建要发送的信息
+	statustype := z.statusValueType(value);
+	if statustype == 0 {
+		return fmt.Errorf("The value's type not int64, float64 or complex128.");
+	}
+	role_context := Net_RoleAndContext_Data{
+		Id					: id,
+		Context				: contextname,
+		UpOrDown			: upordown,
+		BindRole			: bindroleid,
+		Single				: statustype,
+		Bit					: bindbit,
+	};
+	switch statustype {
+		case roles.STATUS_VALUE_TYPE_INT:
+			role_context.Int = value.(int64);
+		case roles.STATUS_VALUE_TYPE_FLOAT:
+			role_context.Float = value.(float64);
+		case roles.STATUS_VALUE_TYPE_COMPLEX:
+			role_context.Complex = value.(complex128);	
+	}
+	role_context_b, err := nst.StructGobBytes(role_context);
+	if err != nil {
+		return nil;
+	}
+	// 遍历连接
+	var errstr string;
+	for _, onec := range conns {
+		err = z.writeContextStatus_one(role_context_b, onec);
+		if err != nil {
+			errstr += fmt.Sprint(onec.name, ": ", err, " | ");
+		}
+	}
+	if len(errstr) != 0 {
+		return fmt.Errorf(errstr);
+	}else{
+		return nil;
+	}
+}
+
+// 一个slave的设定上下文的状态属性
+//
+//	--> OPERATE_SET_CONTEXT_STATUS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext_Data (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) writeContextStatus_one(role_context_b []byte, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导
+	slave_reply, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_SET_CONTEXT_STATUS);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return slave_reply.Error;
+	}
+	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, role_context_b);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_ALL_OK {
+		return slave_reply.Error;
+	}
+	return nil;
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
