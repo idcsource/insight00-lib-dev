@@ -2007,6 +2007,88 @@ func (z *ZrStorage) writeContextStatus_one(role_context_b []byte, onec *slaveIn)
 	return nil;
 }
 
+// 获取上下文的状态属性，upordown为roles.CONTEXT_UP或roles.CONTEXT_DOWN
+func (z *ZrStorage) ReadContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+	// 如果启动了缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock();
+		defer z.lock.RUnlock();
+	}
+	// 是否为本地
+	mode, conn := z.findConn(id);
+	if mode == CONN_IS_LOCAL {
+		// 本地
+		rolec, err := z.readRole_small(id);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContextStatus: %v", err);
+			return err;
+		}
+		// 加读锁
+		rolec.lock.RLock();
+		defer rolec.lock.RUnlock();
+		// 获取
+		err = rolec.role.GetContextStatus(contextname, upordown, bindroleid, bindbit, value);
+		return err;
+	} else {
+		// slave
+		conn_count := len(conn);
+		conn_random := random.GetRandNum(conn_count - 1);
+		err = z.readContextStatus(conn[conn_random], id, contextname, upordown, bindroleid, bindbit, value);
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContextStatus: %v", err);
+		}
+		return err;
+	}
+}
+
+// slave获取上下文的状态属性
+//
+//	--> OPERATE_GET_CONTEXT_STATUS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext_Data (结构体)
+//	<-- value (slave回执带数据体)
+func (z *ZrStorage) readContextStatus(conn *slaveIn, id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+	// 看看要什么类型的值
+	valuetype := z.statusValueType(value);
+	if valuetype == roles.STATUS_VALUE_TYPE_NULL {
+		return fmt.Errorf("The value's type not int64, float64 or complex128.");
+	}
+	// 构造查询结构
+	role_context := Net_RoleAndContext_Data{
+		Id					: id,
+		Context				: contextname,
+		UpOrDown			: upordown,
+		BindRole			: bindroleid,
+		Single				: valuetype,
+		Bit					: bindbit,
+	};
+	role_context_b, err := nst.StructGobBytes(role_context);
+	if err != nil {
+		return err;
+	}
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress();
+	defer cprocess.Close();
+	// 发送前导
+	slave_reply, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_GET_CONTEXT_STATUS);
+	if err != nil {
+		return err;
+	}
+	if slave_reply.DataStat != DATA_PLEASE {
+		return slave_reply.Error;
+	}
+	// 发送要查询的结构，并接收带数据体的slave回执
+	slave_reply_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, role_context_b);
+	if err != nil {
+		return err;
+	}
+	if slave_reply_data.DataStat != DATA_ALL_OK {
+		return slave_reply_data.Error;
+	}
+	err = nst.BytesGobStruct(slave_reply_data.Data, value);
+	return err;
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn (id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
