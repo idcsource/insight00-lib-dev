@@ -10,7 +10,7 @@ package drcm
 // 操作方式列表
 const (
 	// 什么操作都没有
-	OPERATE_NOTHING					= iota
+	OPERATE_NOTHING = iota
 	// 强制保存
 	OPERATE_TOSTORE
 
@@ -76,7 +76,7 @@ const (
 	OPERATE_READ_CONTEXT
 	// 获取一个上下文中同样绑定值的角色id
 	OPERATE_SAME_BIND_CONTEXT
-	
+
 	// 添加一个上下文绑定
 	OPERATE_ADD_CONTEXT_BIND
 	// 删除一个上下文绑定
@@ -113,12 +113,19 @@ const (
 	OPERATE_SET_CONTEXT_STATUS
 	// 获取上下文的状态
 	OPERATE_GET_CONTEXT_STATUS
+
+	// 设置contexts
+	OPERATE_SET_CONTEXTS
+	// 获取contexts
+	OPERATE_GET_CONTEXTS
+	// 重置contexts
+	OPERATE_RESET_CONTEXTS
 )
 
 // 分布式模式
 const (
 	// 没有分布式，只有自己
-	DMODE_OWN					= iota
+	DMODE_OWN = iota
 	// 在分布式里做master
 	DMODE_MASTER
 	// 在分布式里做slave
@@ -128,7 +135,7 @@ const (
 // 连接模式
 const (
 	// 连接为本地存储
-	CONN_IS_LOCAL				= iota
+	CONN_IS_LOCAL = iota
 	// 连接为slave
 	CONN_IS_SLAVE
 )
@@ -136,7 +143,7 @@ const (
 // 数据标记状态
 const (
 	// 数据没有任何的状态
-	DATA_NOTHING				= iota
+	DATA_NOTHING = iota
 	// 数据并不是期望的
 	DATA_NOT_EXPECT
 	// 数据一切正常
