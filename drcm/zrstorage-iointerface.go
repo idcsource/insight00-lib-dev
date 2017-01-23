@@ -2181,6 +2181,82 @@ func (z *ZrStorage) writeContexts_one(id string, contexts_b []byte, onec *slaveI
 	return nil
 }
 
+// 获取上下文
+func (z *ZrStorage) ReadContexts(id string) (contexts map[string]roles.Context, err error) {
+	// 如果启动了缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock()
+		defer z.lock.RUnlock()
+	}
+	// 查看是否在本地
+	connmode, conn := z.findConn(id)
+	if connmode == CONN_IS_LOCAL {
+		// 本地
+		rolec, err := z.readRole_small(id)
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContexts: %v", err)
+			return contexts, err
+		}
+		// 加读锁
+		rolec.lock.RLock()
+		defer rolec.lock.RUnlock()
+		// 从角色获取信息
+		contexts = rolec.role.GetContexts()
+		return contexts, nil
+	} else {
+		// 如果slave
+		conn_count := len(conn)
+		conn_random := random.GetRandNum(conn_count - 1)
+		contexts, err = z.readContexts(id, conn[conn_random])
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadContexts: %v", err)
+		}
+		return contexts, err
+	}
+}
+
+// Slave的获取上下文
+//
+//	分配连接进程
+//	--> OPERATE_GET_CONTEXTS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> role's id (角色ID)
+//	<-- DATA_WILL_SEND (slave回执)
+//	--> DATA_PLEASE (uint8)
+//	<-- contexts (byte)
+func (z *ZrStorage) readContexts(id string, conn *slaveIn) (contexts map[string]roles.Context, err error) {
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 发送前导词
+	sr, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_GET_CONTEXTS)
+	if err != nil {
+		return
+	}
+	if sr.DataStat != DATA_PLEASE {
+		return nil, sr.Error
+
+	}
+	// 发送角色ID
+	sr, err = z.sendAndDecodeSlaveReceipt(cprocess, []byte(id))
+	if err != nil {
+		return nil, err
+	}
+	if sr.DataStat != DATA_WILL_SEND {
+		return nil, sr.Error
+	}
+	// 发送DATA_PLEASE让slave发送
+	data_please_b := nst.Uint8ToBytes(DATA_PLEASE)
+	contexts_b, err := cprocess.SendAndReturn(data_please_b)
+	if err != nil {
+		return nil, err
+	}
+	// 解码
+	contexts = make(map[string]roles.Context)
+	err = nst.BytesGobStruct(contexts_b, &contexts)
+	return contexts, err
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn(id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
