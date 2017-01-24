@@ -10,12 +10,12 @@ package drcm
 import (
 	"sync"
 
-	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesplus"
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
-	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/Insight-0-0-lib/rolesplus"
 )
 
 // 锆存储。
@@ -26,155 +26,164 @@ type ZrStorage struct {
 	/* 下面这部分是存储相关的 */
 
 	// 配置信息
-	config				*cpool.Block
+	config *cpool.Block
 	// 本地存储
-	local_store			*hardstore.HardStore
+	local_store *hardstore.HardStore
 
 	/* 下面这部分是缓存相关的 */
 
 	// 角色缓存
-	rolesCache				map[string]*oneRoleCache
+	rolesCache map[string]*oneRoleCache
 	// 最大缓存角色数
-	cacheMax				int64
+	cacheMax int64
 	// 缓存数量
-	rolesCount				int64
+	rolesCount int64
 	// 缓存满的触发
-	cacheIsFull				chan bool
+	cacheIsFull chan bool
 	// 删除缓存
-	deleteCache				[]string
+	deleteCache []string
 	// 检查缓存数量中
-	checkCacheNumOn			bool
+	checkCacheNumOn bool
 
 	/* 下面是分布式服务相关的 */
 
 	// 分布式服务的模式，来自于常量DMODE_*
-	dmode					uint8
+	dmode uint8
 	// 自身的身份码，做服务的时候使用
-	code					string
+	code string
 	// 请求slave执行或返回数据的连接，string为slave对应的管理第一个值的首字母，而那个切片则是做镜像的
-	slaves			map[string][]*slaveIn
+	slaves map[string][]*slaveIn
 	// 监听的实例
-	listen			*nst.TcpServer
+	listen *nst.TcpServer
 	// slave的连接池，从这里分配给slaveIn
-	slavepool		map[string]*nst.TcpClient
+	slavepool map[string]*nst.TcpClient
 
 	// 日志
-	logs					*ilogs.Logs
+	logs *ilogs.Logs
 	// 全局锁
-	lock					*sync.RWMutex
+	lock *sync.RWMutex
 }
 
 // 一个角色的缓存，提供了锁
 type oneRoleCache struct {
-	lock					*sync.RWMutex
-	role					roles.Roleer
+	lock *sync.RWMutex
+	role roles.Roleer
 }
 
 // 一台从机的信息
 type slaveIn struct {
-	name string
-	code string
+	name    string
+	code    string
 	tcpconn *nst.TcpClient
 }
 
 // 前缀状态，每次向slave发信息都要先把这个状态发出去
 type Net_PrefixStat struct {
 	// 操作类型，从OPERATE_*
-	Operate		int
+	Operate int
 	// 身份验证码
-	Code		string
+	Code string
 }
 
 // slave回执，slave收到PrefixStat之后的第一步返回信息
 type Net_SlaveReceipt struct {
 	// 数据状态，来自DATA_*
-	DataStat	uint8
+	DataStat uint8
 	// 返回的错误
-	Error		error
+	Error error
 }
 
 // slave回执带数据体
 type Net_SlaveReceipt_Data struct {
 	// 数据状态，来自DATA_*
-	DataStat	uint8
+	DataStat uint8
 	// 返回的错误
-	Error		error
+	Error error
 	// 数据体
-	Data		[]byte
+	Data []byte
 }
 
 // 角色的接收与发送格式
 type Net_RoleSendAndReceive struct {
 	// 角色的身体
-	RoleBody	[]byte
+	RoleBody []byte
 	// 角色的关系
-	RoleRela	[]byte
+	RoleRela []byte
 	// 角色的版本
-	RoleVer		[]byte
+	RoleVer []byte
 }
 
 // 角色的father修改的数据格式
 type Net_RoleFatherChange struct {
-	Id			string
-	Father		string
+	Id     string
+	Father string
 }
 
 // 角色的单个子角色关系的网络数据格式
 type Net_RoleAndChild struct {
-	Id			string
-	Child		string
+	Id    string
+	Child string
 }
 
 // 角色的单个朋友角色关系的网络数据格式
 type Net_RoleAndFriend struct {
-	Id			string
-	Friend		string
-	Bind		int64
-	Status		roles.Status
+	Id     string
+	Friend string
+	Bind   int64
+	Status roles.Status
 	// 单一的绑定属性修改，1为int，2为float，3为complex
-	Single		uint8
+	Single uint8
 	// 单一的绑定修改所对应的位置，也就是0到9
-	Bit			int
+	Bit int
 	// 单一修改的Int
-	Int			int64
+	Int int64
 	// 单一修改的Float
-	Float		float64
+	Float float64
 	// 单一修改的Complex
-	Complex		complex128
+	Complex complex128
 }
 
 // 角色的单个上下文关系的网络数据格式
 type Net_RoleAndContext struct {
-	Id				string
+	Id string
 	// 上下文的名字
-	Context			string
+	Context string
 	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
-	UpOrDown		uint8
+	UpOrDown uint8
 	// 要操作的绑定角色的ID
-	BindRole		string
+	BindRole string
 }
 
 // 角色的单个上下文关系数据的网络数据格式
 type Net_RoleAndContext_Data struct {
-	Id				string
+	Id string
 	// 上下文的名字
-	Context			string
+	Context string
 	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
-	UpOrDown		uint8
+	UpOrDown uint8
 	// 要操作的绑定角色的ID
-	BindRole		string
+	BindRole string
 	// 一个的状态位结构
-	Status			roles.Status
+	Status roles.Status
 	// 上下文的结构
-	ContextBody		roles.Context
+	ContextBody roles.Context
 	// 单一的绑定属性修改，1为int，2为float，3为complex
-	Single			uint8
+	Single uint8
 	// 单一的绑定修改所对应的位置，也就是0到9
-	Bit				int
+	Bit int
 	// 单一修改的Int
-	Int				int64
+	Int int64
 	// 单一修改的Float
-	Float			float64
+	Float float64
 	// 单一修改的Complex
-	Complex			complex128
+	Complex complex128
+}
+
+// 角色的单个数据的数据体的网络格式
+type Net_RoleData_Data struct {
+	Id string
+	// 数据点的名字
+	Name string
+	// 数据的字节流
+	Data []byte
 }

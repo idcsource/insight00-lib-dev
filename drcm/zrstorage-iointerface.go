@@ -2257,6 +2257,123 @@ func (z *ZrStorage) readContexts(id string, conn *slaveIn) (contexts map[string]
 	return contexts, err
 }
 
+// 重置上下文，实际也就是利用WriteContexts发一个空的过去
+func (z *ZrStorage) ResetContexts(id string) (err error) {
+	contexts := make(map[string]roles.Context)
+	return z.WriteContexts(id, contexts)
+}
+
+// 把data的数据装入role的name值下，如果找不到name，则返回错误
+func (z *ZrStorage) WriteData(id, name string, data interface{}) (err error) {
+	// 如果开启缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock()
+		defer z.lock.RUnlock()
+	}
+	// 是否为本地
+	mode, conn := z.findConn(id)
+	if mode == CONN_IS_LOCAL {
+		// 如果本地
+		rolec, err := z.readRole_small(id)
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteData: %v", err)
+			return err
+		}
+		// 加锁
+		rolec.lock.Lock()
+		defer rolec.lock.Unlock()
+		defer func() {
+			// 拦截反射的恐慌
+			if e := recover(); e != nil {
+				err = fmt.Errorf("drcm[ZrStorage]WriteData: %v", e)
+			}
+		}()
+		// 开始反射的那些乱七八遭
+		rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(name)
+		rv_type := rv.Type()
+		dv := reflect.Indirect(reflect.ValueOf(data))
+		dv_type := dv.Type()
+		if rv_type != dv_type {
+			err = fmt.Errorf("drcm[ZrStorage]WriteData: The data type %v not assignable to type %v.", dv_type, rv_type)
+			return err
+		}
+		if rv.CanSet() != true {
+			err = fmt.Errorf("drcm[ZrStroage]WriteData: The data type %v not be set.", dv_type)
+			return err
+		}
+		rv.Set(dv)
+		rolec.role.SetDataChanged()
+		return nil
+	} else {
+		// 如果是在slave
+		err = z.writeData(id, name, data, conn)
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteData: %v", err)
+		}
+		return err
+	}
+}
+
+// slave把data的数据装入role的name值下
+func (z *ZrStorage) writeData(id, name string, data interface{}, conns []*slaveIn) (err error) {
+	// 构造要传输的信息
+	data_b, err := nst.StructGobBytes(data)
+	if err != nil {
+		return err
+	}
+	trans := Net_RoleData_Data{
+		Id:   id,
+		Name: name,
+		Data: data_b,
+	}
+	trans_b, err := nst.StructGobBytes(trans)
+	if err != nil {
+		return err
+	}
+	// 遍历连接
+	var errstr string
+	for _, onec := range conns {
+		err = z.writeData_one(id, trans_b, onec)
+		if err != nil {
+			errstr += fmt.Sprint(onec.name, ": ", err, " | ")
+		}
+	}
+	if len(errstr) != 0 {
+		return fmt.Errorf(errstr)
+	} else {
+		return nil
+	}
+}
+
+// slave把data的数据装入role的name值下，一个的
+//
+//	--> OPERATE_SET_DATA (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> trans_b
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) writeData_one(id string, trans_b []byte, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 发送前导
+	slave_receipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_SET_DATA)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return slave_receipt.Error
+	}
+	//发送数据体
+	slave_receipt, err = z.sendAndDecodeSlaveReceipt(cprocess, trans_b)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		return slave_receipt.Error
+	}
+	return nil
+}
+
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (z *ZrStorage) findConn(id string) (connmode uint8, conn []*slaveIn) {
 	// 如果模式为own，则直接返回本地
