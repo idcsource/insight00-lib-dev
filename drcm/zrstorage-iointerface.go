@@ -941,7 +941,7 @@ func (z *ZrStorage) ReadFriends(id string) (status map[string]roles.Status, err 
 		// 本地的处理
 		rolec, err := z.readRole_small(id)
 		if err != nil {
-			err = fmt.Errorf("drdcm[ZrStorage]ReadFriends: %v", err)
+			err = fmt.Errorf("drcm[ZrStorage]ReadFriends: %v", err)
 			return nil, err
 		}
 		rolec.lock.RLock()
@@ -955,7 +955,7 @@ func (z *ZrStorage) ReadFriends(id string) (status map[string]roles.Status, err 
 		conn_random := random.GetRandNum(conn_count - 1)
 		status, err = z.readFriends(id, conn[conn_random])
 		if err != nil {
-			err = fmt.Errorf("drdcm[ZrStorage]ReadFriends: %v", err)
+			err = fmt.Errorf("drcm[ZrStorage]ReadFriends: %v", err)
 		}
 		return status, err
 	}
@@ -2349,7 +2349,7 @@ func (z *ZrStorage) writeData(id, name string, data interface{}, conns []*slaveI
 //
 //	--> OPERATE_SET_DATA (前导)
 //	<-- DATA_PLEASE (slave回执)
-//	--> trans_b
+//	--> Net_RoleData_Data
 //	<-- DATA_ALL_OK (slave回执)
 func (z *ZrStorage) writeData_one(id string, trans_b []byte, onec *slaveIn) (err error) {
 	// 分配连接
@@ -2372,6 +2372,90 @@ func (z *ZrStorage) writeData_one(id string, trans_b []byte, onec *slaveIn) (err
 		return slave_receipt.Error
 	}
 	return nil
+}
+
+// 从角色中知道name的数据名并返回其数据
+func (z *ZrStorage) ReadData(id, name string, data interface{}) (err error) {
+	// 如果启用缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock()
+		defer z.lock.RUnlock()
+	}
+	// 是否本地
+	mode, conn := z.findConn(id)
+	if mode == CONN_IS_LOCAL {
+		// 本地
+		rolec, err := z.readRole_small(id)
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadData: %v", err)
+			return err
+		}
+		rolec.lock.RLock()
+		defer rolec.lock.RUnlock()
+		// 开始获取信息了
+		rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(name)
+		rv_type := rv.Type()
+		dv := reflect.Indirect(reflect.ValueOf(data))
+		dv_type := dv.Type()
+		if rv_type != dv_type {
+			err = fmt.Errorf("drcm[ZrStorage]WriteData: The data type %v not assignable to type %v.", dv_type, rv_type)
+			return err
+		}
+		if rv.CanSet() != true {
+			err = fmt.Errorf("drcm[ZrStroage]WriteData: The data type %v not be set.", dv_type)
+			return err
+		}
+		dv.Set(rv)
+		return nil
+	} else {
+		// slave
+		conn_count := len(conn)
+		conn_random := random.GetRandNum(conn_count - 1)
+		err = z.readData(id, name, data, conn[conn_random])
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadData: %v", err)
+		}
+		return err
+	}
+}
+
+// slave的从角色中知道name的数据名并返回其数据
+//
+//	--> OPERATE_GET_DATA (前导词)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleData_Data
+//	<-- Net_RoleData_Data (跟随DATA_ALL_OK)
+func (z *ZrStorage) readData(id, name string, data interface{}, conn *slaveIn) (err error) {
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 构建发送的数据
+	trans := Net_RoleData_Data{
+		Id:   id,
+		Name: name,
+	}
+	trans_b, err := nst.StructGobBytes(trans)
+	if err != nil {
+		return err
+	}
+	// 发送前导
+	slave_receipt, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_GET_DATA)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return slave_receipt.Error
+	}
+	// 发送数据体并接收
+	slave_receipt_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, trans_b)
+	if err != nil {
+		return err
+	}
+	if slave_receipt_data.DataStat != DATA_ALL_OK {
+		return slave_receipt_data.Error
+	}
+	err = nst.BytesGobStruct(slave_receipt_data.Data, data)
+	return err
 }
 
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
