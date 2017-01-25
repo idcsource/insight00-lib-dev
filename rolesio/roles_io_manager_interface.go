@@ -50,14 +50,14 @@ type RolesInOutManager interface {
 	// 删除name角色的所有朋友关系（重置）
 	ResetFriends(id string) error
 	// 获取相同远近关系下的所有朋友的ID
-	ReadSameBindFriendsId(id string, bind int64) ([]string, error)
+	//ReadSameBindFriendsId(id string, bind int64) ([]string, error)
 
 	// 往永久存储里加入一个朋友关系，并绑定，已有关系将只是修改绑定值
 	WriteFriend(id, friend string, bind int64) error
 	// 在永久存储里删除一个朋友关系
 	DeleteFriend(id, friend string) error
 	// 是否存在朋友关系，并返回绑定值
-	ExistFriend(id, friend string) (bind int64, have bool, err error)
+	//ExistFriend(id, friend string) (bind int64, have bool, err error)
 
 	// 创建一个空的上下文，如果已经存在则忽略
 	CreateContext(id, contextname string) error

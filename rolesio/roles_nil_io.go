@@ -78,10 +78,12 @@ func (io *NilReadWrite) ExistChild(id, child string) (have bool, err error) {
 	return
 }
 
+/*
 func (io *NilReadWrite) ReadSameBindFriendsId(id string, bind int64) (roles []string, err error) {
 	err = io.err
 	return
 }
+*/
 
 func (io *NilReadWrite) ReadFriends(name string) (binds map[string]roles.Status, err error) {
 	err = io.err
@@ -104,10 +106,12 @@ func (io *NilReadWrite) DeleteFriend(name, friend string) error {
 	return io.err
 }
 
+/*
 func (io *NilReadWrite) ExistFriend(id, friend string) (bind int64, have bool, err error) {
 	err = io.err
 	return
 }
+*/
 
 func (io *NilReadWrite) CreateContext(id, contextname string) error {
 	return io.err
@@ -121,10 +125,12 @@ func (io *NilReadWrite) DropContext(id, contextname string) error {
 	return io.err
 }
 
-/*func (io *NilReadWrite) ExistContext (id, contextname string) (have bool, err error) {
+/*
+func (io *NilReadWrite) ExistContext (id, contextname string) (have bool, err error) {
 	err = io.err;
 	return;
-}*/
+}
+*/
 
 func (io *NilReadWrite) ReadContext(id, contextname string) (context roles.Context, have bool, err error) {
 	err = io.err

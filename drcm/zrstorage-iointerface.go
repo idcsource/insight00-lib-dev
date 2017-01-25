@@ -1099,22 +1099,10 @@ func (z *ZrStorage) ResetFriends(id string) (err error) {
 	return z.WriteFriends(id, friends)
 }
 
-// 获取相同远近关系下的所有朋友ID
-func (z *ZrStorage) ReadSameBindFriendsId(id string, bind int64) (friends []string, err error) {
-	// 这个方法放到随后完成，因为这里应该是作为绑定状态的特例存在
-	return
-}
-
 // 加入一个朋友关系，并绑定，已经有的关系将之修改绑定值。
 // 这是WriteFriendStatus绑定状态的特例，也就是绑定位为0,绑定值为int64类型。
 func (z *ZrStorage) WriteFriend(id, friend string, bind int64) (err error) {
 	err = z.WriteFriendStatus(id, friend, 0, bind)
-	return
-}
-
-// 是否存在一个朋友关系，并返回绑定值
-func (z *ZrStorage) ExistFriend(id, friend string) (bind int64, have bool, err error) {
-	// 这个方法放到随后完成，因为这里是绑定状态的特例
 	return
 }
 
