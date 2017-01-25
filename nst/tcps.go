@@ -61,6 +61,8 @@ func (ts *TcpServer) doConn(conn *net.TCPConn) {
 		}
 	}()
 	tcp := NewTCP(conn)
+	conn_exec := NewConnExec(tcp)
+
 	for {
 		stat, err := tcp.GetStat()
 		if err != nil {
@@ -69,7 +71,7 @@ func (ts *TcpServer) doConn(conn *net.TCPConn) {
 		}
 		if stat == NORMAL_DATA {
 			in := make([]reflect.Value, 1)
-			in[0] = reflect.ValueOf(tcp)
+			in[0] = reflect.ValueOf(conn_exec)
 			// 注册的方法需要符合ConnExecer，整个连接将交给注册的方法去执行
 			rr := ts.role.MethodByName("ExecTCP").Call(in)
 			erri := rr[0].Interface()
@@ -86,48 +88,6 @@ func (ts *TcpServer) doConn(conn *net.TCPConn) {
 	}
 }
 
-// 做接收的信息处理，处理掉头部信息
-func (ts *TcpServer) GetData(tcp *TCP) (data []byte, err error) {
-	stat, err := tcp.GetStat()
-	if err != nil {
-		err = fmt.Errorf("nst[TcpServer]GetData: %v", err)
-		ts.logerr(err)
-		return nil, err
-	}
-	if stat == DATA_GOON {
-		return nil, fmt.Errorf("DATA_CLOSE")
-	}
-	data, err = tcp.GetData()
-	if err != nil {
-		err = fmt.Errorf("nst[TcpServer]GetData: %v", err)
-		ts.logerr(err)
-	}
-	return data, err
-}
-
-// 做发送的信息处理，加上发送头
-func (ts *TcpServer) SendData(tcp *TCP, data []byte) (err error) {
-	err = tcp.SendStat(DATA_GOON)
-	if err != nil {
-		err = fmt.Errorf("nst[TcpServer]SendData: %v", err)
-		ts.logerr(err)
-		return err
-	}
-	err = tcp.SendData(data)
-	if err != nil {
-		err = fmt.Errorf("nst[TcpServer]SendData: %v", err)
-		ts.logerr(err)
-		return err
-	}
-	return nil
-}
-
-// 发送关闭连接的处理
-func (ts *TcpServer) SendClose(tcp *TCP) (err error) {
-	err = tcp.SendStat(DATA_CLOSE)
-	return err
-}
-
 // 处理错误和日志
 func (ts *TcpServer) logerr(err interface{}) {
 	if err == nil {
@@ -138,4 +98,80 @@ func (ts *TcpServer) logerr(err interface{}) {
 	} else {
 		fmt.Println(err)
 	}
+}
+
+// 服务器端的连接执行类型
+type ConnExec struct {
+	tcp *TCP
+}
+
+// 创建一个连接执行
+func NewConnExec(tcp *TCP) (connExec *ConnExec) {
+	return &ConnExec{tcp: tcp}
+}
+
+// 做接收的信息处理，处理掉头部信息
+func (ce *ConnExec) GetData() (data []byte, err error) {
+	stat, err := ce.tcp.GetStat()
+	if err != nil {
+		if fmt.Sprint(err) == "EOF" {
+			return nil, err
+		} else if err != nil {
+			err = fmt.Errorf("nst[ConnExec]GetData: %v", err)
+			return nil, err
+		}
+	}
+	if stat == DATA_GOON {
+		return nil, fmt.Errorf("DATA_CLOSE")
+	}
+	data, err = ce.tcp.GetData()
+	if err != nil {
+		if fmt.Sprint(err) == "EOF" {
+			return nil, err
+		} else if err != nil {
+			err = fmt.Errorf("nst[ConnExec]GetData: %v", err)
+			return nil, err
+		}
+	}
+	return data, err
+}
+
+// 做发送的信息处理，加上发送头
+func (ce *ConnExec) SendData(data []byte) (err error) {
+	err = ce.tcp.SendStat(DATA_GOON)
+	if err != nil {
+		if fmt.Sprint(err) == "EOF" {
+			return err
+		} else if err != nil {
+			err = fmt.Errorf("nst[ConnExec]SendData: %v", err)
+			return err
+		}
+	}
+	err = ce.tcp.SendData(data)
+	if err != nil {
+		if fmt.Sprint(err) == "EOF" {
+			return err
+		} else if err != nil {
+			err = fmt.Errorf("nst[ConnExec]SendData: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+// 发送关闭连接的处理
+func (ce *ConnExec) SendClose() (err error) {
+	err = ce.tcp.SendStat(DATA_CLOSE)
+	if fmt.Sprint(err) == "EOF" {
+		return err
+	} else if err != nil {
+		err = fmt.Errorf("nst[ConnExec]SendData: %v", err)
+		return err
+	}
+	return nil
+}
+
+// 返回其中的TCP
+func (ce *ConnExec) Tcp() (tcp *TCP) {
+	return ce.tcp
 }

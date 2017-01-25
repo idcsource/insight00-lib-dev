@@ -41,12 +41,10 @@
 //	--> 发送HEART_BEAT状态
 //	--> 如果发送不成功，则进行重新连接
 //	--> 释放连接的锁
-//
-// [TODO]TcpServer的相应对DATA_GOON和DATA_CLOSE两个状态的截获和处理还未进行。
 package nst
 
 const (
-	HEART_BEAT				= iota
+	HEART_BEAT = iota
 	NORMAL_DATA
 	DATA_GOON
 	DATA_CLOSE
@@ -54,5 +52,5 @@ const (
 
 // TcpServer的转交方法所需要符合的接口
 type ConnExecer interface {
-	ExecTCP (tcp *TCP) error
+	ExecTCP(ce *ConnExec) error
 }

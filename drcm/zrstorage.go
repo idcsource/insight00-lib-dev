@@ -188,19 +188,33 @@ func (z *ZrStorage) closeSlavePool() {
 	}
 }
 
-// ExecTCP nst的ConnExecer接口
-func (z *ZrStorage) ExecTCP(tcp *nst.TCP) (err error) {
-	// 接收身份验证码
-	// 回应是否可以传输数据
-	// 接收指令
-	// 回应可以接收数据
-	// 转到相应方法
-	return nil
-}
-
 // 检查缓存数，如果超出则执行运行时保存
 func (z *ZrStorage) checkCacheNum() {
 	if z.cacheMax > 0 && z.rolesCount >= z.cacheMax && z.checkCacheNumOn == false {
 		z.cacheIsFull <- true
+	}
+}
+
+// 处理错误日志
+func (z *ZrStorage) logerr(err interface{}) {
+	if err == nil {
+		return
+	}
+	if z.logs != nil {
+		z.logs.ErrLog(fmt.Errorf("drcm[ZrStorage]: %v", err))
+	} else {
+		fmt.Println(err)
+	}
+}
+
+// 处理运行日志
+func (z *ZrStorage) logrun(err interface{}) {
+	if err == nil {
+		return
+	}
+	if z.logs != nil {
+		z.logs.RunLog(fmt.Errorf("drcm[ZrStorage]: %v", err))
+	} else {
+		fmt.Println(err)
 	}
 }
