@@ -8,6 +8,8 @@
 package drcm
 
 import (
+	"fmt"
+
 	"github.com/idcsource/Insight-0-0-lib/nst"
 )
 
@@ -40,7 +42,8 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_TOSTORE:
 
 	case OPERATE_READ_ROLE:
-
+		// 读取角色，对应ReadRole
+		err = z.serverToReadRole(conn_exec)
 	case OPERATE_WRITE_ROLE:
 
 	case OPERATE_NEW_ROLE:
@@ -132,8 +135,88 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_RESET_CONTEXTS:
 
 	default:
+		// 构建关闭
+		z.serverErrorReceipt(conn_exec, DATA_NOT_EXPECT, fmt.Errorf("The oprerate can not found."))
 		conn_exec.SendClose()
 		return nil
+	}
+	if err != nil {
+		z.serverErrorReceipt(conn_exec, DATA_RETURN_ERROR, err)
+		return fmt.Errorf("drcm[ZrStorage]: %v", err)
+	}
+	return nil
+}
+
+// 读取角色
+// <-- 发送DATA_PLEASE (slave回执)
+// --> 接收role'id
+// <-- 发送DATA_WILL_SEND
+// --> 接收DATA_PLEASE
+func (z *ZrStorage) serverToReadRole(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收role'id
+	role_id_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	role_id := string(role_id_b)
+	// 找有没有这个role
+	role, err := z.ReadRole(role_id)
+	if err != nil {
+		// 找不到就构建找不到的回执并发出去
+		z.serverErrorReceipt(conn_exec, DATA_NOT_EXPECT, err)
+		return nil
+	}
+	roleb, relab, verb, err := z.local_store.EncodeRole(role)
+	if err != nil {
+		return err
+	}
+	// 构建要发送的数据
+	role_send := Net_RoleSendAndReceive{
+		RoleBody: roleb,
+		RoleRela: relab,
+		RoleVer:  verb,
+	}
+	role_send_b, err := nst.StructGobBytes(role_send)
+	if err != nil {
+		return err
+	}
+	// 发送准备接收的回执
+	err = z.serverErrorReceipt(conn_exec, DATA_WILL_SEND, nil)
+	if err != nil {
+		return err
+	}
+	statb, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	stat := nst.BytesToUint8(statb)
+	if stat != DATA_PLEASE {
+		return fmt.Errorf("The stat not expect.")
+	}
+	// 发送数据体
+	conn_exec.SendData(role_send_b)
+	return nil
+}
+
+// 向请求方返回错误回执
+func (z *ZrStorage) serverErrorReceipt(conn_exec *nst.ConnExec, stat uint8, err error) (err2 error) {
+	// 构建回执
+	slave_receipt := Net_SlaveReceipt{
+		DataStat: stat,
+		Error:    err,
+	}
+	slave_receipt_b, err2 := nst.StructGobBytes(slave_receipt)
+	if err2 != nil {
+		return err2
+	}
+	err2 = conn_exec.SendData(slave_receipt_b)
+	if err2 != nil {
+		return err2
 	}
 	return nil
 }

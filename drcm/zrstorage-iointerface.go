@@ -91,7 +91,7 @@ func (z *ZrStorage) readRole_small(id string) (rolec *oneRoleCache, err error) {
 // 从slave读取一个角色
 //
 //	--> OPERATE_READ_ROLE (前导)
-//	<-- DATA_ALL_OK (slave回执)
+//	<-- DATA_PLEASE (slave回执)
 //	--> 角色ID
 //	<-- DATA_WILL_SEND (slave回执)
 //	--> DATA_PLEASE (uint8)
@@ -104,7 +104,7 @@ func (z *ZrStorage) readRole(id string, slave *slaveIn) (role roles.Roleer, err 
 		return nil, err
 	}
 	// 如果获取到的DATA_ALL_OK则说明认证已经通过
-	if slavereceipt.DataStat != DATA_ALL_OK {
+	if slavereceipt.DataStat != DATA_PLEASE {
 		return nil, slavereceipt.Error
 	}
 	// 发送想要的id，并接收slave的返回
