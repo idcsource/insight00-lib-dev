@@ -64,12 +64,82 @@ func (z *ZrStorage) buildCache() (err error) {
 		err = fmt.Errorf("drcm:NewZrStorage: %v", err)
 		return
 	}
+	if z.cacheMax <= 0 {
+		return
+	}
 	z.rolesCache = make(map[string]*oneRoleCache)
 	z.deleteCache = make([]string, 0)
 	z.cacheIsFull = make(chan bool)
 	z.rolesCount = 0
 	z.checkCacheNumOn = false
+	go z.runtimeStore()
 	return
+}
+
+// 运行时自动存储
+func (z *ZrStorage) runtimeStore() {
+	for {
+		full := <-z.cacheIsFull
+		if full == true {
+			// 保存
+			z.toCacheStore()
+		}
+	}
+}
+
+func (z *ZrStorage) deferCheckCacheNumOn() {
+	z.checkCacheNumOn = false
+}
+
+// 缓存的保存
+func (z *ZrStorage) toCacheStore() (err error) {
+	z.lock.Lock()
+	defer z.lock.Unlock()
+
+	z.checkCacheNumOn = true
+	defer z.deferCheckCacheNumOn()
+
+	for _, rolec := range z.rolesCache {
+		err = z.local_store.StoreRole(rolec.role)
+		if err != nil {
+			z.logerr(err)
+		}
+	}
+
+	// 重置缓存
+	z.rolesCache = make(map[string]*oneRoleCache)
+	z.deleteCache = make([]string, 0)
+	z.rolesCount = 0
+
+	return nil
+}
+
+// 缓存的运行时保存
+func (z *ZrStorage) ToStore() (err error) {
+	err = z.toCacheStore()
+	if err != nil {
+		return err
+	}
+
+	// 向所有的slave发送
+	if z.dmode != DMODE_OWN {
+		for _, onec := range z.slavecpool {
+			// 分配连接
+			cprocess := onec.tcpconn.OpenProgress()
+			defer cprocess.Close()
+			// 发送前导OPERATE_TOSTORE
+			slave_receipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_TOSTORE)
+			if err != nil {
+				z.logerr(err)
+				return err
+			}
+			if slave_receipt.DataStat != DATA_ALL_OK {
+				z.logerr(slave_receipt.Error)
+				return slave_receipt.Error
+			}
+		}
+	}
+	return nil
 }
 
 // 使用own模式来启动锆存储
@@ -111,13 +181,16 @@ func (z *ZrStorage) startUseMaster() (err error) {
 		return
 	}
 	z.slaves = make(map[string][]*slaveIn)
+	z.slavepool = make(map[string]*nst.TcpClient)
+	z.slavecpool = make(map[string]*slaveIn)
+
 	// 获取slave的配置名
 	slaves, err := z.config.GetEnum("main.slave")
 	if err != nil {
 		err = fmt.Errorf("drcm:NewZrStorage: %v", err)
 		return
 	}
-	// 遍历所以的slave配置名
+	// 遍历所有的slave配置名
 	for _, one := range slaves {
 		// 获取每个slave的配置
 		onecfg, err := z.config.GetSection(one)
@@ -156,7 +229,7 @@ func (z *ZrStorage) startUseMaster() (err error) {
 			return err
 		}
 		// 创建连接和连接池，放到池子里主要是为了到时候出错了关闭方便
-		z.slavepool = make(map[string]*nst.TcpClient)
+		//z.slavepool = make(map[string]*nst.TcpClient)
 		sconn, err := nst.NewTcpClient(addr, conn_num, z.logs)
 		if err != nil {
 			err = fmt.Errorf("drcm:NewZrStorage: %v", err)
@@ -164,6 +237,11 @@ func (z *ZrStorage) startUseMaster() (err error) {
 			return err
 		}
 		z.slavepool[one] = sconn
+		z.slavecpool[one] = &slaveIn{
+			name:    one,
+			code:    code,
+			tcpconn: sconn,
+		}
 		// 遍历可管理角色首字母创建连接序列
 		for _, onewho := range control_whos {
 			// 序列里没有这个字母就建立一个
@@ -171,11 +249,7 @@ func (z *ZrStorage) startUseMaster() (err error) {
 				z.slaves[onewho] = make([]*slaveIn, 0)
 			}
 			// 将这个字母的序列中加入这个slave的名字
-			z.slaves[onewho] = append(z.slaves[onewho], &slaveIn{
-				name:    one,
-				code:    code,
-				tcpconn: sconn,
-			})
+			z.slaves[onewho] = append(z.slaves[onewho], z.slavecpool[one])
 		}
 	}
 	return

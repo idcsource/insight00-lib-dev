@@ -344,7 +344,8 @@ func (z *ZrStorage) WriteFather(id, father string) (err error) {
 		rolec.lock.Lock()
 		defer rolec.lock.Unlock()
 		rolec.role.SetFather(father)
-		return nil
+		err = z.checkCacheStore(rolec.role)
+		return err
 	} else {
 		// 如果是slave
 		err = z.writeFather(id, father, slaveconn)
@@ -597,7 +598,8 @@ func (z *ZrStorage) WriteChildren(id string, children []string) (err error) {
 		rolec.lock.Lock()
 		defer rolec.lock.Unlock()
 		rolec.role.SetChildren(children)
-		return nil
+		err = z.checkCacheStore(rolec.role)
+		return err
 	} else {
 		// 如果在slave
 		err = z.writeChildren(id, children, conn)
@@ -704,7 +706,8 @@ func (z *ZrStorage) WriteChild(id, child string) (err error) {
 		defer rolec.lock.Unlock()
 		// 设置关系
 		rolec.role.AddChild(child)
-		return nil
+		err = z.checkCacheStore(rolec.role)
+		return err
 	} else {
 		// 如果是slave的
 		err = z.writeChild(id, child, conn)
@@ -1022,7 +1025,8 @@ func (z *ZrStorage) WriteFriends(id string, friends map[string]roles.Status) (er
 		defer rolec.lock.Unlock()
 		// 调用角色的接口
 		rolec.role.SetFriends(friends)
-		return nil
+		err = z.checkCacheStore(rolec.role)
+		return err
 	} else {
 		// 如果在slave
 		err = z.writeFriends(id, friends, conn)
@@ -1732,6 +1736,10 @@ func (z *ZrStorage) WriteFriendStatus(id, friend string, bindbit int, value inte
 		defer rolec.lock.Unlock()
 		// 设定状态
 		err = rolec.role.SetFriendStatus(friend, bindbit, value)
+		if err != nil {
+			return err
+		}
+		err = z.checkCacheStore(rolec.role)
 		return err
 	} else {
 		// 如果是slave
@@ -1913,6 +1921,10 @@ func (z *ZrStorage) WriteContextStatus(id, contextname string, upordown uint8, b
 		defer rolec.lock.Unlock()
 		// 设定状态
 		err = rolec.role.SetContextStatus(contextname, upordown, bindroleid, bindbit, value)
+		if err != nil {
+			return err
+		}
+		err = z.checkCacheStore(rolec.role)
 		return err
 	} else {
 		// 如果是slave
@@ -2097,7 +2109,8 @@ func (z *ZrStorage) WriteContexts(id string, contexts map[string]roles.Context) 
 		defer rolec.lock.Unlock()
 		// 调用角色的接口
 		rolec.role.SetContexts(contexts)
-		return nil
+		err = z.checkCacheStore(rolec.role)
+		return err
 	} else {
 		// 如果是slave
 		err = z.writeContexts(id, contexts, conn)
@@ -2291,7 +2304,8 @@ func (z *ZrStorage) WriteData(id, name string, data interface{}) (err error) {
 		}
 		rv.Set(dv)
 		rolec.role.SetDataChanged()
-		return nil
+		err = z.checkCacheStore(rolec.role)
+		return err
 	} else {
 		// 如果是在slave
 		err = z.writeData(id, name, data, conn)
@@ -2558,5 +2572,15 @@ func (z *ZrStorage) statusValueType(value interface{}) (types uint8) {
 		return roles.STATUS_VALUE_TYPE_COMPLEX
 	default:
 		return roles.STATUS_VALUE_TYPE_NULL
+	}
+}
+
+// 检查如果没有开启缓存，那就直接进行保存
+func (z *ZrStorage) checkCacheStore(role roles.Roleer) (err error) {
+	if z.cacheMax <= 0 {
+		err = z.local_store.StoreRole(role)
+		return err
+	} else {
+		return nil
 	}
 }

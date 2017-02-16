@@ -57,6 +57,8 @@ type ZrStorage struct {
 	listen *nst.TcpServer
 	// slave的连接池，从这里分配给slaveIn
 	slavepool map[string]*nst.TcpClient
+	// slave的slaveIn连接池
+	slavecpool map[string]*slaveIn
 
 	// 日志
 	logs *ilogs.Logs

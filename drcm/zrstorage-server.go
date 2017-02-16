@@ -45,7 +45,8 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		// 读取角色，对应ReadRole
 		err = z.serverToReadRole(conn_exec)
 	case OPERATE_WRITE_ROLE:
-
+		// 写角色，对应StoreRole
+		err = z.serverToStoreRole(conn_exec)
 	case OPERATE_NEW_ROLE:
 
 	case OPERATE_DEL_ROLE:
@@ -152,6 +153,7 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 // --> 接收role'id
 // <-- 发送DATA_WILL_SEND
 // --> 接收DATA_PLEASE
+// <-- 发送Net_RoleSendAndReceive
 func (z *ZrStorage) serverToReadRole(conn_exec *nst.ConnExec) (err error) {
 	// 发送回执
 	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
@@ -201,6 +203,34 @@ func (z *ZrStorage) serverToReadRole(conn_exec *nst.ConnExec) (err error) {
 	// 发送数据体
 	conn_exec.SendData(role_send_b)
 	return nil
+}
+
+// 存储角色
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleSendAndReceive (结构体)
+//	<-- DATA_ALL_OK (salve回执)
+func (z *ZrStorage) serverToStoreRole(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收数据Net_RoleSendAndReceive
+	role_send_and_receive_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	role_send_and_receive := Net_RoleSendAndReceive{}
+	err = nst.BytesGobStruct(role_send_and_receive_b, &role_send_and_receive)
+	if err != nil {
+		return err
+	}
+	role, err := z.local_store.DecodeRole(role_send_and_receive.RoleBody, role_send_and_receive.RoleRela, role_send_and_receive.RoleVer)
+	if err != nil {
+		return err
+	}
+	err = z.StoreRole(role)
+	return err
 }
 
 // 向请求方返回错误回执
