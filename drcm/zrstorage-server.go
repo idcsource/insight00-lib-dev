@@ -40,7 +40,8 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	switch prefix_stat.Operate {
 
 	case OPERATE_TOSTORE:
-
+		// 进行运行时存储的操作
+		err = z.severToToStore(conn_exec)
 	case OPERATE_READ_ROLE:
 		// 读取角色，对应ReadRole
 		err = z.serverToReadRole(conn_exec)
@@ -146,6 +147,18 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		return fmt.Errorf("drcm[ZrStorage]: %v", err)
 	}
 	return nil
+}
+
+// 进行运行时存储的操作
+// 发送DATA_ALL_OK
+// 然后调用本地的运行时保存方法
+func (z *ZrStorage) severToToStore(conn_exec *nst.ConnExec) (err error) {
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	if err != nil {
+		return err
+	}
+	err = z.toCacheStore()
+	return err
 }
 
 // 读取角色
