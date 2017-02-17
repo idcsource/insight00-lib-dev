@@ -2484,55 +2484,27 @@ func (z *ZrStorage) findConn(id string) (connmode uint8, conn []*slaveIn) {
 
 // 从[]byte解码SlaveReceipt
 func (z *ZrStorage) decodeSlaveReceipt(b []byte) (receipt Net_SlaveReceipt, err error) {
-	receipt = Net_SlaveReceipt{}
-	err = nst.BytesGobStruct(b, &receipt)
-	return
+	return DecodeSlaveReceipt(b)
 }
 
 // 从[]byte解码SlaveReceipt带数据体
 func (z *ZrStorage) decodeSlaveReceiptData(b []byte) (receipt Net_SlaveReceipt_Data, err error) {
-	receipt = Net_SlaveReceipt_Data{}
-	err = nst.BytesGobStruct(b, &receipt)
-	return
+	return DecodeSlaveReceiptData(b)
 }
 
 // 发送数据并解码返回的SlaveReceipt
 func (z *ZrStorage) sendAndDecodeSlaveReceipt(cprocess *nst.ProgressData, data []byte) (receipt Net_SlaveReceipt, err error) {
-	s_r_b, err := cprocess.SendAndReturn(data)
-	if err != nil {
-		return
-	}
-	receipt, err = z.decodeSlaveReceipt(s_r_b)
-	return
+	return SendAndDecodeSlaveReceipt(cprocess, data)
 }
 
 // 发送数据并解码返回的SlaveReceipt_Data
 func (z *ZrStorage) sendAndDecodeSlaveReceiptData(cprocess *nst.ProgressData, data []byte) (receipt Net_SlaveReceipt_Data, err error) {
-	s_r_b, err := cprocess.SendAndReturn(data)
-	if err != nil {
-		return
-	}
-	receipt, err = z.decodeSlaveReceiptData(s_r_b)
-	return
+	return SendAndDecodeSlaveReceiptData(cprocess, data)
 }
 
 // 向slave发送前导状态，也就是身份验证码和要操作的状态，并获取slave是否可以继续传输的要求
 func (z *ZrStorage) sendPrefixStat(process *nst.ProgressData, code string, operate int) (receipt Net_SlaveReceipt, err error) {
-	thestat := Net_PrefixStat{
-		Operate: operate,
-		Code:    code,
-	}
-	statbyte, err := nst.StructGobBytes(thestat)
-	if err != nil {
-		return
-	}
-	rdata, err := process.SendAndReturn(statbyte)
-	if err != nil {
-		return
-	}
-	receipt = Net_SlaveReceipt{}
-	err = nst.BytesGobStruct(rdata, &receipt)
-	return
+	return SendPrefixStat(process, code, operate)
 }
 
 // 查看是否被标记删除，标记删除则返回true。
