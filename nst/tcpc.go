@@ -107,15 +107,15 @@ func (tc *TcpClient) checkOneConn(cnum int) {
 			ipAdrr, _ := net.ResolveTCPAddr("tcp", tc.addr)
 			connecter, err := net.DialTCP("tcp", nil, ipAdrr)
 			if err != nil {
-				tc.logs.ErrLog("nst[TcpClient]checkOneConn: Can't reconnect the server: ", err)
+				tc.logerr(fmt.Errorf("nst[TcpClient]checkOneConn: Can't reconnect the server: %v", err))
 			} else {
 				tc.tcpc[cnum].tcp = NewTCP(connecter)
 			}
 		}
 		<-tc.tcpc[cnum].slock
-		tc.logs.RunLog("心跳分配了一个连接：", cnum)
+		tc.logrun(fmt.Errorf("心跳分配了一个连接： %v", cnum))
 	default:
-		tc.logs.RunLog("心跳跳过了一个分配:", cnum)
+		tc.logrun(fmt.Errorf("心跳跳过了一个分配: %v", cnum))
 	}
 }
 
@@ -126,13 +126,13 @@ func (tc *TcpClient) checkOneConn2(cnum int) (err error) {
 		ipAdrr, _ := net.ResolveTCPAddr("tcp", tc.addr)
 		connecter, err := net.DialTCP("tcp", nil, ipAdrr)
 		if err != nil {
-			tc.logs.ErrLog("nst[TcpClient]checkOneConn2: Can't reconnect the server: ", err)
+			tc.logerr(fmt.Errorf("nst[TcpClient]checkOneConn2: Can't reconnect the server: %v", err))
 			return err
 		} else {
 			tc.tcpc[cnum].tcp = NewTCP(connecter)
 			err = tc.tcpc[cnum].tcp.SendStat(NORMAL_DATA)
 			if err != nil {
-				tc.logs.ErrLog("nst[TcpClient]checkOneConn2: Can't reconnect the server: ", err)
+				tc.logerr(fmt.Errorf("nst[TcpClient]checkOneConn2: Can't reconnect the server: %v", err))
 				return err
 			}
 		}
@@ -168,7 +168,7 @@ func (tc *TcpClient) OpenProgress() *ProgressData {
 				<-tc.tcpc[cnum].slock
 				continue
 			} else {
-				tc.logs.RunLog("分配了一个连接：", cnum)
+				tc.logrun(fmt.Errorf("分配了一个连接： %v", cnum))
 				break
 			}
 		default:
@@ -176,7 +176,7 @@ func (tc *TcpClient) OpenProgress() *ProgressData {
 			if tc.alloc_count >= len(tc.tcpc) {
 				tc.alloc_count = 0
 			}
-			tc.logs.RunLog("跳过了一个分配")
+			tc.logrun("跳过了一个分配")
 		}
 	}
 	return &ProgressData{
@@ -323,6 +323,18 @@ func (tc *TcpClient) logerr(err interface{}) {
 	}
 	if tc.logs != nil {
 		tc.logs.ErrLog(fmt.Errorf("nst: TcpClient: %v", err))
+	} else {
+		fmt.Println(err)
+	}
+}
+
+// 处理运行日志
+func (tc *TcpClient) logrun(err interface{}) {
+	if err == nil {
+		return
+	}
+	if tc.logs != nil {
+		tc.logs.RunLog(fmt.Errorf("nst: TcpClient: %v", err))
 	} else {
 		fmt.Println(err)
 	}
