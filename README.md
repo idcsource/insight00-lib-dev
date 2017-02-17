@@ -5,7 +5,18 @@ CoderG the 2016 project, Insight 0+0 [ 洞悉 0+0 ]
 ![data-switch-between-roles](doc/logo.png)
 
 *这是洞悉项目的依赖库*
+
 *目前各包的功能完全不保证完整且无Bug，也就是说看看就行别真用。*
+
+## 说明
+
+Insight （洞悉 ） 是小说《[那曾经的旅程](http://hareading.com/books?bookId=1461))》（[小说繁体版链接见此](http://hareading.com/books?bookId=1461)）中起到至关重要作用的智能化系统，本项目只是把小说里的名字搬到了现实中来。
+
+Insight 0+0并不是以实现小说中描述的强大智能为目的，只是尝试展现一个最基本的数据抓取、规整、检索、处理的模型。或者说只是本人的个人玩乐喜好而以，并不是一个严肃的项目。
+
+## 目前
+
+下面的“Packages List”早已落后于实际，所以在本人改造前，下面的内容没有必要看。
 
 ## Packages List
 
@@ -28,10 +39,6 @@ CoderG the 2016 project, Insight 0+0 [ 洞悉 0+0 ]
 ### rolesio
 
 角色存储接口与空存储类型。提供将角色关系以及角色信息保存进永久存储（如硬盘）的方式。
-
-### mixdb
-
-混合存储数据库，实现rolesio的部分功能，使用PostgreSQL以及文件系统保存角色的信息。
 
 ### hardstore
 
