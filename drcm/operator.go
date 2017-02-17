@@ -53,6 +53,12 @@ func (o *Operator) AddServer(addr, code string, conn_num int) (err error) {
 	return nil
 }
 
+// 新角色
+func (o *Operator) NewRole(id string, new roles.Roleer) roles.Roleer {
+	new.New(id)
+	return new
+}
+
 // 运行时保存
 func (o *Operator) ToStore() (err error) {
 	for _, onec := range o.slaves {
@@ -163,15 +169,18 @@ func (o *Operator) storeRole(roleS_b []byte, onec *slaveIn) (err error) {
 	defer cprocess.Close()
 	//发送前导
 	slavereceipt, err := SendPrefixStat(cprocess, onec.code, OPERATE_WRITE_ROLE)
+	fmt.Println("1")
 	if err != nil {
 		return err
 	}
 	// 如果slave请求发送数据
 	if slavereceipt.DataStat == DATA_PLEASE {
+		fmt.Println("2")
 		srb, err := cprocess.SendAndReturn(roleS_b)
 		if err != nil {
 			return err
 		}
+		fmt.Println("3")
 		sr, err := DecodeSlaveReceipt(srb)
 		if err != nil {
 			return err

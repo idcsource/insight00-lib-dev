@@ -243,6 +243,11 @@ func (z *ZrStorage) serverToStoreRole(conn_exec *nst.ConnExec) (err error) {
 		return err
 	}
 	err = z.StoreRole(role)
+	if err != nil {
+		err = z.serverErrorReceipt(conn_exec, DATA_NOT_EXPECT, err)
+	} else {
+		err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	}
 	return err
 }
 

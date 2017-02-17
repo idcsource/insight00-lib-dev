@@ -78,6 +78,7 @@ func (ts *TcpServer) doConn(conn *net.TCPConn) {
 			var err error
 			if erri != nil {
 				err = erri.(error)
+				ts.logerr(err)
 			}
 			if fmt.Sprint(err) == "EOF" {
 				tcp.Close()
@@ -121,7 +122,7 @@ func (ce *ConnExec) GetData() (data []byte, err error) {
 			return nil, err
 		}
 	}
-	if stat == DATA_GOON {
+	if stat != DATA_GOON {
 		return nil, fmt.Errorf("DATA_CLOSE")
 	}
 	data, err = ce.tcp.GetData()

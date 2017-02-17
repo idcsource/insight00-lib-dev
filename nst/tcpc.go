@@ -176,8 +176,9 @@ func (tc *TcpClient) OpenProgress() *ProgressData {
 			if tc.alloc_count >= len(tc.tcpc) {
 				tc.alloc_count = 0
 			}
-			tc.logrun("跳过了一个分配")
+			tc.logrun("这个吗？跳过了一个分配")
 		}
+		break
 	}
 	return &ProgressData{
 		tcpc: tc.tcpc[cnum],
@@ -401,8 +402,33 @@ func (p *ProgressData) checkOneConnInSend () (err error) {
 
 // 关闭分配的连接进程，并发送DATA_CLOSE
 func (p *ProgressData) Close() {
-	p.logs.RunLog("释放了一个连接？", p.tcpc.id)
+	fmt.Println("释放连接")
+	p.logrun(fmt.Errorf("释放了一个连接？ %v", p.tcpc.id))
 	p.tcpc.tcp.SendStat(DATA_CLOSE)
 	<-p.tcpc.slock
-	p.logs.RunLog("释放了一个连接：", p.tcpc.id)
+	p.logrun(fmt.Errorf("释放了一个连接： %v", p.tcpc.id))
+}
+
+// 处理错误和日志
+func (p *ProgressData) logerr(err interface{}) {
+	if err == nil {
+		return
+	}
+	if p.logs != nil {
+		p.logs.ErrLog(fmt.Errorf("nst: TcpClient: %v", err))
+	} else {
+		fmt.Println(err)
+	}
+}
+
+// 处理运行日志
+func (p *ProgressData) logrun(err interface{}) {
+	if err == nil {
+		return
+	}
+	if p.logs != nil {
+		p.logs.RunLog(fmt.Errorf("nst: TcpClient: %v", err))
+	} else {
+		fmt.Println(err)
+	}
 }

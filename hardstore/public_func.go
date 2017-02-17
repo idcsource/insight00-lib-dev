@@ -56,7 +56,10 @@ func EncodeRole(role roles.Roleer) (roleb, relab, verb []byte, err error) {
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("hardstore: EncodeRole: %v", err)
 	}
-	verb, err = nst.StructGobBytes(role.Version())
+	r_version := roleVersion{
+		Version: role.Version(),
+	}
+	verb, err = nst.StructGobBytes(r_version)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("hardstore: EncodeRole: %v", err)
 	}

@@ -79,7 +79,7 @@ func (t *TCP) SendData(bytes []byte) (errs error) {
 func (t *TCP) GetData() (bytes []byte, errs error) {
 	lens, errs := t.GetLen()
 	if errs != nil {
-		return
+		return nil, errs
 	}
 	bytes, errs = t.GetBytes(lens)
 	return
@@ -96,7 +96,7 @@ func (t *TCP) SendLen(len uint64) (errs error) {
 func (t *TCP) GetLen() (len uint64, errs error) {
 	bytes, errs := t.GetBytes(8)
 	if errs != nil {
-		return
+		return 0, errs
 	}
 	len = BytesToUint64(bytes)
 	return
