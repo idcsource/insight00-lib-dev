@@ -99,33 +99,21 @@ func (o *Operator) readRole(id string, slave *slaveIn) (role roles.Roleer, err e
 	if err != nil {
 		return nil, err
 	}
-	// 如果获取到的DATA_ALL_OK则说明认证已经通过
+	// 如果获取到的DATA_PLEASE则说明认证已经通过
 	if slavereceipt.DataStat != DATA_PLEASE {
 		return nil, slavereceipt.Error
 	}
 	// 发送想要的id，并接收slave的返回
-	sreb, err := cprocess.SendAndReturn([]byte(id))
+	slave_receipt_data, err := SendAndDecodeSlaveReceiptData(cprocess, []byte(id))
 	if err != nil {
 		return nil, err
 	}
-	// 解码返回值
-	slavereceipt, err = DecodeSlaveReceipt(sreb)
-	if err != nil {
-		return nil, err
-	}
-	// 如果回执状态不是DATA_WILL_SEND，因为我们希望slave是应该把role发送给我们的
-	if slavereceipt.DataStat != DATA_WILL_SEND {
-		return nil, slavereceipt.Error
-	}
-	// 请求对方发送数据，使用DATA_PLEASE状态，并接收角色的byte流，这是一个Net_RoleSendAndReceive的值。
-	dataplace := nst.Uint8ToBytes(DATA_PLEASE)
-	rdata, err := cprocess.SendAndReturn(dataplace)
-	if err != nil {
-		return nil, err
+	if slave_receipt_data.DataStat != DATA_ALL_OK {
+		return nil, slave_receipt_data.Error
 	}
 	// 解码Net_RoleSendAndReceive。
 	rolegetstruct := Net_RoleSendAndReceive{}
-	err = nst.BytesGobStruct(rdata, &rolegetstruct)
+	err = nst.BytesGobStruct(slave_receipt_data.Data, &rolegetstruct)
 	if err != nil {
 		return nil, err
 	}

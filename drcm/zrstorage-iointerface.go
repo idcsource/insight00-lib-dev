@@ -91,11 +91,9 @@ func (z *ZrStorage) readRole_small(id string) (rolec *oneRoleCache, err error) {
 // 从slave读取一个角色
 //
 //	--> OPERATE_READ_ROLE (前导)
-//	<-- DATA_PLEASE (slave回执)
+//	<-- DATA_PLEASE (Net_SlaveReceipt回执)
 //	--> 角色ID
-//	<-- DATA_WILL_SEND (slave回执)
-//	--> DATA_PLEASE (uint8)
-//	<-- Net_RoleSendAndReceive (结构体)
+//	<-- Net_RoleSendAndReceive (结构体，用Net_SlaveReceipt_Data封装)
 func (z *ZrStorage) readRole(id string, slave *slaveIn) (role roles.Roleer, err error) {
 	cprocess := slave.tcpconn.OpenProgress()
 	defer cprocess.Close()
@@ -103,33 +101,21 @@ func (z *ZrStorage) readRole(id string, slave *slaveIn) (role roles.Roleer, err 
 	if err != nil {
 		return nil, err
 	}
-	// 如果获取到的DATA_ALL_OK则说明认证已经通过
+	// 如果获取到的DATA_PLEASE则说明认证已经通过
 	if slavereceipt.DataStat != DATA_PLEASE {
 		return nil, slavereceipt.Error
 	}
 	// 发送想要的id，并接收slave的返回
-	sreb, err := cprocess.SendAndReturn([]byte(id))
+	slave_receipt_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, []byte(id))
 	if err != nil {
 		return nil, err
 	}
-	// 解码返回值
-	slavereceipt, err = z.decodeSlaveReceipt(sreb)
-	if err != nil {
-		return nil, err
-	}
-	// 如果回执状态不是DATA_WILL_SEND，因为我们希望slave是应该把role发送给我们的
-	if slavereceipt.DataStat != DATA_WILL_SEND {
-		return nil, slavereceipt.Error
-	}
-	// 请求对方发送数据，使用DATA_PLEASE状态，并接收角色的byte流，这是一个Net_RoleSendAndReceive的值。
-	dataplace := nst.Uint8ToBytes(DATA_PLEASE)
-	rdata, err := cprocess.SendAndReturn(dataplace)
-	if err != nil {
-		return nil, err
+	if slave_receipt_data.DataStat != DATA_ALL_OK {
+		return nil, slave_receipt_data.Error
 	}
 	// 解码Net_RoleSendAndReceive。
 	rolegetstruct := Net_RoleSendAndReceive{}
-	err = nst.BytesGobStruct(rdata, &rolegetstruct)
+	err = nst.BytesGobStruct(slave_receipt_data.Data, &rolegetstruct)
 	if err != nil {
 		return nil, err
 	}
@@ -449,9 +435,7 @@ func (z *ZrStorage) ReadFather(id string) (father string, err error) {
 //	--> OPERATE_GET_FATHER (前导)
 //	<-- DATA_PLEASE (slave回执)
 //	--> role's id (角色id的byte)
-//	<-- DATA_WILL_SEND (slave回执)
-//	--> DATA_PLEASE (uint8)
-//	<-- father's id (父角色id的byte)
+//	<-- father's id (父角色id的byte，Net_SlaveReceipt_Data封装)
 func (z *ZrStorage) readFather(id string, conn *slaveIn) (father string, err error) {
 	// 分配连接进程
 	cprocess := conn.tcpconn.OpenProgress()
@@ -463,26 +447,15 @@ func (z *ZrStorage) readFather(id string, conn *slaveIn) (father string, err err
 	}
 	if slavereceipt.DataStat == DATA_PLEASE {
 		// 将自己的id发送出去
-		srb, err := cprocess.SendAndReturn([]byte(id))
+		slave_receipt_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, []byte(id))
 		if err != nil {
 			return "", err
 		}
-		sr, err := z.decodeSlaveReceipt(srb)
-		if err != nil {
-			return "", err
+		if slave_receipt_data.DataStat != DATA_ALL_OK {
+			return "", slave_receipt_data.Error
 		}
-		if sr.DataStat == DATA_WILL_SEND {
-			// 发送DATA_PLEASE并接收返回数据，fatherid
-			dataplace := nst.Uint8ToBytes(DATA_PLEASE)
-			father_b, err := cprocess.SendAndReturn(dataplace)
-			if err != nil {
-				return "", err
-			}
-			father = string(father_b)
-			return father, nil
-		} else {
-			return "", sr.Error
-		}
+		father = string(slave_receipt_data.Data)
+		return father, nil
 	} else {
 		return "", slavereceipt.Error
 	}
