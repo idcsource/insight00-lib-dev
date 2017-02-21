@@ -121,10 +121,22 @@ type Net_RoleFatherChange struct {
 	Father string
 }
 
+// 角色的所有子角色
+type Net_RoleAndChildren struct {
+	Id       string
+	Children []string
+}
+
 // 角色的单个子角色关系的网络数据格式
 type Net_RoleAndChild struct {
 	Id    string
 	Child string
+}
+
+// 角色的所有朋友
+type Net_RoleAndFriends struct {
+	Id      string
+	Friends map[string]roles.Status
 }
 
 // 角色的单个朋友角色关系的网络数据格式

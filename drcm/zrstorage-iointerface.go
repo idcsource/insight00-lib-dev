@@ -571,7 +571,11 @@ func (z *ZrStorage) WriteChildren(id string, children []string) (err error) {
 // 在slave上设置children
 func (z *ZrStorage) writeChildren(id string, children []string, conns []*slaveIn) (err error) {
 	// 构造要传输的信息
-	children_b, err := nst.StructGobBytes(children)
+	role_children := Net_RoleAndChildren{
+		Id:       id,
+		Children: children,
+	}
+	children_b, err := nst.StructGobBytes(role_children)
 	if err != nil {
 		return err
 	}
@@ -593,11 +597,9 @@ func (z *ZrStorage) writeChildren(id string, children []string, conns []*slaveIn
 // 向某一个slavev发送设置children的内容
 //
 //	分配连接
-//	--> OPREATE_SET_CHILDREN (前导)
+//	--> OPERATE_SET_CHILDREN (前导)
 //	<-- DATA_PLEASE (slave回执)
-//	--> role's id
-//	<-- DATA_PLEASE (slave回执)
-//	--> children's []byte
+//	--> Net_RoleAndChildren
 //	<-- DATA_ALL_OK (slave回执)
 func (z *ZrStorage) writeChildren_one(id string, children_b []byte, onec *slaveIn) (err error) {
 	cprocess := onec.tcpconn.OpenProgress()
@@ -610,24 +612,8 @@ func (z *ZrStorage) writeChildren_one(id string, children_b []byte, onec *slaveI
 	if slave_receipt.DataStat != DATA_PLEASE {
 		return slave_receipt.Error
 	}
-	// 发送角色id
-	slave_receipt_b, err := cprocess.SendAndReturn([]byte(id))
-	if err != nil {
-		return err
-	}
-	slave_receipt, err = z.decodeSlaveReceipt(slave_receipt_b)
-	if err != nil {
-		return err
-	}
-	if slave_receipt.DataStat != DATA_PLEASE {
-		return slave_receipt.Error
-	}
 	// 发送children
-	slave_receipt_b, err = cprocess.SendAndReturn(children_b)
-	if err != nil {
-		return err
-	}
-	slave_receipt, err = z.decodeSlaveReceipt(slave_receipt_b)
+	slave_receipt, err = z.sendAndDecodeSlaveReceipt(cprocess, children_b)
 	if err != nil {
 		return err
 	}
@@ -990,7 +976,11 @@ func (z *ZrStorage) WriteFriends(id string, friends map[string]roles.Status) (er
 // 在slave上处理friends
 func (z *ZrStorage) writeFriends(id string, friends map[string]roles.Status, conns []*slaveIn) (err error) {
 	// 构造要传输的信息
-	friends_b, err := nst.StructGobBytes(friends)
+	role_friends := Net_RoleAndFriends{
+		Id:      id,
+		Friends: friends,
+	}
+	friends_b, err := nst.StructGobBytes(role_friends)
 	if err != nil {
 		return err
 	}
@@ -1013,9 +1003,7 @@ func (z *ZrStorage) writeFriends(id string, friends map[string]roles.Status, con
 //
 //	--> OPERATE_SET_FRIENDS (前导)
 //	<-- DATA_PLEASE (slave回执)
-//	--> role's id
-//	<-- DATA_PLEASE (slave回执)
-//	--> map[string]roles.Status ([]byte)
+//	--> Net_RoleAndFriends
 //	<-- DATA_ALL_OK (slave回执)
 func (z *ZrStorage) writeFriends_one(id string, friends_b []byte, onec *slaveIn) (err error) {
 	cprocess := onec.tcpconn.OpenProgress()
@@ -1028,15 +1016,7 @@ func (z *ZrStorage) writeFriends_one(id string, friends_b []byte, onec *slaveIn)
 	if slave_receipt.DataStat != DATA_PLEASE {
 		return slave_receipt.Error
 	}
-	// 发送角色id
-	slave_receipt, err = z.sendAndDecodeSlaveReceipt(cprocess, []byte(id))
-	if err != nil {
-		return err
-	}
-	if slave_receipt.DataStat != DATA_PLEASE {
-		return slave_receipt.Error
-	}
-	// 发送map[string]roles.Status的byte
+	// 发送Net_RoleAndFriends的byte
 	slave_receipt, err = z.sendAndDecodeSlaveReceipt(cprocess, friends_b)
 	if err != nil {
 		return err

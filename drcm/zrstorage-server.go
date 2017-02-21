@@ -66,46 +66,58 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_RESET_FATHER:
 
 	case OPERATE_SET_CHILDREN:
-
+		// 写children
+		err = z.serverToWriteChildren(conn_exec)
 	case OPERATE_GET_CHILDREN:
 		// 读取children
 		err = z.serverToReadChildren(conn_exec)
 	case OPERATE_RESET_CHILDREN:
 
 	case OPERATE_ADD_CHILD:
-
+		// 加一个child
+		err = z.serverToWriteChild(conn_exec)
 	case OPERATE_DEL_CHILD:
-
+		// 删除一个child
+		err = z.serverToDeleteChild(conn_exec)
 	case OPERATE_EXIST_CHILD:
-
+		// 是否存在child
+		err = z.serverToExistChild(conn_exec)
 	case OPERATE_SET_FRIENDS:
-
+		// 写入全部朋友
+		err = z.serverToWriteFriends(conn_exec)
 	case OPERATE_GET_FRIENDS:
-
+		// 读全部朋友
+		err = z.serverToReadFriends(conn_exec)
 	case OPERATE_RESET_FRIENDS:
 
 	case OPERATE_ADD_FRIEND:
 
 	case OPERATE_DEL_FRIEND:
-
+		// 删除一个朋友
+		err = z.serverToDeleteFriend(conn_exec)
 	case OPERATE_CHANGE_FRIEND:
 
 	case OPERATE_SAME_BIND_FRIEND:
 
 	case OPERATE_ADD_CONTEXT:
-
+		//创建一个空的上下文
+		err = z.serverToCreateContext(conn_exec)
 	case OPERATE_DROP_CONTEXT:
-
+		// 删除一个上下文
+		err = z.serverToDropContext(conn_exec)
 	case OPERATE_GET_CONTEXTS_NAME:
 
 	case OPERATE_READ_CONTEXT:
-
+		// 读出一个上下文
+		err = z.serverToReadContext(conn_exec)
 	case OPERATE_SAME_BIND_CONTEXT:
-
+		//返回某个上下文中的同样绑定值的所有
+		err = z.serverToReadContextSameBind(conn_exec)
 	case OPERATE_ADD_CONTEXT_BIND:
 
 	case OPERATE_DEL_CONTEXT_BIND:
-
+		// 删除一个上下文的绑定
+		err = z.serverToDeleteContextBind(conn_exec)
 	case OPERATE_CHANGE_CONTEXT_BIND:
 
 	case OPERATE_CONTEXT_SAME_BIND:
@@ -148,6 +160,7 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	}
 	if err != nil {
 		z.serverErrorReceipt(conn_exec, DATA_RETURN_ERROR, err)
+		//conn_exec.SendClose()
 		return fmt.Errorf("drcm[ZrStorage]: %v", err)
 	}
 	return nil
@@ -355,6 +368,414 @@ func (z *ZrStorage) serverToReadChildren(conn_exec *nst.ConnExec) (err error) {
 		return err
 	}
 	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, children_b, nil)
+	return err
+}
+
+// 写入Children
+//	--> OPERATE_SET_CHILDREN (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndChildren
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToWriteChildren(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_children_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	role_children := Net_RoleAndChildren{}
+	err = nst.BytesGobStruct(role_children_b, &role_children)
+	if err != nil {
+		return err
+	}
+	// 调用
+	err = z.WriteChildren(role_children.Id, role_children.Children)
+	if err != nil {
+		return err
+	}
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// 写入一个child
+//	--> OPERATE_ADD_CHILD (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndChild (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToWriteChild(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_child_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_child := Net_RoleAndChild{}
+	err = nst.BytesGobStruct(role_child_b, &role_child)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.WriteChild(role_child.Id, role_child.Child)
+	if err != nil {
+		return err
+	}
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// 删除一个child
+//	--> OPERATE_DEL_CHILD (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndChild (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToDeleteChild(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_child_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_child := Net_RoleAndChild{}
+	err = nst.BytesGobStruct(role_child_b, &role_child)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.DeleteChild(role_child.Id, role_child.Child)
+	if err != nil {
+		return err
+	}
+	// 成功回执
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// 是否存在child
+//	--> OPERATE_EXIST_CHILD (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndChild (结构体)
+//	<-- DATA_RETURN_IS_TRUE 或 DATA_RETURN_IS_FALSE (slave回执)
+func (z *ZrStorage) serverToExistChild(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_child_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_child := Net_RoleAndChild{}
+	err = nst.BytesGobStruct(role_child_b, &role_child)
+	if err != nil {
+		return err
+	}
+	// 执行
+	have, err := z.ExistChild(role_child.Id, role_child.Child)
+	if err != nil {
+		return err
+	}
+	// 回执
+	if have == true {
+		err = z.serverErrorReceipt(conn_exec, DATA_RETURN_IS_TRUE, nil)
+	} else {
+		err = z.serverErrorReceipt(conn_exec, DATA_RETURN_IS_FALSE, nil)
+	}
+	return err
+}
+
+// 读全部朋友
+//	--> OPERATE_GET_FRIENDS (前导词)
+//	<-- DATA_PLEASE (slave回执)
+//	--> role's id (角色ID)
+//	<-- friends's status (map[string]roles.Status，Net_SlaveReceipt_Data封装)
+func (z *ZrStorage) serverToReadFriends(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 读id
+	role_id_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	role_id := string(role_id_b)
+	// 执行
+	friends, err := z.ReadFriends(role_id)
+	if err != nil {
+		return err
+	}
+	// 封装
+	friends_b, err := nst.StructGobBytes(friends)
+	if err != nil {
+		return err
+	}
+	// 发送
+	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, friends_b, nil)
+	return err
+}
+
+// 写全部朋友
+//	--> OPERATE_SET_FRIENDS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndFriends
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToWriteFriends(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 获取信息
+	role_friends_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_friends := Net_RoleAndFriends{}
+	err = nst.BytesGobStruct(role_friends_b, &role_friends)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.WriteFriends(role_friends.Id, role_friends.Friends)
+	if err != nil {
+		return err
+	}
+	// 发送成功
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// 删除一个朋友
+//	--> OPERATE_DEL_FRIEND (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndFriend (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToDeleteFriend(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_friend_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_friend := Net_RoleAndFriend{}
+	err = nst.BytesGobStruct(role_friend_b, &role_friend)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.DeleteFriend(role_friend.Id, role_friend.Friend)
+	if err != nil {
+		return err
+	}
+	// 回执成功
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// 创建一个空的上下文，如果已经存在则忽略
+//	--> OPERATE_ADD_CONTEXT (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToCreateContext(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_context_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(role_context_b, &role_context)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.CreateContext(role_context.Id, role_context.Context)
+	if err != nil {
+		return err
+	}
+	// 发送成功
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// drop上下文的请求
+//
+//	--> OPERATE_DROP_CONTEXT (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToDropContext(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_context_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(role_context_b, &role_context)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.DropContext(role_context.Id, role_context.Context)
+	if err != nil {
+		return err
+	}
+	// 发送成功
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// readContext
+//
+//	--> OPERATE_READ_CONTEXT (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext (结构体)
+//	<-- context (roles.Context，Net_SlaveReceipt_Data封装)
+func (z *ZrStorage) serverToReadContext(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_context_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(role_context_b, &role_context)
+	if err != nil {
+		return err
+	}
+	// 执行
+	context, have, err := z.ReadContext(role_context.Id, role_context.Context)
+	if err != nil {
+		return err
+	}
+	// 如果没找到的发送
+	if have == false {
+		err = z.serverDataReceipt(conn_exec, DATA_RETURN_IS_FALSE, nil, nil)
+		if err != nil {
+			return err
+		}
+	}
+	// 构建发送数据
+	context_b, err := nst.StructGobBytes(context)
+	if err != nil {
+		return err
+	}
+	// 发送数据
+	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, context_b, nil)
+	return err
+}
+
+// 清除一个上下文的绑定
+//	--> OPERATE_DEL_CONTEXT_BIND (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext ([]byte)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToDeleteContextBind(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_context_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(role_context_b, &role_context)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.DeleteContextBind(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole)
+	if err != nil {
+		return err
+	}
+	// 构建成功
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// 返回某个上下文中的同样绑定值的所有
+//	--> OPERATE_SAME_BIND_CONTEXT (前导)
+//	<-- DATA_PLEASE (slave 回执)
+//	--> Net_RoleAndContext_Data (结构体)
+//	<-- rolesid []string ([]byte数据，Net_SlaveReceipt_Data封装)
+func (z *ZrStorage) serverToReadContextSameBind(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_context_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(role_context_b, &role_context)
+	if err != nil {
+		return err
+	}
+	// 执行
+	rolesid, have, err := z.ReadContextSameBind(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.Int)
+	if err != nil {
+		return err
+	}
+	if have == false {
+		err = z.serverDataReceipt(conn_exec, DATA_RETURN_IS_FALSE, nil, nil)
+		return err
+	}
+	// 构建发送
+	rolesid_b, err := nst.StructGobBytes(rolesid)
+	if err != nil {
+		return err
+	}
+	// 发送结果
+	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, rolesid_b, nil)
 	return err
 }
 
