@@ -10,7 +10,7 @@ CoderG the 2016 project, Insight 0+0 [ 洞悉 0+0 ]
 
 ## 说明
 
-Insight （洞悉 ） 是小说《[那曾经的旅程](http://hareading.com/books?bookId=1461))》（[小说繁体版链接见此](http://hareading.com/books?bookId=1461)）中起到至关重要作用的智能化系统，本项目只是把小说里的名字搬到了现实中来。
+Insight （洞悉 ） 是小说《[那曾经的旅程](http://hareading.com/books?bookId=1461)》（[小说繁体版链接见此](http://hareading.com/books?bookId=1461)）中起到至关重要作用的智能化系统，本项目只是把小说里的名字搬到了现实中来。
 
 Insight 0+0并不是以实现小说中描述的强大智能为目的，它只是尝试展现一个最基本的数据抓取、规整、检索、处理的模型，也就是Insight（洞悉）可能会有的最基本原型。或者说这只是本人的个人玩乐喜好而以，并不是一个严肃的项目。
 
