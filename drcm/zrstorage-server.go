@@ -68,7 +68,8 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_SET_CHILDREN:
 
 	case OPERATE_GET_CHILDREN:
-
+		// 读取children
+		err = z.serverToReadChildren(conn_exec)
 	case OPERATE_RESET_CHILDREN:
 
 	case OPERATE_ADD_CHILD:
@@ -323,6 +324,37 @@ func (z *ZrStorage) serverToReadFather(conn_exec *nst.ConnExec) (err error) {
 	}
 	// 发送Send回执
 	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, []byte(father_id), nil)
+	return err
+}
+
+// 读取Children
+//	<-- DATA_PLEASE (slave回执)
+//	--> role's id (角色的id)
+//	<-- children's id ([]string，Net_SlaveReceipt_Data封装)
+func (z *ZrStorage) serverToReadChildren(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收id
+	role_id_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	role_id := string(role_id_b)
+	children, err := z.ReadChildren(role_id)
+	if err != nil {
+		err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+		return err
+	}
+	// 构造要发送的内容
+	children_b, err := nst.StructGobBytes(children)
+	if err != nil {
+		err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+		return err
+	}
+	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, children_b, nil)
 	return err
 }
 

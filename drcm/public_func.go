@@ -51,15 +51,33 @@ func SendAndDecodeSlaveReceipt(cprocess *nst.ProgressData, data []byte) (receipt
 		return
 	}
 	receipt, err = DecodeSlaveReceipt(s_r_b)
+	if err != nil {
+		receipt_data, err := DecodeSlaveReceiptData(s_r_b)
+		if err != nil {
+			return receipt, err
+		}
+		receipt.DataStat = receipt_data.DataStat
+		receipt.Error = receipt_data.Error
+		return receipt, nil
+	}
 	return
 }
 
 // 发送数据并解码返回的SlaveReceipt_Data
-func SendAndDecodeSlaveReceiptData(cprocess *nst.ProgressData, data []byte) (receipt Net_SlaveReceipt_Data, err error) {
+func SendAndDecodeSlaveReceiptData(cprocess *nst.ProgressData, data []byte) (receipt_data Net_SlaveReceipt_Data, err error) {
 	s_r_b, err := cprocess.SendAndReturn(data)
 	if err != nil {
 		return
 	}
-	receipt, err = DecodeSlaveReceiptData(s_r_b)
+	receipt_data, err = DecodeSlaveReceiptData(s_r_b)
+	if err != nil {
+		receipt, err := DecodeSlaveReceipt(s_r_b)
+		if err != nil {
+			return receipt_data, err
+		}
+		receipt_data.DataStat = receipt.DataStat
+		receipt_data.Error = receipt.Error
+		return receipt_data, nil
+	}
 	return
 }
