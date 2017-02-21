@@ -508,9 +508,7 @@ func (z *ZrStorage) ReadChildren(id string) (children []string, err error) {
 //	--> OPERATE_GET_CHILDREN (前导)
 //	<-- DATA_PLEASE (slave回执)
 //	--> role's id (角色的id)
-//	<-- DATA_WILL_SEND (slave回执)
-//	--> DATA_PLEASE (uint8)
-//	<-- children's id ([]string)
+//	<-- children's id ([]string，Net_SlaveReceipt_Data封装)
 func (z *ZrStorage) readChildren(id string, conn *slaveIn) (children []string, err error) {
 	// 分配连接进程
 	cprocess := conn.tcpconn.OpenProgress()
@@ -522,29 +520,16 @@ func (z *ZrStorage) readChildren(id string, conn *slaveIn) (children []string, e
 	}
 	if sr.DataStat == DATA_PLEASE {
 		// 发送要查询的id
-		sr2_b, err := cprocess.SendAndReturn([]byte(id))
+		sr_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, []byte(id))
 		if err != nil {
 			return children, err
 		}
-		// 解码slave返回
-		sr2, err := z.decodeSlaveReceipt(sr2_b)
-		if err != nil {
-			return children, err
+		if sr_data.DataStat != DATA_ALL_OK {
+			return children, sr_data.Error
 		}
-		if sr2.DataStat == DATA_WILL_SEND {
-			// 请slave发送
-			data_please := nst.Uint8ToBytes(DATA_PLEASE)
-			children_b, err := cprocess.SendAndReturn(data_please)
-			if err != nil {
-				return children, err
-			}
-			children = make([]string, 0)
-			err = nst.BytesGobStruct(children_b, &children)
-			return children, err
-		} else {
-			err = sr2.Error
-			return children, err
-		}
+		children = make([]string, 0)
+		err = nst.BytesGobStruct(sr_data.Data, &children)
+		return children, err
 	} else {
 		err = sr.Error
 		return children, err
@@ -942,9 +927,7 @@ func (z *ZrStorage) ReadFriends(id string) (status map[string]roles.Status, err 
 //	--> OPERATE_GET_FRIENDS (前导词)
 //	<-- DATA_PLEASE (slave回执)
 //	--> role's id (角色ID)
-//	<-- DATA_WILL_SEND (slave回执)
-//	--> DATA_PLEASE (uint8)
-//	<-- friends's status (map[string]roles.Status)
+//	<-- friends's status (map[string]roles.Status，Net_SlaveReceipt_Data封装)
 func (z *ZrStorage) readFriends(id string, conn *slaveIn) (status map[string]roles.Status, err error) {
 	// 分配连接
 	cprocess := conn.tcpconn.OpenProgress()
@@ -958,22 +941,16 @@ func (z *ZrStorage) readFriends(id string, conn *slaveIn) (status map[string]rol
 		return nil, slave_reply.Error
 	}
 	// 发送角色的ID
-	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, []byte(id))
+	slave_reply_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, []byte(id))
 	if err != nil {
 		return nil, err
 	}
-	if slave_reply.DataStat != DATA_WILL_SEND {
-		return nil, slave_reply.Error
-	}
-	// 发送DATA_PLEASE让slave发送信息
-	data_please_b := nst.Uint8ToBytes(DATA_PLEASE)
-	status_b, err := cprocess.SendAndReturn(data_please_b)
-	if err != nil {
-		return nil, err
+	if slave_reply_data.DataStat != DATA_ALL_OK {
+		return nil, slave_reply_data.Error
 	}
 	// 解码status
 	status = make(map[string]roles.Status)
-	err = nst.BytesGobStruct(status_b, &status)
+	err = nst.BytesGobStruct(slave_reply_data.Data, &status)
 	return status, err
 }
 
@@ -1381,9 +1358,7 @@ func (z *ZrStorage) ReadContext(id, contextname string) (context roles.Context, 
 //	--> OPERATE_READ_CONTEXT (前导)
 //	<-- DATA_PLEASE (slave回执)
 //	--> Net_RoleAndContext (结构体)
-//	<-- DATA_WILL_SEND (slave回执)
-//	--> DATA_PLEASE (uint8)
-//	<-- context (roles.Context)
+//	<-- context (roles.Context，Net_SlaveReceipt_Data封装)
 func (z *ZrStorage) readContext(id, contextname string, conn *slaveIn) (context roles.Context, have bool, err error) {
 	have = false
 	// 分配连接
@@ -1407,25 +1382,19 @@ func (z *ZrStorage) readContext(id, contextname string, conn *slaveIn) (context 
 	if err != nil {
 		return
 	}
-	slave_reply, err = z.sendAndDecodeSlaveReceipt(cprocess, role_context_b)
+	slave_reply_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, role_context_b)
 	if err != nil {
 		return
 	}
 	// 看看slave是没有找到还是其他错误
-	if slave_reply.DataStat != DATA_WILL_SEND {
-		if slave_reply.DataStat == DATA_RETURN_IS_FALSE {
+	if slave_reply_data.DataStat != DATA_ALL_OK {
+		if slave_reply_data.DataStat == DATA_RETURN_IS_FALSE {
 			return context, false, nil
 		} else {
-			return context, false, slave_reply.Error
+			return context, false, slave_reply_data.Error
 		}
 	}
-	// 发送请求数据
-	data_please := nst.Uint8ToBytes(DATA_PLEASE)
-	context_b, err := cprocess.SendAndReturn(data_please)
-	if err != nil {
-		return
-	}
-	err = nst.BytesGobStruct(context_b, &context)
+	err = nst.BytesGobStruct(slave_reply_data.Data, &context)
 	if err != nil {
 		return
 	}
@@ -1569,9 +1538,7 @@ func (z *ZrStorage) ReadContextSameBind(id, contextname string, upordown uint8, 
 //	--> OPERATE_SAME_BIND_CONTEXT (前导)
 //	<-- DATA_PLEASE (slave 回执)
 //	--> Net_RoleAndContext_Data (结构体)
-//	<-- DATA_WILL_SEND (slave 回执)
-//	--> DATA_PLEASE (uint8)
-//	<-- rolesid []string ([]byte数据)
+//	<-- rolesid []string ([]byte数据，Net_SlaveReceipt_Data封装)
 func (z *ZrStorage) readContextSameBind(id, contextname string, upordown uint8, bind int64, conn *slaveIn) (rolesid []string, have bool, err error) {
 	// 构造发出的信息
 	contextsamebind := Net_RoleAndContext_Data{
@@ -1599,24 +1566,18 @@ func (z *ZrStorage) readContextSameBind(id, contextname string, upordown uint8, 
 		return nil, false, slave_receipt.Error
 	}
 	// 发送结构
-	slave_receipt, err = z.sendAndDecodeSlaveReceipt(cprocess, contextsamebind_b)
+	slave_receipt_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, contextsamebind_b)
 	// 查看回执
-	if slave_receipt.DataStat == DATA_RETURN_IS_FALSE {
+	if slave_receipt_data.DataStat == DATA_RETURN_IS_FALSE {
 		// 这是如果没有找到的解决方法
-		return nil, false, slave_receipt.Error
+		return nil, false, slave_receipt_data.Error
 	}
-	if slave_receipt.DataStat != DATA_WILL_SEND {
+	if slave_receipt_data.DataStat != DATA_ALL_OK {
 		// 这是不期望的发送
-		return nil, false, slave_receipt.Error
-	}
-	// 发送DATA_PLEASE
-	dataplease := nst.Uint8ToBytes(DATA_PLEASE)
-	rolesid_b, err := cprocess.SendAndReturn(dataplease)
-	if err != nil {
-		return nil, false, err
+		return nil, false, slave_receipt_data.Error
 	}
 	rolesid = make([]string, 0)
-	err = nst.BytesGobStruct(rolesid_b, &rolesid)
+	err = nst.BytesGobStruct(slave_receipt_data.Data, &rolesid)
 	if err != nil {
 		return nil, false, err
 	}
@@ -2195,9 +2156,7 @@ func (z *ZrStorage) ReadContexts(id string) (contexts map[string]roles.Context, 
 //	--> OPERATE_GET_CONTEXTS (前导)
 //	<-- DATA_PLEASE (slave回执)
 //	--> role's id (角色ID)
-//	<-- DATA_WILL_SEND (slave回执)
-//	--> DATA_PLEASE (uint8)
-//	<-- contexts (byte)
+//	<-- contexts (byte，Net_SlaveReceipt_Data封装)
 func (z *ZrStorage) readContexts(id string, conn *slaveIn) (contexts map[string]roles.Context, err error) {
 	// 分配连接
 	cprocess := conn.tcpconn.OpenProgress()
@@ -2212,22 +2171,16 @@ func (z *ZrStorage) readContexts(id string, conn *slaveIn) (contexts map[string]
 
 	}
 	// 发送角色ID
-	sr, err = z.sendAndDecodeSlaveReceipt(cprocess, []byte(id))
+	sr_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, []byte(id))
 	if err != nil {
 		return nil, err
 	}
-	if sr.DataStat != DATA_WILL_SEND {
-		return nil, sr.Error
-	}
-	// 发送DATA_PLEASE让slave发送
-	data_please_b := nst.Uint8ToBytes(DATA_PLEASE)
-	contexts_b, err := cprocess.SendAndReturn(data_please_b)
-	if err != nil {
-		return nil, err
+	if sr_data.DataStat != DATA_ALL_OK {
+		return nil, sr_data.Error
 	}
 	// 解码
 	contexts = make(map[string]roles.Context)
-	err = nst.BytesGobStruct(contexts_b, &contexts)
+	err = nst.BytesGobStruct(sr_data.Data, &contexts)
 	return contexts, err
 }
 
