@@ -1775,6 +1775,12 @@ func (z *ZrStorage) ReadFriendStatus(id, friend string, bindbit int, value inter
 //	--> Net_RoleAndFriend (结构体)
 //	<-- Net_RoleAndFriend带上value (slave回执带数据体)
 func (z *ZrStorage) readFriendStatus(conn *slaveIn, id, friend string, bindbit int, value interface{}) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("%v", e)
+		}
+	}()
+
 	// 看看要什么类型的值
 	valuetype := z.statusValueType(value)
 	if valuetype == roles.STATUS_VALUE_TYPE_NULL {
@@ -1814,13 +1820,14 @@ func (z *ZrStorage) readFriendStatus(conn *slaveIn, id, friend string, bindbit i
 	if err != nil {
 		return err
 	}
+	value_reflect := reflect.Indirect(reflect.ValueOf(value))
 	switch role_friend.Single {
 	case roles.STATUS_VALUE_TYPE_INT:
-		value = &role_friend.Int
+		value_reflect.SetInt(role_friend.Int)
 	case roles.STATUS_VALUE_TYPE_FLOAT:
-		value = &role_friend.Float
+		value_reflect.SetFloat(role_friend.Float)
 	case roles.STATUS_VALUE_TYPE_COMPLEX:
-		value = &role_friend.Complex
+		value_reflect.SetComplex(role_friend.Complex)
 	default:
 		return fmt.Errorf("The value's type not int64, float64 or complex128.")
 	}
@@ -1972,8 +1979,13 @@ func (z *ZrStorage) ReadContextStatus(id, contextname string, upordown uint8, bi
 //	--> OPERATE_GET_CONTEXT_STATUS (前导)
 //	<-- DATA_PLEASE (slave回执)
 //	--> Net_RoleAndContext_Data (结构体)
-//	<-- value (slave回执带数据体)
+//	<-- Net_RoleAndContext_Data带上value (slave回执带数据体)
 func (z *ZrStorage) readContextStatus(conn *slaveIn, id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("%v", e)
+		}
+	}()
 	// 看看要什么类型的值
 	valuetype := z.statusValueType(value)
 	if valuetype == roles.STATUS_VALUE_TYPE_NULL {
@@ -2011,7 +2023,22 @@ func (z *ZrStorage) readContextStatus(conn *slaveIn, id, contextname string, upo
 	if slave_reply_data.DataStat != DATA_ALL_OK {
 		return slave_reply_data.Error
 	}
-	err = nst.BytesGobStruct(slave_reply_data.Data, value)
+	// 解码收到的内容
+	err = nst.BytesGobStruct(slave_reply_data.Data, &role_context)
+	if err != nil {
+		return err
+	}
+	value_reflect := reflect.Indirect(reflect.ValueOf(value))
+	switch role_context.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		value_reflect.SetInt(role_context.Int)
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		value_reflect.SetFloat(role_context.Float)
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		value_reflect.SetComplex(role_context.Complex)
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
 	return err
 }
 
@@ -2051,7 +2078,11 @@ func (z *ZrStorage) WriteContexts(id string, contexts map[string]roles.Context) 
 // 在slave上设定上下文
 func (z *ZrStorage) writeContexts(id string, contexts map[string]roles.Context, conns []*slaveIn) (err error) {
 	// 构建要传输的信息
-	contexts_b, err := nst.StructGobBytes(contexts)
+	role_contexts := Net_RoleAndContexts{
+		Id:       id,
+		Contexts: contexts,
+	}
+	contexts_b, err := nst.StructGobBytes(role_contexts)
 	if err != nil {
 		return err
 	}
@@ -2074,9 +2105,7 @@ func (z *ZrStorage) writeContexts(id string, contexts map[string]roles.Context, 
 //
 //	--> OPERATE_SET_CONTEXTS (前导)
 //	<-- DATA_PLEASE (slave回执)
-//	--> role's id
-//	<-- DATA_PLEASE (slave回执)
-//	--> map[string]roles.Context ([]byte)
+//	--> Net_RoleAndContexts ([]byte)
 //	<-- DATA_ALL_OK (slave回执)
 func (z *ZrStorage) writeContexts_one(id string, contexts_b []byte, onec *slaveIn) (err error) {
 	// 分配连接进程
@@ -2084,14 +2113,6 @@ func (z *ZrStorage) writeContexts_one(id string, contexts_b []byte, onec *slaveI
 	defer cprocess.Close()
 	// 发送前导
 	slave_receipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_SET_CONTEXTS)
-	if err != nil {
-		return err
-	}
-	if slave_receipt.DataStat != DATA_PLEASE {
-		return slave_receipt.Error
-	}
-	// 发送角色的id
-	slave_receipt, err = z.sendAndDecodeSlaveReceipt(cprocess, []byte(id))
 	if err != nil {
 		return err
 	}
@@ -2266,6 +2287,75 @@ func (z *ZrStorage) writeData(id, name string, data interface{}, conns []*slaveI
 	}
 }
 
+// slave把data的数据装入role的name值下
+func (z *ZrStorage) writeData_for_server(role_data Net_RoleData_Data) (err error) {
+	// 如果开启缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock()
+		defer z.lock.RUnlock()
+	}
+	// 是否为本地
+	mode, conn := z.findConn(role_data.Id)
+	if mode == CONN_IS_LOCAL {
+		// 如果本地
+		rolec, err := z.readRole_small(role_data.Id)
+		if err != nil {
+			return err
+		}
+		// 加锁
+		rolec.lock.Lock()
+		defer rolec.lock.Unlock()
+		defer func() {
+			// 拦截反射的恐慌
+			if e := recover(); e != nil {
+				err = fmt.Errorf("%v", e)
+			}
+		}()
+		// 开始反射的那些乱七八遭
+		rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(role_data.Name)
+		rv_type := rv.Type()
+		if rv.CanSet() != true {
+			err = fmt.Errorf("The data type %v not be set.", rv_type)
+			return err
+		}
+		err = nst.BytesGobStruct(role_data.Data, rv.Interface())
+		if err != nil {
+			return err
+		}
+		rolec.role.SetDataChanged()
+		err = z.checkCacheStore(rolec.role)
+		return err
+	} else {
+		// 如果是在slave
+		err = z.writeData_for_server_s(role_data, conn)
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]WriteData: %v", err)
+		}
+		return err
+	}
+}
+
+// slave把data的数据装入role的name值下
+func (z *ZrStorage) writeData_for_server_s(role_data Net_RoleData_Data, conns []*slaveIn) (err error) {
+	trans_b, err := nst.StructGobBytes(role_data)
+	if err != nil {
+		return err
+	}
+	// 遍历连接
+	var errstr string
+	for _, onec := range conns {
+		err = z.writeData_one(role_data.Id, trans_b, onec)
+		if err != nil {
+			errstr += fmt.Sprint(onec.name, ": ", err, " | ")
+		}
+	}
+	if len(errstr) != 0 {
+		return fmt.Errorf(errstr)
+	} else {
+		return nil
+	}
+}
+
 // slave把data的数据装入role的name值下，一个的
 //
 //	--> OPERATE_SET_DATA (前导)
@@ -2297,6 +2387,12 @@ func (z *ZrStorage) writeData_one(id string, trans_b []byte, onec *slaveIn) (err
 
 // 从角色中知道name的数据名并返回其数据
 func (z *ZrStorage) ReadData(id, name string, data interface{}) (err error) {
+	defer func() {
+		// 拦截反射的恐慌
+		if e := recover(); e != nil {
+			err = fmt.Errorf("%v", e)
+		}
+	}()
 	// 如果启用缓存
 	if z.cacheMax >= 0 {
 		z.lock.RLock()
@@ -2340,6 +2436,98 @@ func (z *ZrStorage) ReadData(id, name string, data interface{}) (err error) {
 	}
 }
 
+// 从角色中知道name的数据名并返回其数据
+func (z *ZrStorage) readData_for_server(role_data *Net_RoleData_Data) (err error) {
+	defer func() {
+		// 拦截反射的恐慌
+		if e := recover(); e != nil {
+			err = fmt.Errorf("%v", e)
+		}
+	}()
+	// 如果启用缓存
+	if z.cacheMax >= 0 {
+		z.lock.RLock()
+		defer z.lock.RUnlock()
+	}
+	// 是否本地
+	mode, conn := z.findConn(role_data.Id)
+	if mode == CONN_IS_LOCAL {
+		// 本地
+		rolec, err := z.readRole_small(role_data.Id)
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadData: %v", err)
+			return err
+		}
+		rolec.lock.RLock()
+		defer rolec.lock.RUnlock()
+		// 开始获取信息了
+		rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(role_data.Name)
+		role_data.Data, err = nst.StructGobBytes(rv.Interface())
+		if err != nil {
+			return err
+		}
+		return nil
+	} else {
+		// slave
+		conn_count := len(conn)
+		conn_random := random.GetRandNum(conn_count - 1)
+		err = z.readData_for_server_s(role_data, conn[conn_random])
+		if err != nil {
+			err = fmt.Errorf("drcm[ZrStorage]ReadData: %v", err)
+		}
+		return err
+	}
+}
+
+// slave的从角色中知道name的数据名并返回其数据
+//
+//	--> OPERATE_GET_DATA (前导词)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleData_Data
+//	<-- Net_RoleData_Data (跟随DATA_ALL_OK)
+func (z *ZrStorage) readData_for_server_s(role_data *Net_RoleData_Data, conn *slaveIn) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("%v", e)
+		}
+	}()
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 构建发送的数据
+	trans := Net_RoleData_Data{
+		Id:   role_data.Id,
+		Name: role_data.Name,
+		Data: role_data.Data,
+	}
+	trans_b, err := nst.StructGobBytes(trans)
+	if err != nil {
+		return err
+	}
+	// 发送前导
+	slave_receipt, err := z.sendPrefixStat(cprocess, conn.code, OPERATE_GET_DATA)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return slave_receipt.Error
+	}
+	// 发送数据体并接收
+	slave_receipt_data, err := z.sendAndDecodeSlaveReceiptData(cprocess, trans_b)
+	if err != nil {
+		return err
+	}
+	if slave_receipt_data.DataStat != DATA_ALL_OK {
+		return slave_receipt_data.Error
+	}
+	// 解码接收
+	err = nst.BytesGobStruct(slave_receipt_data.Data, role_data)
+	//data_reflect := reflect.Indirect(reflect.ValueOf(data))
+	//value_reflect := reflect.Indirect(reflect.ValueOf(role_data))
+	//data_reflect.Set(value_reflect)
+	return
+}
+
 // slave的从角色中知道name的数据名并返回其数据
 //
 //	--> OPERATE_GET_DATA (前导词)
@@ -2347,6 +2535,11 @@ func (z *ZrStorage) ReadData(id, name string, data interface{}) (err error) {
 //	--> Net_RoleData_Data
 //	<-- Net_RoleData_Data (跟随DATA_ALL_OK)
 func (z *ZrStorage) readData(id, name string, data interface{}, conn *slaveIn) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("%v", e)
+		}
+	}()
 	// 分配连接
 	cprocess := conn.tcpconn.OpenProgress()
 	defer cprocess.Close()
@@ -2375,8 +2568,13 @@ func (z *ZrStorage) readData(id, name string, data interface{}, conn *slaveIn) (
 	if slave_receipt_data.DataStat != DATA_ALL_OK {
 		return slave_receipt_data.Error
 	}
-	err = nst.BytesGobStruct(slave_receipt_data.Data, data)
-	return err
+	// 解码接收
+	role_data := Net_RoleData_Data{}
+	err = nst.BytesGobStruct(slave_receipt_data.Data, role_data)
+	data_reflect := reflect.Indirect(reflect.ValueOf(data))
+	value_reflect := reflect.Indirect(reflect.ValueOf(role_data))
+	data_reflect.Set(value_reflect)
+	return
 }
 
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*

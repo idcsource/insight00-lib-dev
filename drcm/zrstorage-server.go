@@ -57,7 +57,8 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_GET_DATA:
 
 	case OPERATE_SET_DATA:
-
+		// 设置一个值
+		err = z.serverToWriteData(conn_exec)
 	case OPERATE_SET_FATHER:
 		// 设置父角色
 		err = z.serverToWriteFather(conn_exec)
@@ -147,13 +148,17 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		// 读取朋友的某个状态
 		err = z.serverToReadFriendStatus(conn_exec)
 	case OPERATE_SET_CONTEXT_STATUS:
-
+		// 设置一个上下文状态
+		err = z.serverToWriteContextStatus(conn_exec)
 	case OPERATE_GET_CONTEXT_STATUS:
-
+		// 读取一个上下文状态
+		err = z.serverToReadContextStatus(conn_exec)
 	case OPERATE_SET_CONTEXTS:
-
+		// 设置全部的上下文
+		err = z.serverToWriteContexts(conn_exec)
 	case OPERATE_GET_CONTEXTS:
-
+		// 获取全部上下文
+		err = z.serverToReadContexts(conn_exec)
 	case OPERATE_RESET_CONTEXTS:
 
 	default:
@@ -910,7 +915,7 @@ func (z *ZrStorage) serverToReadFriendStatus(conn_exec *nst.ConnExec) (err error
 			return err
 		}
 		role_friend.Complex = value
-	case roles.STATUS_VALUE_TYPE_NULL:
+	default:
 		err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The value's type not int64, float64 or complex128."))
 		return err
 	}
@@ -943,12 +948,11 @@ func (z *ZrStorage) serverToWriteContextStatus(conn_exec *nst.ConnExec) (err err
 	}
 	// 解码数据
 	role_context := Net_RoleAndContext_Data{}
-	err = nst.BytesGobStruct(role_context_b, role_context)
+	err = nst.BytesGobStruct(role_context_b, &role_context)
 	if err != nil {
 		return err
 	}
 	// 执行
-	//WriteContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error)
 	switch role_context.Single {
 	case roles.STATUS_VALUE_TYPE_INT:
 		err = z.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Int)
@@ -965,6 +969,198 @@ func (z *ZrStorage) serverToWriteContextStatus(conn_exec *nst.ConnExec) (err err
 	} else {
 		err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
 	}
+	return err
+}
+
+// 获取上下文的状态属性
+//	--> OPERATE_GET_CONTEXT_STATUS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext_Data (结构体)
+//	<-- Net_RoleAndContext_Data带上value (slave回执带数据体)
+func (z *ZrStorage) serverToReadContextStatus(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收数据
+	role_context_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码数据
+	role_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(role_context_b, &role_context)
+	if err != nil {
+		return err
+	}
+	// 执行
+	switch role_context.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		var value int64
+		err = z.ReadContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, &value)
+		if err != nil {
+			err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+			return err
+		}
+		role_context.Int = value
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		var value float64
+		err = z.ReadContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, &value)
+		if err != nil {
+			err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+			return err
+		}
+		role_context.Float = value
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		var value complex128
+		err = z.ReadContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, &value)
+		if err != nil {
+			err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+			return err
+		}
+		role_context.Complex = value
+	default:
+		err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The value's type not int64, float64 or complex128."))
+		return err
+	}
+	// 编码
+	value_b, err := nst.StructGobBytes(role_context)
+	if err != nil {
+		err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+		return err
+	}
+	// 发送
+	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, value_b, nil)
+	return err
+}
+
+// 设定上下文
+//	--> OPERATE_SET_CONTEXTS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContexts ([]byte)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToWriteContexts(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收数据
+	role_contexts_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码数据
+	role_contexts := Net_RoleAndContexts{}
+	err = nst.BytesGobStruct(role_contexts_b, &role_contexts)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.WriteContexts(role_contexts.Id, role_contexts.Contexts)
+	if err != nil {
+		return err
+	}
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// 获取上下文
+//	--> OPERATE_GET_CONTEXTS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> role's id (角色ID)
+//	<-- contexts (byte，Net_SlaveReceipt_Data封装)
+func (z *ZrStorage) serverToReadContexts(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收id
+	role_id_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	role_id := string(role_id_b)
+	// 执行
+	contexts, err := z.ReadContexts(role_id)
+	if err != nil {
+		return err
+	}
+	// 编码
+	contexts_b, err := nst.StructGobBytes(contexts)
+	if err != nil {
+		return err
+	}
+	// 构建发送
+	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, contexts_b, nil)
+	return err
+}
+
+// 把data的数据装入role的name值下，如果找不到name，则返回错误
+//	--> OPERATE_SET_DATA (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleData_Data
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToWriteData(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收数据
+	role_data_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_data := Net_RoleData_Data{}
+	err = nst.BytesGobStruct(role_data_b, &role_data)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.writeData_for_server(role_data)
+	if err != nil {
+		return err
+	}
+	// 构造成功
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	return err
+}
+
+// 从角色中知道name的数据名并返回其数据
+//	--> OPERATE_GET_DATA (前导词)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleData_Data
+//	<-- Net_RoleData_Data (跟随DATA_ALL_OK)
+func (z *ZrStorage) serverToReadData(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收数据
+	role_data_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_data := Net_RoleData_Data{}
+	err = nst.BytesGobStruct(role_data_b, &role_data)
+	if err != nil {
+		return err
+	}
+	// 执行
+	err = z.readData_for_server(&role_data)
+	// 编码
+	role_data_b, err = nst.StructGobBytes(role_data)
+	if err != nil {
+		return err
+	}
+	// 发送
+	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, role_data_b, nil)
 	return err
 }
 

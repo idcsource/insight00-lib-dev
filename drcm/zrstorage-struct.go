@@ -168,6 +168,12 @@ type Net_RoleAndContext struct {
 	BindRole string
 }
 
+// 角色的全部上下文
+type Net_RoleAndContexts struct {
+	Id       string
+	Contexts map[string]roles.Context
+}
+
 // 角色的单个上下文关系数据的网络数据格式
 type Net_RoleAndContext_Data struct {
 	Id string
