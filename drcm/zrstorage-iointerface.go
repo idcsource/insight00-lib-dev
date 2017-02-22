@@ -1686,7 +1686,7 @@ func (z *ZrStorage) writeFriendStatus(conns []*slaveIn, id, friend string, bindb
 	case roles.STATUS_VALUE_TYPE_COMPLEX:
 		role_friend.Complex = value.(complex128)
 	default:
-		role_friend.Single = 0
+		role_friend.Single = roles.STATUS_VALUE_TYPE_NULL
 	}
 	role_friend_b, err := nst.StructGobBytes(role_friend)
 	if err != nil {
@@ -1773,7 +1773,7 @@ func (z *ZrStorage) ReadFriendStatus(id, friend string, bindbit int, value inter
 //	--> OPERATE_GET_FRIEND_STATUS (前导)
 //	<-- DATA_PLEASE (slave回执)
 //	--> Net_RoleAndFriend (结构体)
-//	<-- value (slave回执带数据体)
+//	<-- Net_RoleAndFriend带上value (slave回执带数据体)
 func (z *ZrStorage) readFriendStatus(conn *slaveIn, id, friend string, bindbit int, value interface{}) (err error) {
 	// 看看要什么类型的值
 	valuetype := z.statusValueType(value)
@@ -1810,8 +1810,21 @@ func (z *ZrStorage) readFriendStatus(conn *slaveIn, id, friend string, bindbit i
 	if slave_reply_data.DataStat != DATA_ALL_OK {
 		return slave_reply_data.Error
 	}
-	err = nst.BytesGobStruct(slave_reply_data.Data, value)
-	return err
+	err = nst.BytesGobStruct(slave_reply_data.Data, &role_friend)
+	if err != nil {
+		return err
+	}
+	switch role_friend.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		value = &role_friend.Int
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		value = &role_friend.Float
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		value = &role_friend.Complex
+	default:
+		return fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	return nil
 }
 
 // 设定上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN

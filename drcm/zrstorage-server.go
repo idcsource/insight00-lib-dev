@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // ExecTCP nst的ConnExecer接口
@@ -106,7 +107,8 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		// 删除一个上下文
 		err = z.serverToDropContext(conn_exec)
 	case OPERATE_GET_CONTEXTS_NAME:
-
+		// 返回所有上下文组的名称
+		err = z.serverToReadContextsName(conn_exec)
 	case OPERATE_READ_CONTEXT:
 		// 读出一个上下文
 		err = z.serverToReadContext(conn_exec)
@@ -139,9 +141,11 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_SAME_BIND_CONTEXT_DOWN:
 
 	case OPERATE_SET_FRIEND_STATUS:
-
+		// 设置朋友的状态属性
+		err = z.serverToWriteFriendStatus(conn_exec)
 	case OPERATE_GET_FRIEND_STATUS:
-
+		// 读取朋友的某个状态
+		err = z.serverToReadFriendStatus(conn_exec)
 	case OPERATE_SET_CONTEXT_STATUS:
 
 	case OPERATE_GET_CONTEXT_STATUS:
@@ -776,6 +780,191 @@ func (z *ZrStorage) serverToReadContextSameBind(conn_exec *nst.ConnExec) (err er
 	}
 	// 发送结果
 	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, rolesid_b, nil)
+	return err
+}
+
+// 返回所有上下文组的名称
+//	--> OPERATE_GET_CONTEXTS_NAME (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> role's id
+//	<-- names (slave回执带数据体)
+func (z *ZrStorage) serverToReadContextsName(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收id
+	role_id_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	role_id := string(role_id_b)
+	// 执行
+	contexts_name, err := z.ReadContextsName(role_id)
+	if err != nil {
+		err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+		return err
+	}
+	// 构造要发送的数据
+	contexts_name_b, err := nst.StructGobBytes(contexts_name)
+	if err != nil {
+		err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+		return err
+	}
+	// 发送结果
+	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, contexts_name_b, nil)
+	return err
+}
+
+// 设置朋友的状态属性
+// 	--> OPERATE_SET_FRIEND_STATUS (前导词)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndFriend (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToWriteFriendStatus(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_friend_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_friend := Net_RoleAndFriend{}
+	err = nst.BytesGobStruct(role_friend_b, &role_friend)
+	if err != nil {
+		return err
+	}
+	// 执行
+	switch role_friend.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		err = z.WriteFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, role_friend.Int)
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		err = z.WriteFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, role_friend.Float)
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		err = z.WriteFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, role_friend.Complex)
+	case roles.STATUS_VALUE_TYPE_NULL:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	// 回执
+	if err != nil {
+		err = z.serverErrorReceipt(conn_exec, DATA_NOT_EXPECT, err)
+	} else {
+		err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	}
+	return err
+
+}
+
+// 获取朋友的状态属性
+//	--> OPERATE_GET_FRIEND_STATUS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndFriend (结构体)
+//	<-- Net_RoleAndFriend带上value (slave回执带数据体)
+func (z *ZrStorage) serverToReadFriendStatus(conn_exec *nst.ConnExec) (err error) {
+	// 回执
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收
+	role_friend_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码
+	role_friend := Net_RoleAndFriend{}
+	err = nst.BytesGobStruct(role_friend_b, &role_friend)
+	if err != nil {
+		return err
+	}
+	// 执行
+	switch role_friend.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		var value int64
+		err = z.ReadFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, &value)
+		if err != nil {
+			err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+			return err
+		}
+		role_friend.Int = value
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		var value float64
+		err = z.ReadFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, &value)
+		if err != nil {
+			err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+			return err
+		}
+		role_friend.Float = value
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		var value complex128
+		err = z.ReadFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, &value)
+		if err != nil {
+			err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+			return err
+		}
+		role_friend.Complex = value
+	case roles.STATUS_VALUE_TYPE_NULL:
+		err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The value's type not int64, float64 or complex128."))
+		return err
+	}
+	// 编码
+	value_b, err := nst.StructGobBytes(role_friend)
+	if err != nil {
+		err = z.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, err)
+		return err
+	}
+	// 发送
+	err = z.serverDataReceipt(conn_exec, DATA_ALL_OK, value_b, nil)
+	return err
+}
+
+// 设定上下文的状态属性
+//	--> OPERATE_SET_CONTEXT_STATUS (前导)
+//	<-- DATA_PLEASE (slave回执)
+//	--> Net_RoleAndContext_Data (结构体)
+//	<-- DATA_ALL_OK (slave回执)
+func (z *ZrStorage) serverToWriteContextStatus(conn_exec *nst.ConnExec) (err error) {
+	// 回执please
+	err = z.serverErrorReceipt(conn_exec, DATA_PLEASE, nil)
+	if err != nil {
+		return err
+	}
+	// 接收数据
+	role_context_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 解码数据
+	role_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(role_context_b, role_context)
+	if err != nil {
+		return err
+	}
+	// 执行
+	//WriteContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error)
+	switch role_context.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		err = z.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Int)
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		err = z.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Float)
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		err = z.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Complex)
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	// 回执
+	if err != nil {
+		err = z.serverErrorReceipt(conn_exec, DATA_NOT_EXPECT, err)
+	} else {
+		err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	}
 	return err
 }
 
