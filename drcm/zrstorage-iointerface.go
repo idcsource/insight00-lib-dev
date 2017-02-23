@@ -2318,7 +2318,7 @@ func (z *ZrStorage) writeData_for_server(role_data Net_RoleData_Data) (err error
 			err = fmt.Errorf("The data type %v not be set.", rv_type)
 			return err
 		}
-		err = nst.BytesGobStruct(role_data.Data, rv.Interface())
+		err = nst.BytesGobReflect(role_data.Data, rv)
 		if err != nil {
 			return err
 		}

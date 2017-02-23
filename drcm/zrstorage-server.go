@@ -49,13 +49,12 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_WRITE_ROLE:
 		// 写角色，对应StoreRole
 		err = z.serverToStoreRole(conn_exec)
-	case OPERATE_NEW_ROLE:
-
 	case OPERATE_DEL_ROLE:
 		// 删除一个角色，对应DeleteRole
 		err = z.serverToDeleteRole(conn_exec)
 	case OPERATE_GET_DATA:
-
+		// 读取一个值
+		err = z.serverToReadData(conn_exec)
 	case OPERATE_SET_DATA:
 		// 设置一个值
 		err = z.serverToWriteData(conn_exec)
@@ -65,16 +64,12 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_GET_FATHER:
 		// 读取父角色
 		err = z.serverToReadFather(conn_exec)
-	case OPERATE_RESET_FATHER:
-
 	case OPERATE_SET_CHILDREN:
 		// 写children
 		err = z.serverToWriteChildren(conn_exec)
 	case OPERATE_GET_CHILDREN:
 		// 读取children
 		err = z.serverToReadChildren(conn_exec)
-	case OPERATE_RESET_CHILDREN:
-
 	case OPERATE_ADD_CHILD:
 		// 加一个child
 		err = z.serverToWriteChild(conn_exec)
@@ -90,17 +85,9 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_GET_FRIENDS:
 		// 读全部朋友
 		err = z.serverToReadFriends(conn_exec)
-	case OPERATE_RESET_FRIENDS:
-
-	case OPERATE_ADD_FRIEND:
-
 	case OPERATE_DEL_FRIEND:
 		// 删除一个朋友
 		err = z.serverToDeleteFriend(conn_exec)
-	case OPERATE_CHANGE_FRIEND:
-
-	case OPERATE_SAME_BIND_FRIEND:
-
 	case OPERATE_ADD_CONTEXT:
 		//创建一个空的上下文
 		err = z.serverToCreateContext(conn_exec)
@@ -116,31 +103,9 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_SAME_BIND_CONTEXT:
 		//返回某个上下文中的同样绑定值的所有
 		err = z.serverToReadContextSameBind(conn_exec)
-	case OPERATE_ADD_CONTEXT_BIND:
-
 	case OPERATE_DEL_CONTEXT_BIND:
 		// 删除一个上下文的绑定
 		err = z.serverToDeleteContextBind(conn_exec)
-	case OPERATE_CHANGE_CONTEXT_BIND:
-
-	case OPERATE_CONTEXT_SAME_BIND:
-
-	case OPERATE_ADD_CONTEXT_UP:
-
-	case OPERATE_DEL_CONTEXT_UP:
-
-	case OPERATE_CHANGE_CONTEXT_UP:
-
-	case OPERATE_SAME_BIND_CONTEXT_UP:
-
-	case OPERATE_ADD_CONTEXT_DOWN:
-
-	case OPERATE_DEL_CONTEXT_DOWN:
-
-	case OPERATE_CHANGE_CONTEXT_DOWN:
-
-	case OPERATE_SAME_BIND_CONTEXT_DOWN:
-
 	case OPERATE_SET_FRIEND_STATUS:
 		// 设置朋友的状态属性
 		err = z.serverToWriteFriendStatus(conn_exec)
@@ -159,8 +124,6 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_GET_CONTEXTS:
 		// 获取全部上下文
 		err = z.serverToReadContexts(conn_exec)
-	case OPERATE_RESET_CONTEXTS:
-
 	default:
 		// 构建关闭
 		z.serverErrorReceipt(conn_exec, DATA_NOT_EXPECT, fmt.Errorf("The oprerate can not found."))
