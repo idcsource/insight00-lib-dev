@@ -1525,7 +1525,7 @@ func (z *ZrStorage) readContextSameBind(id, contextname string, upordown uint8, 
 		Id:       id,
 		Context:  contextname,
 		UpOrDown: upordown,
-		Single:   1,
+		Single:   roles.STATUS_VALUE_TYPE_INT,
 		Bit:      0,
 		Int:      bind,
 	}
@@ -2572,8 +2572,7 @@ func (z *ZrStorage) readData(id, name string, data interface{}, conn *slaveIn) (
 	role_data := Net_RoleData_Data{}
 	err = nst.BytesGobStruct(slave_receipt_data.Data, role_data)
 	data_reflect := reflect.Indirect(reflect.ValueOf(data))
-	value_reflect := reflect.Indirect(reflect.ValueOf(role_data))
-	data_reflect.Set(value_reflect)
+	err = nst.BytesGobReflect(role_data.Data, data_reflect)
 	return
 }
 
