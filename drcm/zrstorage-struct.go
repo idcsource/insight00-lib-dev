@@ -92,7 +92,7 @@ type Net_SlaveReceipt struct {
 	// 数据状态，来自DATA_*
 	DataStat uint8
 	// 返回的错误
-	Error error
+	Error string
 }
 
 // slave回执带数据体
@@ -100,7 +100,7 @@ type Net_SlaveReceipt_Data struct {
 	// 数据状态，来自DATA_*
 	DataStat uint8
 	// 返回的错误
-	Error error
+	Error string
 	// 数据体
 	Data []byte
 }

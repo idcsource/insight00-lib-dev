@@ -270,7 +270,7 @@ func (z *ZrStorage) serverToWriteFather(conn_exec *nst.ConnExec) (err error) {
 		return err
 	}
 	net_role_father_change := Net_RoleFatherChange{}
-	err = nst.BytesGobStruct(net_role_father_change_b, &net_role_father_change_b)
+	err = nst.BytesGobStruct(net_role_father_change_b, &net_role_father_change)
 	if err != nil {
 		err = z.serverErrorReceipt(conn_exec, DATA_NOT_EXPECT, err)
 		return err
@@ -1132,7 +1132,7 @@ func (z *ZrStorage) serverErrorReceipt(conn_exec *nst.ConnExec, stat uint8, err 
 	// 构建回执
 	slave_receipt := Net_SlaveReceipt{
 		DataStat: stat,
-		Error:    err,
+		Error:    fmt.Sprint(err),
 	}
 	slave_receipt_b, err2 := nst.StructGobBytes(slave_receipt)
 	if err2 != nil {
@@ -1150,7 +1150,7 @@ func (z *ZrStorage) serverDataReceipt(conn_exec *nst.ConnExec, stat uint8, data 
 	// 构建回执
 	slave_receipt := Net_SlaveReceipt_Data{
 		DataStat: stat,
-		Error:    err,
+		Error:    fmt.Sprint(err),
 		Data:     data,
 	}
 	slave_receipt_b, err2 := nst.StructGobBytes(slave_receipt)

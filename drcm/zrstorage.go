@@ -135,7 +135,7 @@ func (z *ZrStorage) ToStore() (err error) {
 			}
 			if slave_receipt.DataStat != DATA_ALL_OK {
 				z.logerr(slave_receipt.Error)
-				return slave_receipt.Error
+				return fmt.Errorf(slave_receipt.Error)
 			}
 		}
 	}

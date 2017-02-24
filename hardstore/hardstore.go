@@ -25,7 +25,6 @@ import (
 	"os"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/pubfunc"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 	"github.com/idcsource/Insight-0-0-lib/rolesio"
@@ -158,28 +157,9 @@ func (h *HardStore) ReadRole(id string) (roles.Roleer, error) {
 		return nil, fmt.Errorf("hardstore: ReadRole: %v", err2_0)
 	}
 
-	var r_role roles.Roleer
-	r_role, err3 := nst.BytesGobStructForRoleer(r_byte)
-	if err3 != nil {
-		return nil, fmt.Errorf("hardstore: ReadRole: %v", err3)
-	}
-	var r_ralation roleRelation
-	err4 := nst.BytesGobStruct(r_r_byte, &r_ralation)
-	if err4 != nil {
-		return nil, fmt.Errorf("hardstore: ReadRole: %v", err4)
-	}
-	var r_version roleVersion
-	err4_0 := nst.BytesGobStruct(r_v_byte, &r_version)
-	if err4_0 != nil {
-		return nil, fmt.Errorf("hardstore: ReadRole: %v", err4_0)
-	}
+	role, err := h.DecodeRole(r_byte, r_r_byte, r_v_byte)
 
-	r_role.SetFather(r_ralation.Father)
-	r_role.SetChildren(r_ralation.Children)
-	r_role.SetFriends(r_ralation.Friends)
-	r_role.SetContexts(r_ralation.Contexts)
-	r_role.SetVersion(r_version.Version)
-	return r_role, nil
+	return role, err
 }
 
 // 解码一个角色，将二进制的角色存储进行解码
@@ -188,10 +168,10 @@ func (h *HardStore) DecodeRole(roleb, relab, verb []byte) (role roles.Roleer, er
 }
 
 // 写入一个角色的本体到存储，需要提前用encoding/gob包中的Register方法注册符合roles.Roleer接口的数据类型。
-func (h *HardStore) StoreRole(role roles.Roleer) error {
+func (h *HardStore) StoreRole(role roles.Roleer) (err error) {
 	id := role.ReturnId()
-	self_change := role.ReturnChanged(roles.SELF_CHANGED)
-	data_change := role.ReturnChanged(roles.DATA_CHANGED)
+	//self_change := role.ReturnChanged(roles.SELF_CHANGED)
+	//data_change := role.ReturnChanged(roles.DATA_CHANGED)
 
 	path := h.findRoleFilePath(id)
 
@@ -200,62 +180,82 @@ func (h *HardStore) StoreRole(role roles.Roleer) error {
 	f_body_name := f_name + h.body_name
 	f_version_name := f_name + h.version_name
 
-	if pubfunc.FileExist(f_body_name) == true && pubfunc.FileExist(f_ralation_name) == true && pubfunc.FileExist(f_version_name) == true {
-		if self_change == false && data_change == false {
-			return nil
-		}
+	body, ralation, version, err := h.EncodeRole(role)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(f_body_name, body, 0600)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(f_ralation_name, ralation, 0600)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(f_version_name, version, 0600)
+	if err != nil {
+		return err
 	}
 
-	if pubfunc.FileExist(f_version_name) == false {
-		version := role.Version()
-		role_version := roleVersion{
-			Version: version,
+	/*
+		if pubfunc.FileExist(f_body_name) == true && pubfunc.FileExist(f_ralation_name) == true && pubfunc.FileExist(f_version_name) == true {
+			if self_change == false && data_change == false {
+				return nil
+			}
 		}
-		role_version_b, err := nst.StructGobBytes(role_version)
-		if err != nil {
-			return fmt.Errorf("hardstore: StoreRole: %v", err)
-		}
-		err = ioutil.WriteFile(f_version_name, role_version_b, 0600)
-		if err != nil {
-			return fmt.Errorf("hardstore: StoreRole: %v", err)
-		}
-	}
 
-	var r_byte []byte
-	if data_change == true {
-		var err error
-		r_byte, err = nst.StructGobBytesForRoleer(role)
-		if err != nil {
-			return fmt.Errorf("hardstore: StoreRole: %v", err)
-		}
-	}
 
-	var r_ralation_byte []byte
-	if self_change == true || pubfunc.FileExist(f_ralation_name) == false {
-		r_ralation := roleRelation{
-			Father:   role.GetFather(),
-			Children: role.GetChildren(),
-			Friends:  role.GetFriends(),
-			Contexts: role.GetContexts(),
+		if pubfunc.FileExist(f_version_name) == false {
+			version := role.Version()
+			role_version := roleVersion{
+				Version: version,
+			}
+			role_version_b, err := nst.StructGobBytes(role_version)
+			if err != nil {
+				return fmt.Errorf("hardstore: StoreRole: %v", err)
+			}
+			err = ioutil.WriteFile(f_version_name, role_version_b, 0600)
+			if err != nil {
+				return fmt.Errorf("hardstore: StoreRole: %v", err)
+			}
 		}
-		var err2 error
-		r_ralation_byte, err2 = nst.StructGobBytes(r_ralation)
-		if err2 != nil {
-			return fmt.Errorf("hardstore: StoreRole: %v", err2)
+
+		var r_byte []byte
+		if data_change == true {
+			var err error
+			r_byte, err = nst.StructGobBytesForRoleer(role)
+			if err != nil {
+				return fmt.Errorf("hardstore: StoreRole: %v", err)
+			}
 		}
-	}
-	if data_change == true || pubfunc.FileExist(f_name) == false {
-		err3 := ioutil.WriteFile(f_body_name, r_byte, 0600)
-		if err3 != nil {
-			return fmt.Errorf("hardstore: StoreRole: %v", err3)
+
+		var r_ralation_byte []byte
+		if self_change == true || pubfunc.FileExist(f_ralation_name) == false {
+			r_ralation := roleRelation{
+				Father:   role.GetFather(),
+				Children: role.GetChildren(),
+				Friends:  role.GetFriends(),
+				Contexts: role.GetContexts(),
+			}
+			var err2 error
+			r_ralation_byte, err2 = nst.StructGobBytes(r_ralation)
+			if err2 != nil {
+				return fmt.Errorf("hardstore: StoreRole: %v", err2)
+			}
 		}
-	}
-	if self_change == true || pubfunc.FileExist(f_ralation_name) == false {
-		err4 := ioutil.WriteFile(f_ralation_name, r_ralation_byte, 0600)
-		if err4 != nil {
-			return fmt.Errorf("hardstore: StoreRole: %v", err4)
+		if data_change == true || pubfunc.FileExist(f_name) == false {
+			err3 := ioutil.WriteFile(f_body_name, r_byte, 0600)
+			if err3 != nil {
+				return fmt.Errorf("hardstore: StoreRole: %v", err3)
+			}
 		}
-	}
+		if self_change == true || pubfunc.FileExist(f_ralation_name) == false {
+			err4 := ioutil.WriteFile(f_ralation_name, r_ralation_byte, 0600)
+			if err4 != nil {
+				return fmt.Errorf("hardstore: StoreRole: %v", err4)
+			}
+		}
+	*/
 	return nil
 }
 

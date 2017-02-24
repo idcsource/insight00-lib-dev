@@ -102,7 +102,7 @@ func (o *Operator) readRole(id string, slave *slaveIn) (role roles.Roleer, err e
 	}
 	// 如果获取到的DATA_PLEASE则说明认证已经通过
 	if slavereceipt.DataStat != DATA_PLEASE {
-		return nil, slavereceipt.Error
+		return nil, fmt.Errorf(slavereceipt.Error)
 	}
 	// 发送想要的id，并接收slave的返回
 	slave_receipt_data, err := SendAndDecodeSlaveReceiptData(cprocess, []byte(id))
@@ -110,7 +110,7 @@ func (o *Operator) readRole(id string, slave *slaveIn) (role roles.Roleer, err e
 		return nil, err
 	}
 	if slave_receipt_data.DataStat != DATA_ALL_OK {
-		return nil, slave_receipt_data.Error
+		return nil, fmt.Errorf(slave_receipt_data.Error)
 	}
 	// 解码Net_RoleSendAndReceive。
 	rolegetstruct := Net_RoleSendAndReceive{}
@@ -175,11 +175,11 @@ func (o *Operator) storeRole(roleS_b []byte, onec *slaveIn) (err error) {
 			return err
 		}
 		if sr.DataStat != DATA_ALL_OK {
-			return sr.Error
+			return fmt.Errorf(sr.Error)
 		}
 		return nil
 	} else {
-		return slavereceipt.Error
+		return fmt.Errorf(slavereceipt.Error)
 	}
 }
 
@@ -220,11 +220,11 @@ func (o *Operator) deleteRole(id string, onec *slaveIn) (err error) {
 			return err
 		}
 		if slavereceipt.DataStat != DATA_ALL_OK {
-			return slavereceipt.Error
+			return fmt.Errorf(slavereceipt.Error)
 		}
 		return nil
 	} else {
-		return slavereceipt.Error
+		return fmt.Errorf(slavereceipt.Error)
 	}
 }
 
@@ -264,20 +264,17 @@ func (o *Operator) writeFather(sdb []byte, onec *slaveIn) (err error) {
 		return err
 	}
 	if slavereceipt.DataStat == DATA_PLEASE {
-		sre, err := cprocess.SendAndReturn(sdb)
-		if err != nil {
-			return err
-		}
-		sr, err := DecodeSlaveReceipt(sre)
+
+		sr, err := SendAndDecodeSlaveReceipt(cprocess, sdb)
 		if err != nil {
 			return err
 		}
 		if sr.DataStat != DATA_ALL_OK {
-			return sr.Error
+			return fmt.Errorf(sr.Error)
 		}
 		return nil
 	} else {
-		return slavereceipt.Error
+		return fmt.Errorf(slavereceipt.Error)
 	}
 }
 
@@ -317,12 +314,12 @@ func (o *Operator) readFather(id string, conn *slaveIn) (father string, err erro
 			return "", err
 		}
 		if slave_receipt_data.DataStat != DATA_ALL_OK {
-			return "", slave_receipt_data.Error
+			return "", fmt.Errorf(slave_receipt_data.Error)
 		}
 		father = string(slave_receipt_data.Data)
 		return father, nil
 	} else {
-		return "", slavereceipt.Error
+		return "", fmt.Errorf(slavereceipt.Error)
 	}
 }
 
@@ -367,13 +364,13 @@ func (o *Operator) readChildren(id string, conn *slaveIn) (children []string, er
 			return children, err
 		}
 		if sr_data.DataStat != DATA_ALL_OK {
-			return children, sr_data.Error
+			return children, fmt.Errorf(sr_data.Error)
 		}
 		children = make([]string, 0)
 		err = nst.BytesGobStruct(sr_data.Data, &children)
 		return children, err
 	} else {
-		err = sr.Error
+		err = fmt.Errorf(sr.Error)
 		return children, err
 	}
 }
@@ -419,7 +416,7 @@ func (o *Operator) writeChildren(id string, children_b []byte, onec *slaveIn) (e
 		return err
 	}
 	if slave_receipt.DataStat != DATA_PLEASE {
-		return slave_receipt.Error
+		return fmt.Errorf(slave_receipt.Error)
 	}
 	// 发送children
 	slave_receipt, err = SendAndDecodeSlaveReceipt(cprocess, children_b)
@@ -427,7 +424,7 @@ func (o *Operator) writeChildren(id string, children_b []byte, onec *slaveIn) (e
 		return err
 	}
 	if slave_receipt.DataStat != DATA_ALL_OK {
-		return slave_receipt.Error
+		return fmt.Errorf(slave_receipt.Error)
 	}
 	return nil
 }
@@ -479,14 +476,14 @@ func (o *Operator) writeChild(role_child_b []byte, onec *slaveIn) (err error) {
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	slave_reply, err = SendAndDecodeSlaveReceipt(cprocess, role_child_b)
 	if err != nil {
 		return err
 	}
 	if slave_reply.DataStat != DATA_ALL_OK {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	return nil
 }
@@ -532,7 +529,7 @@ func (o *Operator) deleteChild(role_child_b []byte, onec *slaveIn) (err error) {
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	// 发送数据
 	slave_reply, err = SendAndDecodeSlaveReceipt(cprocess, role_child_b)
@@ -540,7 +537,7 @@ func (o *Operator) deleteChild(role_child_b []byte, onec *slaveIn) (err error) {
 		return err
 	}
 	if slave_reply.DataStat != DATA_ALL_OK {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	return nil
 }
@@ -573,7 +570,7 @@ func (o *Operator) existChild(id, child string, conn *slaveIn) (have bool, err e
 		return false, err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return false, slave_reply.Error
+		return false, fmt.Errorf(slave_reply.Error)
 	}
 	// 创建要发送的结构体
 	role_child := Net_RoleAndChild{
@@ -594,7 +591,7 @@ func (o *Operator) existChild(id, child string, conn *slaveIn) (have bool, err e
 	} else if slave_reply.DataStat == DATA_RETURN_IS_FALSE {
 		return false, nil
 	} else {
-		return false, slave_reply.Error
+		return false, fmt.Errorf(slave_reply.Error)
 	}
 }
 
@@ -626,7 +623,7 @@ func (o *Operator) readFriends(id string, conn *slaveIn) (status map[string]role
 		return nil, err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return nil, slave_reply.Error
+		return nil, fmt.Errorf(slave_reply.Error)
 	}
 	// 发送角色的ID
 	slave_reply_data, err := SendAndDecodeSlaveReceiptData(cprocess, []byte(id))
@@ -634,7 +631,7 @@ func (o *Operator) readFriends(id string, conn *slaveIn) (status map[string]role
 		return nil, err
 	}
 	if slave_reply_data.DataStat != DATA_ALL_OK {
-		return nil, slave_reply_data.Error
+		return nil, fmt.Errorf(slave_reply_data.Error)
 	}
 	// 解码status
 	status = make(map[string]roles.Status)
@@ -682,7 +679,7 @@ func (o *Operator) writeFriends(id string, friends_b []byte, onec *slaveIn) (err
 		return err
 	}
 	if slave_receipt.DataStat != DATA_PLEASE {
-		return slave_receipt.Error
+		return fmt.Errorf(slave_receipt.Error)
 	}
 	// 发送Net_RoleAndFriends的byte
 	slave_receipt, err = SendAndDecodeSlaveReceipt(cprocess, friends_b)
@@ -690,7 +687,7 @@ func (o *Operator) writeFriends(id string, friends_b []byte, onec *slaveIn) (err
 		return err
 	}
 	if slave_receipt.DataStat != DATA_ALL_OK {
-		return slave_receipt.Error
+		return fmt.Errorf(slave_receipt.Error)
 	}
 	return nil
 }
@@ -749,7 +746,7 @@ func (o *Operator) deleteFriend(role_friend_b []byte, onec *slaveIn) (err error)
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	// 发送数据
 	slave_reply, err = SendAndDecodeSlaveReceipt(cprocess, role_friend_b)
@@ -757,7 +754,7 @@ func (o *Operator) deleteFriend(role_friend_b []byte, onec *slaveIn) (err error)
 		return err
 	}
 	if slave_reply.DataStat != DATA_ALL_OK {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	return nil
 }
@@ -803,14 +800,14 @@ func (o *Operator) createContext(role_context_b []byte, onec *slaveIn) (err erro
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	slave_reply, err = SendAndDecodeSlaveReceipt(cprocess, role_context_b)
 	if err != nil {
 		return err
 	}
 	if slave_reply.DataStat != DATA_ALL_OK {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	} else {
 		return nil
 	}
@@ -857,14 +854,14 @@ func (o *Operator) dropContext(role_context_b []byte, onec *slaveIn) (err error)
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	slave_reply, err = SendAndDecodeSlaveReceipt(cprocess, role_context_b)
 	if err != nil {
 		return err
 	}
 	if slave_reply.DataStat != DATA_ALL_OK {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	} else {
 		return nil
 	}
@@ -899,7 +896,7 @@ func (o *Operator) readContext(id, contextname string, conn *slaveIn) (context r
 		return
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		err = slave_reply.Error
+		err = fmt.Errorf(slave_reply.Error)
 		return
 	}
 	// 构造要发送的结构体
@@ -920,7 +917,7 @@ func (o *Operator) readContext(id, contextname string, conn *slaveIn) (context r
 		if slave_reply_data.DataStat == DATA_RETURN_IS_FALSE {
 			return context, false, nil
 		} else {
-			return context, false, slave_reply_data.Error
+			return context, false, fmt.Errorf(slave_reply_data.Error)
 		}
 	}
 	err = nst.BytesGobStruct(slave_reply_data.Data, &context)
@@ -973,7 +970,7 @@ func (o *Operator) deleteContextBind(role_context_b []byte, onec *slaveIn) (err 
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	// 发送数据
 	slave_reply, err = SendAndDecodeSlaveReceipt(cprocess, role_context_b)
@@ -981,7 +978,7 @@ func (o *Operator) deleteContextBind(role_context_b []byte, onec *slaveIn) (err 
 		return err
 	}
 	if slave_reply.DataStat != DATA_ALL_OK {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	return nil
 }
@@ -1028,18 +1025,18 @@ func (o *Operator) readContextSameBind(id, contextname string, upordown uint8, b
 	}
 	// 查看回执
 	if slave_receipt.DataStat != DATA_PLEASE {
-		return nil, false, slave_receipt.Error
+		return nil, false, fmt.Errorf(slave_receipt.Error)
 	}
 	// 发送结构
 	slave_receipt_data, err := SendAndDecodeSlaveReceiptData(cprocess, contextsamebind_b)
 	// 查看回执
 	if slave_receipt_data.DataStat == DATA_RETURN_IS_FALSE {
 		// 这是如果没有找到的解决方法
-		return nil, false, slave_receipt_data.Error
+		return nil, false, fmt.Errorf(slave_receipt_data.Error)
 	}
 	if slave_receipt_data.DataStat != DATA_ALL_OK {
 		// 这是不期望的发送
-		return nil, false, slave_receipt_data.Error
+		return nil, false, fmt.Errorf(slave_receipt_data.Error)
 	}
 	rolesid = make([]string, 0)
 	err = nst.BytesGobStruct(slave_receipt_data.Data, &rolesid)
@@ -1077,7 +1074,7 @@ func (o *Operator) readContextsName(id string, conn *slaveIn) (names []string, e
 		return
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return nil, slave_reply.Error
+		return nil, fmt.Errorf(slave_reply.Error)
 	}
 	// 发送id，并接收带数据体的slave回执
 	slave_reply_data, err := SendAndDecodeSlaveReceiptData(cprocess, []byte(id))
@@ -1085,7 +1082,7 @@ func (o *Operator) readContextsName(id string, conn *slaveIn) (names []string, e
 		return
 	}
 	if slave_reply_data.DataStat != DATA_ALL_OK {
-		return nil, slave_reply_data.Error
+		return nil, fmt.Errorf(slave_reply_data.Error)
 	}
 	names = make([]string, 0)
 	err = nst.BytesGobStruct(slave_reply_data.Data, &names)
@@ -1148,14 +1145,14 @@ func (o *Operator) writeFriendStatus(role_friend_b []byte, onec *slaveIn) (err e
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	slave_reply, err = SendAndDecodeSlaveReceipt(cprocess, role_friend_b)
 	if err != nil {
 		return err
 	}
 	if slave_reply.DataStat != DATA_ALL_OK {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	return nil
 }
@@ -1210,7 +1207,7 @@ func (o *Operator) readFriendStatus(conn *slaveIn, id, friend string, bindbit in
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	// 发送要查询的结构，并接收带数据体的slave回执
 	slave_reply_data, err := SendAndDecodeSlaveReceiptData(cprocess, role_friend_b)
@@ -1218,7 +1215,7 @@ func (o *Operator) readFriendStatus(conn *slaveIn, id, friend string, bindbit in
 		return err
 	}
 	if slave_reply_data.DataStat != DATA_ALL_OK {
-		return slave_reply_data.Error
+		return fmt.Errorf(slave_reply_data.Error)
 	}
 	err = nst.BytesGobStruct(slave_reply_data.Data, &role_friend)
 	if err != nil {
@@ -1295,14 +1292,14 @@ func (o *Operator) writeContextStatus(role_context_b []byte, onec *slaveIn) (err
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	slave_reply, err = SendAndDecodeSlaveReceipt(cprocess, role_context_b)
 	if err != nil {
 		return err
 	}
 	if slave_reply.DataStat != DATA_ALL_OK {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	return nil
 }
@@ -1358,7 +1355,7 @@ func (o *Operator) readContextStatus(conn *slaveIn, id, contextname string, upor
 		return err
 	}
 	if slave_reply.DataStat != DATA_PLEASE {
-		return slave_reply.Error
+		return fmt.Errorf(slave_reply.Error)
 	}
 	// 发送要查询的结构，并接收带数据体的slave回执
 	slave_reply_data, err := SendAndDecodeSlaveReceiptData(cprocess, role_context_b)
@@ -1366,7 +1363,7 @@ func (o *Operator) readContextStatus(conn *slaveIn, id, contextname string, upor
 		return err
 	}
 	if slave_reply_data.DataStat != DATA_ALL_OK {
-		return slave_reply_data.Error
+		return fmt.Errorf(slave_reply_data.Error)
 	}
 	// 解码收到的内容
 	err = nst.BytesGobStruct(slave_reply_data.Data, &role_context)
@@ -1428,7 +1425,7 @@ func (o *Operator) writeContexts(id string, contexts_b []byte, onec *slaveIn) (e
 		return err
 	}
 	if slave_receipt.DataStat != DATA_PLEASE {
-		return slave_receipt.Error
+		return fmt.Errorf(slave_receipt.Error)
 	}
 	// 发送数据
 	slave_receipt, err = SendAndDecodeSlaveReceipt(cprocess, contexts_b)
@@ -1436,7 +1433,7 @@ func (o *Operator) writeContexts(id string, contexts_b []byte, onec *slaveIn) (e
 		return err
 	}
 	if slave_receipt.DataStat != DATA_ALL_OK {
-		return slave_receipt.Error
+		return fmt.Errorf(slave_receipt.Error)
 	}
 	return nil
 }
@@ -1470,7 +1467,7 @@ func (o *Operator) readContexts(id string, conn *slaveIn) (contexts map[string]r
 		return
 	}
 	if sr.DataStat != DATA_PLEASE {
-		return nil, sr.Error
+		return nil, fmt.Errorf(sr.Error)
 
 	}
 	// 发送角色ID
@@ -1479,7 +1476,7 @@ func (o *Operator) readContexts(id string, conn *slaveIn) (contexts map[string]r
 		return nil, err
 	}
 	if sr_data.DataStat != DATA_ALL_OK {
-		return nil, sr_data.Error
+		return nil, fmt.Errorf(sr_data.Error)
 	}
 	// 解码
 	contexts = make(map[string]roles.Context)
@@ -1539,7 +1536,7 @@ func (o *Operator) writeData(id string, trans_b []byte, onec *slaveIn) (err erro
 		return err
 	}
 	if slave_receipt.DataStat != DATA_PLEASE {
-		return slave_receipt.Error
+		return fmt.Errorf(slave_receipt.Error)
 	}
 	//发送数据体
 	slave_receipt, err = SendAndDecodeSlaveReceipt(cprocess, trans_b)
@@ -1547,7 +1544,7 @@ func (o *Operator) writeData(id string, trans_b []byte, onec *slaveIn) (err erro
 		return err
 	}
 	if slave_receipt.DataStat != DATA_ALL_OK {
-		return slave_receipt.Error
+		return fmt.Errorf(slave_receipt.Error)
 	}
 	return nil
 }
@@ -1594,7 +1591,7 @@ func (o *Operator) readData(id, name string, data interface{}, conn *slaveIn) (e
 		return err
 	}
 	if slave_receipt.DataStat != DATA_PLEASE {
-		return slave_receipt.Error
+		return fmt.Errorf(slave_receipt.Error)
 	}
 	// 发送数据体并接收
 	slave_receipt_data, err := SendAndDecodeSlaveReceiptData(cprocess, trans_b)
@@ -1602,7 +1599,7 @@ func (o *Operator) readData(id, name string, data interface{}, conn *slaveIn) (e
 		return err
 	}
 	if slave_receipt_data.DataStat != DATA_ALL_OK {
-		return slave_receipt_data.Error
+		return fmt.Errorf(slave_receipt_data.Error)
 	}
 	// 解码接收
 	role_data := Net_RoleData_Data{}
@@ -1650,4 +1647,12 @@ func (o *Operator) logrun(err interface{}) {
 	} else {
 		fmt.Println(err)
 	}
+}
+
+// 关闭
+func (o *Operator) Close() (err error) {
+	for _, onec := range o.slaves {
+		onec.tcpconn.Close()
+	}
+	return nil
 }

@@ -126,6 +126,9 @@ func (t *TCP) SendStat(status uint8) (errs error) {
 // 接收状态，也就是接收uint8
 func (t *TCP) GetStat() (status uint8, errs error) {
 	bytes, errs := t.GetBytes(1)
+	if errs != nil {
+		return
+	}
 	status = BytesToUint8(bytes)
 	return
 }
