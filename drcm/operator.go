@@ -1603,7 +1603,10 @@ func (o *Operator) readData(id, name string, data interface{}, conn *slaveIn) (e
 	}
 	// 解码接收
 	role_data := Net_RoleData_Data{}
-	err = nst.BytesGobStruct(slave_receipt_data.Data, role_data)
+	err = nst.BytesGobStruct(slave_receipt_data.Data, &role_data)
+	if err != nil {
+		return err
+	}
 	data_reflect := reflect.Indirect(reflect.ValueOf(data))
 	err = nst.BytesGobReflect(role_data.Data, data_reflect)
 	return
