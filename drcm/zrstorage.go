@@ -5,6 +5,64 @@
 // Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
+// D.R.C.M.为Distributed Roles Control Machine（分布式角色控制机）的缩写。
+//
+// D.R.C.M.提供了针对角色接口（roles.Roleer）的分布式跨存储跨服务器的储存方式。
+//
+// ZrStorage
+//
+// ZrStorage又为“锆存储”，它实现了rolesio.RolesInOutManager接口的全部功能，可以对角色内关系和数据进行完全控制。
+//
+// 在底层，ZrStorage使用HardStore进行本地存储。其自身则内建缓存机制与读写锁机制，并增加ToStore()方法提供自由的运行时保存功能。
+//
+// ZrStorage包括三种运行模式：own、master、slave。own为本地模式，只是一个带缓存的本地存储。master和slave模式则构成了“主-从”分布式存储。如果单独使用slave模式则可以构建普通的角色存储服务器。
+// "主-从"模式下，支持根据角色名的第一个字母进行路由，且支持镜像，配置方法见配置文件。
+//
+// ZrStorage需要提供一个*cpool.Block类型的配置信息，具体实力可参见源代码中drcm包的zrstorage.cfg文件。
+//	{zr_storage}
+//
+//	[main]
+//	# mode可以是own、master、slave
+//	mode = master
+//	# 作为服务监听的端口，master和slave必须
+//	port = 9999
+//	# 自己的身份验证码，访问者需要提供这串代码来获得操作权限，master和slave必须
+//	code = the000Master
+//	# slave配置的名字，用逗号分割，master必须
+//	slave = s001,s002
+//
+//	# local是本地的存储设置，包含缓存和底层HardStore的设置
+//	[local]
+//	# 角色的内存缓存大小
+//	cache_num = 1000
+//	# 本地的存储位置
+//	path = /pathname/
+//	# 本地存储的路径层深
+//	path_deep = 2
+//
+//	[s001]
+//	# 路由方案，角色名的首字母的列表，设置表明这些字母开头的角色将交由这台slave处理
+//	control = a,b,c,d,e,f,1,2,3
+//	# master与slave的连接数
+//	conn_num = 5
+//	# slave的身份验证码
+//	code = slave_code
+//	# slave的地址和端口
+//	address = 192.168.1.101:11111
+//
+//	[s002]
+//	# 与s001重复的字母将规整为镜像，执行读操作的时候随机选取，进行写操作的时候同时执行
+//	control = 0,1,2,3,4,5,6,7,8,9
+//	conn_num = 5
+//	code = codecodecodecode
+//	address = 192.168.1.102:11111
+//
+// Operator
+//
+// Operator为ZrStorage的“操作机”。它同样实现了rolesio.RolesInOutManager接口，但其作用仅是用来操作远程ZrStorage的master或slave，并支持镜像管理。
+//
+// Operator在新建时需要提供一台Zrstorage的相关信息，包括地址、连接数、身份验证码。之后如果需要进行镜像管理则可以通过AddServer()方法添加。
+// Operator对所有镜像同等对待，没有路由规则，读操作的时候随即选取，写操作的时候同时执行。
 package drcm
 
 import (

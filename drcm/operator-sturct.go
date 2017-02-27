@@ -5,8 +5,6 @@
 // Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
-// 分布式角色控制机。
-// Distributed Roles Control Machine.
 package drcm
 
 import (
@@ -15,7 +13,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 )
 
-// 这是“操作者”，也就是具体对控制器进行操作的方法。可以对配置中所有的主控制器进行镜像访问。
+// 这是“操作机”，也就是具体对控制器进行操作的方法。可以对配置中所有的主控制器进行镜像访问。
 type Operator struct {
 
 	// 服务端，与在zrstorage下不同，这里的slaveIn中的name将是输入的地址和端口字符串

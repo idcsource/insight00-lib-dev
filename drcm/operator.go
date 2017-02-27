@@ -19,7 +19,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
-// 新建一个控制器，addr和code是默认的ZrStorage的地址（含端口号）和身份码，conn_num为连接池的个数
+// 新建一个操作机，addr和code是默认的ZrStorage的地址（含端口号）和身份码，conn_num为连接池的个数
 func NewOperator(addr, code string, conn_num int, logs *ilogs.Logs) (operator *Operator, err error) {
 	operator = &Operator{
 		slaves: make([]*slaveIn, 0),

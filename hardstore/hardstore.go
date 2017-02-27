@@ -1,11 +1,11 @@
-// Copyright 2016
+// Copyright 2016-2017
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
 // InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
 // Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
-// 硬存储（永久存储），一套文件型存储数据库。
+// HardStore 硬存储（永久存储），一套文件型存储数据库。
 //
 // 实现RolesInOutManager的接口（依靠roles中的NilReadWrite，并非全部实现），
 // 对角色的信息与关系进行永久存储。
@@ -15,7 +15,8 @@
 // 		[local]
 // 			path = one_path_name		# 存储数据库的保存位置
 // 			path_deep = 2			# 数据库结构的路径层级，建议1或2就可以了
-// TODO：分布式存储，自管锁
+//
+// 分布式存储和锁机制已经在drcm包的ZrStorage和rcontrol包中得到实现。HardStore仅作为这两个包的底层存储使用。
 package hardstore
 
 import (
