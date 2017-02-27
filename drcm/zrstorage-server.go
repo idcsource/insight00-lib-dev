@@ -142,11 +142,12 @@ func (z *ZrStorage) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 // 发送DATA_ALL_OK
 // 然后调用本地的运行时保存方法
 func (z *ZrStorage) severToToStore(conn_exec *nst.ConnExec) (err error) {
-	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
+	err = z.toCacheStore()
 	if err != nil {
+		err = z.serverErrorReceipt(conn_exec, DATA_NOT_EXPECT, err)
 		return err
 	}
-	err = z.toCacheStore()
+	err = z.serverErrorReceipt(conn_exec, DATA_ALL_OK, nil)
 	return err
 }
 

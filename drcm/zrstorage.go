@@ -110,7 +110,25 @@ func (z *ZrStorage) toCacheStore() (err error) {
 	z.rolesCache = make(map[string]*oneRoleCache)
 	z.deleteCache = make([]string, 0)
 	z.rolesCount = 0
-
+	var errstring string
+	for _, onec := range z.slavecpool {
+		// 分配连接
+		cprocess := onec.tcpconn.OpenProgress()
+		defer cprocess.Close()
+		// 发送前导
+		slave_receipt, err := SendPrefixStat(cprocess, onec.code, OPERATE_TOSTORE)
+		if err != nil {
+			z.logerr(err)
+			errstring += fmt.Sprint(onec.name, ": ", err, " | ")
+		}
+		if slave_receipt.DataStat != DATA_ALL_OK {
+			z.logerr(slave_receipt.Error)
+			errstring += fmt.Sprint(onec.name, ": ", err, " | ")
+		}
+	}
+	if len(errstring) != 0 {
+		return fmt.Errorf(errstring)
+	}
 	return nil
 }
 
