@@ -5,7 +5,8 @@
 // Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
-// 网络套接字通讯功能的封装“Network Socket Transmission”。
+// 网络套接字通讯功能的封装“Network Socket Transmission”
+//
 // 本包提供了各种类型与[]byte类型之间的转换函数。
 // 并提供了一套tcp服务器和客户端的实现。
 //
