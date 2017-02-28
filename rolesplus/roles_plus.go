@@ -1,4 +1,4 @@
-// Copyright 2016
+// Copyright 2016-2017
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
 // InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
@@ -21,68 +21,68 @@
 package rolesplus
 
 import (
-	"reflect"
 	"fmt"
-	
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"reflect"
+
 	"github.com/idcsource/Insight-0-0-lib/bridges"
-	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 type RolePlus struct {
-	roles.Role															// 继承roles.Roleer接口
-	_bridge			map[string]*bridges.BridgeBind						// 通讯桥
-	_logs			*ilogs.Logs											// 运行日志
+	roles.Role                                // 继承roles.Roleer接口
+	_bridge    map[string]*bridges.BridgeBind // 通讯桥
+	_logs      *ilogs.Logs                    // 运行日志
 }
 
 // 新建自己
-func (r *RolePlus) New (id string){
-	r.Role.New(id);
-	r._bridge = make(map[string]*bridges.BridgeBind);
+func (r *RolePlus) New(id string) {
+	r.Role.New(id)
+	r._bridge = make(map[string]*bridges.BridgeBind)
 }
 
 // 设置日志的接收
-func (r *RolePlus) SetLog (logs *ilogs.Logs) {
-	r._logs = logs;
+func (r *RolePlus) SetLog(logs *ilogs.Logs) {
+	r._logs = logs
 }
 
 // 绑定一个桥
-func (r *RolePlus) BridgeBind (name string, br *bridges.Bridge) {
-	r._bridge[name] = br.Register(r.ReturnId());
+func (r *RolePlus) BridgeBind(name string, br *bridges.Bridge) {
+	r._bridge[name] = br.Register(r.ReturnId())
 }
 
 // 向为name的桥中发送数据
-func (r *RolePlus) BridgeSend (name string, data bridges.BridgeData){
-	r._bridge[name].Send <- data;
+func (r *RolePlus) BridgeSend(name string, data bridges.BridgeData) {
+	r._bridge[name].Send <- data
 }
 
 // 返回全部的桥绑定
-func (r *RolePlus) ReturnBridges () map[string]*bridges.BridgeBind {
-	return r._bridge;
+func (r *RolePlus) ReturnBridges() map[string]*bridges.BridgeBind {
+	return r._bridge
 }
 
 // 返回日志
-func (r *RolePlus) ReturnLog () *ilogs.Logs {
-	return r._logs;
+func (r *RolePlus) ReturnLog() *ilogs.Logs {
+	return r._logs
 }
 
 // 启动接收数据的桥
-func StartBridge (r RolePluser) {
-	role_value := reflect.ValueOf(r);
+func StartBridge(r RolePluser) {
+	role_value := reflect.ValueOf(r)
 	for key, br := range r.ReturnBridges() {
-		go doRolesBridge(key, br, role_value, r.ReturnLog());
+		go doRolesBridge(key, br, role_value, r.ReturnLog())
 	}
 }
 
 // doRolesBridge 一个个启动桥
-func doRolesBridge (key string, br *bridges.BridgeBind, role_value reflect.Value, logs *ilogs.Logs) {
+func doRolesBridge(key string, br *bridges.BridgeBind, role_value reflect.Value, logs *ilogs.Logs) {
 	for {
-		b_data, ok := <-br.Receive;
+		b_data, ok := <-br.Receive
 		if ok == false {
-			return;
+			return
 		} else {
-			go doOneBridgeData(key, b_data, role_value, logs);
+			go doOneBridgeData(key, b_data, role_value, logs)
 		}
 	}
 }
@@ -92,62 +92,62 @@ func doRolesBridge (key string, br *bridges.BridgeBind, role_value reflect.Value
 // 根据接收到的结构体，转交给operate指定的处理函数。
 // operate指定的函数原型为：funcname (key, id string, data interface{})。
 // 其中key为发送方绑定的桥名，id为发送方的id，data为数据体，在设计函数时interface{}可以是你所确定的任何具体类型。
-func doOneBridgeData(key string, data bridges.BridgeData, role_value reflect.Value, logs *ilogs.Logs){
-	defer func(){
+func doOneBridgeData(key string, data bridges.BridgeData, role_value reflect.Value, logs *ilogs.Logs) {
+	defer func() {
 		if e := recover(); e != nil {
 			if logs != nil {
-				logs.ErrLog(e);
+				logs.ErrLog(e)
 			} else {
-				fmt.Println(e);
+				fmt.Println(e)
 			}
 		}
 	}()
-	operate := data.Operate;
-	id := data.Id;
-	databody := data.Data;
-				
-	params := make([]reflect.Value,3);
-	params[0] = reflect.ValueOf(key);
-	params[1] = reflect.ValueOf(id);
-	params[2] = reflect.ValueOf(databody);
-	role_value.MethodByName(operate).Call(params);
+	operate := data.Operate
+	id := data.Id
+	databody := data.Data
+
+	params := make([]reflect.Value, 3)
+	params[0] = reflect.ValueOf(key)
+	params[1] = reflect.ValueOf(id)
+	params[2] = reflect.ValueOf(databody)
+	role_value.MethodByName(operate).Call(params)
 }
 
 // ExecTCP nst的ConnExecer接口，只做样子
-func (r *RolePlus) ExecTCP (tcp *nst.TCP) error {
-	for {
-		aa, _ := tcp.GetData();
-		fmt.Println(aa);
-	}
-	return nil;
+func (r *RolePlus) ExecTCP(ce *nst.ConnExec) error {
+	return nil
 }
 
 // Logerr 做错误日志
-func (r *RolePlus) ErrLog (err interface{}) {
-	if err == nil { return };
+func (r *RolePlus) ErrLog(err interface{}) {
+	if err == nil {
+		return
+	}
 	if r._logs != nil {
-		r._logs.ErrLog(err);
+		r._logs.ErrLog(err)
 	} else {
-		fmt.Println(err);
+		fmt.Println(err)
 	}
 }
 
 // Logerr 做运行日志
-func (r *RolePlus) RunLog (err interface{}) {
-	if err == nil { return };
+func (r *RolePlus) RunLog(err interface{}) {
+	if err == nil {
+		return
+	}
 	if r._logs != nil {
-		r._logs.RunLog(err);
+		r._logs.RunLog(err)
 	} else {
-		fmt.Println(err);
+		fmt.Println(err)
 	}
 }
 
 // 返回期间的运行日志
-func (r *RolePlus) ReRunLog () []string {
-	return r._logs.ReRunLog();
+func (r *RolePlus) ReRunLog() []string {
+	return r._logs.ReRunLog()
 }
 
 // 返回期间的错误日志
-func (r *RolePlus) ReErrLog () []string {
-	return r._logs.ReErrLog();
+func (r *RolePlus) ReErrLog() []string {
+	return r._logs.ReErrLog()
 }

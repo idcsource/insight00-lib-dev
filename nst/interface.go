@@ -1,4 +1,4 @@
-// Copyright 2016
+// Copyright 2016-2017
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
 // InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
@@ -8,6 +8,8 @@
 // 网络套接字通讯功能的封装“Network Socket Transmission”。
 // 本包提供了各种类型与[]byte类型之间的转换函数。
 // 并提供了一套tcp服务器和客户端的实现。
+//
+// TcpClient
 //
 // TcpClient的使用进程分配功能的流程为（方法的内部流程）：
 //	--> 使用*TcpClient.OpenProgress()分配一个连接
@@ -41,6 +43,14 @@
 //	--> 发送HEART_BEAT状态
 //	--> 如果发送不成功，则进行重新连接
 //	--> 释放连接的锁
+//
+// TcpServer
+//
+// TcpServer完全配合TcpClient的心跳机制，以及DATA_GOON、DATA_CLOSE状态的执行。
+//
+// TcpServer需要接收一个符合nst.ConnExecer接口的执行者负责Client请求的执行，也就是需要提供ExecTCP(ce *ConnExec)方法。
+//
+// ConnExec是对nst.Tcp的封装，提供了简单直接的发送接收数据以及关闭连接的功能。
 package nst
 
 const (

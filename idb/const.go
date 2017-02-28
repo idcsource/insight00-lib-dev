@@ -5,6 +5,8 @@
 // Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
+// 注意：此package已经废弃！！！！！
+//
 // 数据库连接处理，根据配置文件进行。
 // 提供的配置信息为*cpool.Section类型。
 // 需要配置信息提供的配置项为：
@@ -19,7 +21,7 @@ package idb
 
 const (
 	//数据库的类型
-	DATABASE_TYPE_POSTGRESQL	=	iota
+	DATABASE_TYPE_POSTGRESQL = iota
 	DATABASE_TYPE_MYSQL
 	DATABASE_TYPE_SQLITE
 )
