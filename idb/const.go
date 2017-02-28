@@ -5,9 +5,8 @@
 // Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
-// 注意：此package已经废弃！！！！！
-//
 // 数据库连接处理，根据配置文件进行。
+//
 // 提供的配置信息为*cpool.Section类型。
 // 需要配置信息提供的配置项为：
 // 		type		# 数据库类型，目前只支持使用postgresql
