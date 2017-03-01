@@ -10,10 +10,19 @@
 // 本package使用符合rolesio.RolesInOutManager接口的存储器对角色进行保存，并使用nst所提供的网络支持。
 //
 //本package使用hardstore对角色进行编码和解码。也就是说我们需要gob.Register()对roles.Roleer接口的类型进行注册。
+//
+// Receiver
+//
+// 这是货物的接收者
+//
+// Sender
+//
+// 这是货物的发送者
 package porter
 
 import (
 	"github.com/idcsource/Insight-0-0-lib/cpool"
+	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/rolesio"
 )
@@ -40,6 +49,8 @@ type Receiver struct {
 	code string
 	// 存储器实例
 	store rolesio.RolesInOutManager
+	// 日志
+	logs *ilogs.Logs
 }
 
 // 发送者
@@ -48,6 +59,8 @@ type Sender struct {
 	config *cpool.Block
 	// 接收者
 	receivers map[string]oneReceiver
+	// 日志
+	logs *ilogs.Logs
 }
 
 // 一个接收者的信息
