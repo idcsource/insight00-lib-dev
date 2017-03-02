@@ -2,7 +2,7 @@
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
 // InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
-// Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
+// Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
 package nst
@@ -24,25 +24,31 @@ type TcpServer struct {
 }
 
 // 新建一个Tcp的监听。注册一个符合ConnExecer接口的执行者负责真正的处理接口。
-func NewTcpServer(role ConnExecer, port string, logs *ilogs.Logs) *TcpServer {
-	ts := &TcpServer{role: reflect.ValueOf(role), logs: logs, port: port}
-	go ts.startServer()
-	return ts
+func NewTcpServer(role ConnExecer, port string, logs *ilogs.Logs) (ts *TcpServer, err error) {
+	ts = &TcpServer{
+		role: reflect.ValueOf(role),
+		logs: logs,
+		port: port,
+	}
+
+	theport := ":" + ts.port
+	ipAdrr, err := net.ResolveTCPAddr("tcp", theport)
+	if err != nil {
+		ts.logerr(fmt.Errorf("StartServer: theport: %v", err))
+		return nil, err
+	}
+	listens, err := net.ListenTCP("tcp", ipAdrr)
+	if err != nil {
+		ts.logerr(fmt.Errorf("StartServer: ipAdrr: %v", err))
+		return nil, err
+	}
+
+	go ts.startServer(listens)
+	return ts, nil
 }
 
 // 启动服务器，在NewTcpServer中直接执行
-func (ts *TcpServer) startServer() {
-	theport := ":" + ts.port
-	ipAdrr, err1 := net.ResolveTCPAddr("tcp", theport)
-	if err1 != nil {
-		ts.logerr(fmt.Errorf("StartServer: theport: %v", err1))
-		return
-	}
-	listens, err2 := net.ListenTCP("tcp", ipAdrr)
-	if err2 != nil {
-		ts.logerr(fmt.Errorf("StartServer: ipAdrr: %v", err2))
-		return
-	}
+func (ts *TcpServer) startServer(listens *net.TCPListener) {
 	for {
 		Connecter, err := listens.AcceptTCP()
 		if err != nil {

@@ -30,8 +30,20 @@ import (
 
 // 接收者接收后的处理方法，保存还是交由处理函数处理
 const (
-	OPERATE_TO_STORE = iota
+	OPERATE_NOT_SET = iota
+	OPERATE_TO_STORE
 	OPERATE_TO_FUNCTION
+)
+
+// 来往的数据状态
+const (
+	DATA_NOTHING = iota
+	// 数据并不是期望的
+	DATA_NOT_EXPECT
+	// 请发送数据
+	DATA_PLEASE
+	// 数据一切OK
+	DATA_ALL_OK
 )
 
 // 货物，这是搬运工需要搬运的东西，也就是编码后的需要传递的角色信息，这里的编码使用hardstore所提供的方法
@@ -40,6 +52,8 @@ type Cargo struct {
 	Id string
 	// 发送者名字
 	SenderName string
+	// 接收者code
+	ReceiverCode string
 	// 角色的身体
 	RoleBody []byte
 	// 角色的关系
@@ -51,7 +65,7 @@ type Cargo struct {
 // 接收者
 type Receiver struct {
 	// 配置信息
-	config *cpool.Block
+	config *cpool.Section
 	// 监听实例
 	listen *nst.TcpServer
 	// 身份验证码
@@ -91,4 +105,12 @@ type oneReceiver struct {
 // 接收者的注册处理方法的接口
 type ReceiverOperater interface {
 	Operate(sendername string, role roles.Roleer) (err error)
+}
+
+// slave回执，slave收到PrefixStat之后的第一步返回信息
+type Net_ReceiverReceipt struct {
+	// 数据状态，来自DATA_*
+	DataStat uint8
+	// 返回的错误
+	Error string
 }

@@ -2,7 +2,7 @@
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
 // InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
-// Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
+// Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
 // HardStore 硬存储（永久存储），一套文件型存储数据库。
@@ -10,9 +10,8 @@
 // 实现RolesInOutManager的接口（依靠roles中的NilReadWrite，并非全部实现），
 // 对角色的信息与关系进行永久存储。
 //
-// 需要提供*cpool.Block类型的配置信息。
+// 需要提供*cpool.Section类型的配置信息。
 // 目前必需的配置信息配置项为：
-// 		[local]
 // 			path = one_path_name		# 存储数据库的保存位置
 // 			path_deep = 2			# 数据库结构的路径层级，建议1或2就可以了
 //
@@ -34,7 +33,7 @@ import (
 // 存储器类型
 type HardStore struct {
 	*rolesio.NilReadWrite
-	config        *cpool.Block
+	config        *cpool.Section
 	local_path    string
 	path_deep     int64
 	version_name  string
@@ -54,17 +53,17 @@ type roleRelation struct {
 }
 
 // 新建一个存储实例，如果配置文件缺失必须的配置项或配置项中指定路径无法操作都将返回错误
-func NewHardStore(config *cpool.Block) (*HardStore, error) {
+func NewHardStore(config *cpool.Section) (*HardStore, error) {
 	var local_path string
 	var path_deep int64
 	var err error
-	local_path, err = config.GetConfig("local.path")
+	local_path, err = config.GetConfig("path")
 	if err != nil {
 		return nil, errors.New("hardstore: NewHardStore: The configure have not local_path !")
 	}
 	local_path = pubfunc.LocalPath(local_path)
 
-	path_deep, err = config.TranInt64("local.path_deep")
+	path_deep, err = config.TranInt64("path_deep")
 	if err != nil {
 		return nil, errors.New("hardstore: NewHardStore: The configure have not local_deep !")
 	}

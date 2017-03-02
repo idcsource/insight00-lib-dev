@@ -2,7 +2,7 @@
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
 // InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
-// Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
+// Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
 // D.R.C.M.为Distributed Roles Control Machine（分布式角色控制机）的缩写。
@@ -221,7 +221,11 @@ func (z *ZrStorage) ToStore() (err error) {
 // 使用own模式来启动锆存储
 func (z *ZrStorage) startUseOwn() (err error) {
 	// 创建本地存储
-	z.local_store, err = hardstore.NewHardStore(z.config)
+	hardstore_config, err := z.config.GetSection("local")
+	if err != nil {
+		return err
+	}
+	z.local_store, err = hardstore.NewHardStore(hardstore_config)
 	if err != nil {
 		return
 	}
@@ -241,7 +245,11 @@ func (z *ZrStorage) startUseSlave() (err error) {
 		err = fmt.Errorf("drcm:NewZrStorage: %v", err)
 		return
 	}
-	z.listen = nst.NewTcpServer(z, port, z.logs)
+	z.listen, err = nst.NewTcpServer(z, port, z.logs)
+	if err != nil {
+		err = fmt.Errorf("drcm:NewZrStorage: %v", err)
+		return
+	}
 	z.code, err = z.config.GetConfig("main.code")
 	if err != nil {
 		err = fmt.Errorf("drcm:NewZrStorage: %v", err)
