@@ -68,8 +68,15 @@ func (r *Receiver) SetOperater(function ReceiverOperater) {
 	r.optype = OPERATE_TO_FUNCTION
 }
 
+// 设置身份验证码
+func (r *Receiver) SetCode(code string) {
+	r.config.SetConfig("code", code, "身份验证码")
+	r.code = code
+}
+
 // 运行时改变监听
 func (r *Receiver) SetServerListen(listen string) (err error) {
+	r.config.SetConfig("listen", listen, "监听端口")
 	return r.setServerListen(listen)
 }
 

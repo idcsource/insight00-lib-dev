@@ -98,6 +98,8 @@ type oneReceiver struct {
 	name string
 	// 身份验证码
 	code string
+	// 地址
+	address string
 	// 连接
 	tcpconn *nst.TcpClient
 }
