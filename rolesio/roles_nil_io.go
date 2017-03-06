@@ -184,3 +184,7 @@ func (io *NilReadWrite) ReadData(id, name string, data interface{}) (err error) 
 	err = io.err
 	return
 }
+
+func (io *NilReadWrite) ToStore() (err error) {
+	return
+}

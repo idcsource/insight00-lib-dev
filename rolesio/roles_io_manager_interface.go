@@ -94,4 +94,7 @@ type RolesInOutManager interface {
 	WriteData(id, name string, data interface{}) (err error)
 	// 从角色中知道name的数据名并返回其数据。
 	ReadData(id, name string, data interface{}) (err error)
+
+	// 运行时保存
+	ToStore() (err error)
 }
