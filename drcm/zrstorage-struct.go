@@ -15,14 +15,11 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesplus"
 )
 
 // 锆存储。
 // 这是一个带缓存的存储体系，基本功能方面可以看作是hardstore与rcontrol的合并（虽然还有很大不同），而增强方面它支持分布式存储。
 type ZrStorage struct {
-	rolesplus.RolePlus
-
 	/* 下面这部分是存储相关的 */
 
 	// 配置信息

@@ -73,22 +73,15 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/random"
-	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesplus"
 )
 
 // 创建一个锆存储，config的实例见源代码的zrstorage.cfg
 func NewZrStorage(config *cpool.Block, logs *ilogs.Logs) (z *ZrStorage, err error) {
 	z = &ZrStorage{
-		RolePlus: rolesplus.RolePlus{
-			Role: roles.Role{},
-		},
 		config: config,
 		logs:   logs,
 		lock:   new(sync.RWMutex),
 	}
-	z.New(random.Unid(1, "ZrStorage"))
 	// 处理运行的模式
 	mode, err := config.GetConfig("main.mode")
 	if err != nil {
