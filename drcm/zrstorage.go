@@ -73,14 +73,19 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
 // 创建一个锆存储，config的实例见源代码的zrstorage.cfg
 func NewZrStorage(config *cpool.Block, logs *ilogs.Logs) (z *ZrStorage, err error) {
 	z = &ZrStorage{
-		config: config,
-		logs:   logs,
-		lock:   new(sync.RWMutex),
+		config:              config,
+		transaction:         make(map[string]*Transaction),
+		max_transaction:     0,
+		count_transaction:   0,
+		transaction_service: NewTransactionServer(),
+		logs:                logs,
+		lock:                new(sync.RWMutex),
 	}
 	// 处理运行的模式
 	mode, err := config.GetConfig("main.mode")
@@ -368,4 +373,32 @@ func (z *ZrStorage) logrun(err interface{}) {
 	} else {
 		fmt.Println(err)
 	}
+}
+
+// 创建事务
+func (z *ZrStorage) Transaction() (tran *Transaction, err error) {
+	unid := random.GetRand(40)
+	tran = &Transaction{
+		unid:        unid,
+		rolesCache:  make(map[string]*oneRoleCache),
+		deleteCache: make([]string, 0),
+		service:     z.transaction_service,
+		signal:      make(chan TransactionSignal),
+		config:      z.config,
+		local_store: z.local_store,
+		dmode:       z.dmode,
+		code:        z.code,
+		slaves:      z.slaves,
+		listen:      z.listen,
+		slavepool:   z.slavepool,
+		slavecpool:  z.slavecpool,
+		logs:        z.logs,
+	}
+	z.transaction[unid] = tran
+	return
+}
+
+// 创建事务
+func (z *ZrStorage) Begin() (tran *Transaction, err error) {
+	return z.Transaction()
 }
