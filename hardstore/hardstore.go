@@ -10,6 +10,8 @@
 // 实现RolesInOutManager的接口（依靠roles中的NilReadWrite，并非全部实现），
 // 对角色的信息与关系进行永久存储。
 //
+// Change:现在你可以使角色的ID有意义了，不用关注存储时的文件名。
+//
 // 需要提供*cpool.Section类型的配置信息。
 // 目前必需的配置信息配置项为：
 // 			path = one_path_name		# 存储数据库的保存位置
@@ -26,6 +28,7 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/pubfunc"
+	"github.com/idcsource/Insight-0-0-lib/random"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 	"github.com/idcsource/Insight-0-0-lib/rolesio"
 )
@@ -135,8 +138,9 @@ func (h *HardStore) findRoleFilePath(name string) string {
 
 // 从存储中读取一个角色的本体，需要提前用encoding/gob包中的Register方法注册符合roles.Roleer接口的数据类型。
 func (h *HardStore) ReadRole(id string) (roles.Roleer, error) {
-	path := h.findRoleFilePath(id)
-	f_name := path + id
+	hashid := random.GetSha1Sum(id)
+	path := h.findRoleFilePath(hashid)
+	f_name := path + hashid
 	f_relation_name := f_name + h.relation_name
 	f_version_name := f_name + h.version_name
 	f_body_name := f_name + h.body_name
@@ -170,12 +174,13 @@ func (h *HardStore) DecodeRole(roleb, relab, verb []byte) (role roles.Roleer, er
 // 写入一个角色的本体到存储，需要提前用encoding/gob包中的Register方法注册符合roles.Roleer接口的数据类型。
 func (h *HardStore) StoreRole(role roles.Roleer) (err error) {
 	id := role.ReturnId()
+	hashid := random.GetSha1Sum(id)
 	//self_change := role.ReturnChanged(roles.SELF_CHANGED)
 	//data_change := role.ReturnChanged(roles.DATA_CHANGED)
 
-	path := h.findRoleFilePath(id)
+	path := h.findRoleFilePath(hashid)
 
-	f_name := path + id
+	f_name := path + hashid
 	f_ralation_name := f_name + h.relation_name
 	f_body_name := f_name + h.body_name
 	f_version_name := f_name + h.version_name
@@ -265,9 +270,10 @@ func (h *HardStore) EncodeRole(role roles.Roleer) (roleb, relab, verb []byte, er
 }
 
 // 删除掉名为name的角色
-func (h *HardStore) DeleteRole(name string) (err error) {
-	path := h.findRoleFilePath(name)
-	f_name := path + name
+func (h *HardStore) DeleteRole(id string) (err error) {
+	hashid := random.GetSha1Sum(id)
+	path := h.findRoleFilePath(hashid)
+	f_name := path + hashid
 	f_body_name := f_name + h.body_name
 	f_ralation_name := f_name + h.relation_name
 	f_version_name := f_name + h.version_name
