@@ -74,6 +74,24 @@ func (c *CenterSmcs) AddNode(nodename string, types uint8, groupname string) (er
 	return
 }
 
+// 删除一个节点，如果这个节点有子节点则不允许删除
+func (c *CenterSmcs) DelNode(nodename string) (err error) {
+	node_id := c.name + "_" + nodename
+	// 获取是否有子节点
+	children, err := c.store.ReadChildren(node_id)
+	if err != nil {
+		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
+	}
+	if len(children) != 0 {
+		return fmt.Errorf("smcs[CenterSmcs]DelNode: The Node %v has child node.", nodename)
+	}
+	err = c.store.DeleteRole(node_id)
+	if err != nil {
+		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
+	}
+	return
+}
+
 // 设置节点的配置信息
 func (c *CenterSmcs) SetNodeConfig(nodename string, config *cpool.ConfigPool) (err error) {
 	node_id := c.name + "_" + nodename
@@ -127,9 +145,53 @@ func (c *CenterSmcs) GetNodeConfigEncode(nodename string) (config cpool.PoolEnco
 	return
 }
 
+// 设置节点下一个工作状态，workset为WORK_SET_*
+func (c *CenterSmcs) SetNodeWorkSet(nodename string, workset uint8) (err error) {
+	node_id := c.name + "_" + nodename
+	err = c.store.WriteData(node_id, "NextWorkSet", workset)
+	if err != nil {
+		return fmt.Errorf("smcs[CenterSmcs]SetNodeWorkSet: %v", err)
+	}
+	return
+}
+
+// 获取节点的下一个工作状态
+func (c *CenterSmcs) GetNodeWorkSet(nodename string) (workset uint8, err error) {
+	node_id := c.name + "_" + nodename
+	err = c.store.ReadData(node_id, "NextWorkSet", &workset)
+	if err != nil {
+		return 0, fmt.Errorf("smcs[CenterSmcs]GetNodeWorkSet: %v", err)
+	}
+	return
+}
+
+// 设置节点的配置状态,status为CONFIG_*，也就是如果被设置成CONFIG_ALL_READY，则系统将在下次发送更新的配置。这个设置一定要是所有配置信息以及工作状态都调整好之后再执行。
+func (c *CenterSmcs) SetNodeConfigStatus(nodename string, status uint8) (err error) {
+	node_id := c.name + "_" + nodename
+	err = c.store.WriteData(node_id, "ConfigStatus", status)
+	if err != nil {
+		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigStatus: %v", err)
+	}
+	return
+}
+
+// 获取节点的配置状态
+func (c *CenterSmcs) GetNodeConfigStatus(nodename string) (status uint8, err error) {
+	node_id := c.name + "_" + nodename
+	err = c.store.ReadData(node_id, "ConfigStatus", &status)
+	if err != nil {
+		return 0, fmt.Errorf("smcs[CenterSmcs]GetNodeConfigStatus: %v", err)
+	}
+	return
+}
+
 // 设置的运行时保存
 func (c *CenterSmcs) ToStore() (err error) {
-	return c.store.ToStore()
+	err = c.store.ToStore()
+	if err != nil {
+		return fmt.Errorf("smcs[CenterSmcs]ToStore: %v", err)
+	}
+	return
 }
 
 // nst的TcpServer接口实现
