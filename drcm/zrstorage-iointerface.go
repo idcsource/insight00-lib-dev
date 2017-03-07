@@ -48,7 +48,7 @@ func (z *ZrStorage) ReadRole(id string) (role roles.Roleer, err error) {
 		}
 	}
 	// 如果开启了缓存，则存入缓存，并使其检查缓存
-	if z.cacheMax >= 0 {
+	if z.cacheMax > 0 {
 		z.rolesCache[id] = &oneRoleCache{
 			lock: new(sync.RWMutex),
 			role: role,
@@ -64,7 +64,7 @@ func (z *ZrStorage) ReadRole(id string) (role roles.Roleer, err error) {
 // 本地的角色小读取，不带锁，但会加入缓存，并会检查缓存，返回的是oneRoleCache
 func (z *ZrStorage) readRole_small(id string) (rolec *oneRoleCache, err error) {
 	// 如果开启了缓存，就去找缓存
-	if z.cacheMax >= 0 {
+	if z.cacheMax > 0 {
 		if _, find := z.rolesCache[id]; find == true {
 			return z.rolesCache[id], nil
 		}
@@ -75,17 +75,22 @@ func (z *ZrStorage) readRole_small(id string) (rolec *oneRoleCache, err error) {
 		return nil, err
 	}
 	// 如果开启了缓存，则存入缓存，并使其检查缓存
-	if z.cacheMax >= 0 {
+	if z.cacheMax > 0 {
 		z.rolesCache[id] = &oneRoleCache{
 			lock: new(sync.RWMutex),
 			role: role,
 		}
 		z.rolesCount++
-	}
-	if z.cacheMax > 0 {
 		z.checkCacheNum()
+		return z.rolesCache[id], nil
+	} else {
+		rolec = &oneRoleCache{
+			lock: new(sync.RWMutex),
+			role: role,
+		}
+		return rolec, nil
 	}
-	return z.rolesCache[id], nil
+
 }
 
 // 从slave读取一个角色
@@ -128,7 +133,7 @@ func (z *ZrStorage) readRole(id string, slave *slaveIn) (role roles.Roleer, err 
 func (z *ZrStorage) StoreRole(role roles.Roleer) (err error) {
 	id := role.ReturnId()
 	// 如果启用了缓存，则启用全局的读锁
-	if z.cacheMax >= 0 {
+	if z.cacheMax > 0 {
 		z.lock.RLock()
 		defer z.lock.RUnlock()
 		// 如果缓存里没有则加入缓存
