@@ -102,7 +102,7 @@ type CenterSmcs struct {
 	name  string                    // 自己的名字，用来做身份验证
 	node  map[string]sendAndReceive // 中心将要发送走的信息，string为节点的名称
 	store rolesio.RolesInOutManager // 存储配置信息的方法
-	root  *roles.Role               // 中央节点
+	root  roles.Roleer              // 中央节点
 }
 
 // 节点的蔓延数据类型
@@ -125,5 +125,6 @@ type NodeOperator interface {
 
 // 为Gob注册角色类型
 func RegInterfaceForGob() {
+	gob.Register(&roles.Role{})
 	gob.Register(&NodeConfig{})
 }
