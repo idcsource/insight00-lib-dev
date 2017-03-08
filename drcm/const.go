@@ -120,6 +120,11 @@ const (
 	OPERATE_GET_CONTEXTS
 	// 重置contexts
 	OPERATE_RESET_CONTEXTS
+
+	// 创建事务
+	OPERATE_TRAN_BEGIN
+	// 事务是坏的
+	OPERATE_TRAN_BAD
 )
 
 // 分布式模式
@@ -160,4 +165,13 @@ const (
 	DATA_RETURN_IS_TRUE
 	// 数据返回为flase
 	DATA_RETURN_IS_FALSE
+)
+
+const (
+	// 缓存角色的读写状态，无读写
+	CACHE_ROLE_LOCK_NO = iota
+	// 读
+	CACHE_ROLE_LOCK_READ
+	// 写
+	CACHE_ROLE_LOCK_WRITE
 )

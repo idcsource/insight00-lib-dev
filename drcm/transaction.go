@@ -7,7 +7,21 @@
 
 package drcm
 
-// 内部的缓存读取角色，争夺写状态还是读状态，CACHE_ROLE_LOCK_*
-func (t *transactionServer) readrole_tocache(unid, id string, lockstatus uint8) (rolec *oneRoleCache, err error) {
+import (
+	"github.com/idcsource/Insight-0-0-lib/roles"
+)
+
+// 读角色
+func (t *Transaction) ReadRole(id string) (role roles.Roleer, err error) {
+	return
+}
+
+// 事务回滚
+func (t *Transaction) Rollback() (err error) {
+	return
+}
+
+// 事务执行
+func (t *Transaction) Commit() (err error) {
 	return
 }

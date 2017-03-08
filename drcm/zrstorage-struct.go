@@ -78,6 +78,28 @@ type ZrStorage struct {
 type transactionServer struct {
 	// 正在被事务占用的所有角色
 	rolesCache map[string]*oneRoleCache
+
+	/* 完全来自ZrStorage */
+	// 配置信息
+	config *cpool.Block
+	// 本地存储
+	local_store *hardstore.HardStore
+	// 分布式服务的模式，来自于常量DMODE_*
+	dmode uint8
+	// 自身的身份码，做服务的时候使用
+	code string
+	// 请求slave执行或返回数据的连接，string为slave对应的管理第一个值的首字母，而那个切片则是做镜像的
+	slaves map[string][]*slaveIn
+	// 监听的实例
+	listen *nst.TcpServer
+	// slave的连接池，从这里分配给slaveIn
+	slavepool map[string]*nst.TcpClient
+	// slave的slaveIn连接池
+	slavecpool map[string]*slaveIn
+	// 日志
+	logs *ilogs.Logs
+	// 锁
+	lock *sync.RWMutex
 }
 
 // 事务信号
@@ -104,32 +126,20 @@ type Transaction struct {
 
 	// 信号量
 	signal chan TransactionSignal
-
-	/* 完全来自ZrStorage */
-	// 配置信息
-	config *cpool.Block
-	// 本地存储
-	local_store *hardstore.HardStore
-	// 分布式服务的模式，来自于常量DMODE_*
-	dmode uint8
-	// 自身的身份码，做服务的时候使用
-	code string
-	// 请求slave执行或返回数据的连接，string为slave对应的管理第一个值的首字母，而那个切片则是做镜像的
-	slaves map[string][]*slaveIn
-	// 监听的实例
-	listen *nst.TcpServer
-	// slave的连接池，从这里分配给slaveIn
-	slavepool map[string]*nst.TcpClient
-	// slave的slaveIn连接池
-	slavecpool map[string]*slaveIn
 	// 日志
 	logs *ilogs.Logs
 }
 
 // 一个角色的缓存，提供了锁
 type oneRoleCache struct {
+	// 锁
 	lock *sync.RWMutex
+	// 读写锁状态，CACHE_ROLE_LOCK_*
+	lockstatus uint8
+	// 角色自身
 	role roles.Roleer
+	// 事务占用列表，如果是读锁，这里则是所有的列表string为事务的unid
+	tran []string
 }
 
 // 一台从机的信息
