@@ -120,11 +120,6 @@ const (
 	OPERATE_GET_CONTEXTS
 	// 重置contexts
 	OPERATE_RESET_CONTEXTS
-
-	// 创建事务
-	OPERATE_TRAN_BEGIN
-	// 事务是坏的
-	OPERATE_TRAN_BAD
 )
 
 // 分布式模式

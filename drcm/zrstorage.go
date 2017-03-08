@@ -9,8 +9,6 @@
 //
 // D.R.C.M.提供了针对角色接口（roles.Roleer）的分布式跨存储跨服务器的储存方式。
 //
-// 注意：本人尝试将ZrStorage和存储接口都改成事务型，但目前为止我也不知道应该如何解决缓存、锁等乱七八遭的问题，于是我放弃了。但我又不想删掉那些和事务有关的东西，所以你看到一些transaction有关的东西，不需要理会就可以了。
-//
 // ZrStorage
 //
 // ZrStorage又为“锆存储”，它实现了rolesio.RolesInOutManager接口的全部功能，可以对角色内关系和数据进行完全控制。
@@ -75,18 +73,14 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
 // 创建一个锆存储，config的实例见源代码的zrstorage.cfg
 func NewZrStorage(config *cpool.Block, logs *ilogs.Logs) (z *ZrStorage, err error) {
 	z = &ZrStorage{
-		config:            config,
-		transaction:       make(map[string]*Transaction),
-		max_transaction:   0,
-		count_transaction: 0,
-		logs:              logs,
-		lock:              new(sync.RWMutex),
+		config: config,
+		logs:   logs,
+		lock:   new(sync.RWMutex),
 	}
 	// 处理运行的模式
 	mode, err := config.GetConfig("main.mode")
@@ -230,7 +224,6 @@ func (z *ZrStorage) startUseOwn() (err error) {
 	}
 	// 创建缓存
 	err = z.buildCache()
-	z.startTranServer()
 	return
 }
 
@@ -255,25 +248,7 @@ func (z *ZrStorage) startUseSlave() (err error) {
 		err = fmt.Errorf("drcm:NewZrStorage: %v", err)
 		return
 	}
-	z.startTranServer()
 	return
-}
-
-// 开启事务服务
-func (z *ZrStorage) startTranServer() {
-	z.transaction_service = &transactionServer{
-		rolesCache:  make(map[string]*oneRoleCache),
-		config:      z.config,
-		local_store: z.local_store,
-		dmode:       z.dmode,
-		code:        z.code,
-		slaves:      z.slaves,
-		listen:      z.listen,
-		slavepool:   z.slavepool,
-		slavecpool:  z.slavecpool,
-		logs:        z.logs,
-		lock:        new(sync.RWMutex),
-	}
 }
 
 // 使用master模式来启动锆存储，也就是连接所有的slave，当然也要启动监听和本地存储
@@ -354,7 +329,6 @@ func (z *ZrStorage) startUseMaster() (err error) {
 			z.slaves[onewho] = append(z.slaves[onewho], z.slavecpool[one])
 		}
 	}
-	z.startTranServer()
 	return
 }
 
@@ -394,96 +368,4 @@ func (z *ZrStorage) logrun(err interface{}) {
 	} else {
 		fmt.Println(err)
 	}
-}
-
-// 创建事务
-func (z *ZrStorage) Transaction() (tran *Transaction, err error) {
-	unid := random.GetRand(40)
-	// slave的创建事务
-	if z.dmode == DMODE_MASTER {
-		var errstr string
-		for _, onec := range z.slavecpool {
-			err = z.transactionS(unid, onec)
-			if err != nil {
-				errstr += fmt.Sprint(err) + " | "
-			}
-		}
-		if len(errstr) != 0 {
-			for _, onec := range z.slavecpool {
-				z.transactionBad(unid, onec)
-			}
-			return nil, fmt.Errorf("drcm[ZrStorage]Transaction: %v", errstr)
-		}
-	}
-	tran = &Transaction{
-		unid:        unid,
-		rolesCache:  make(map[string]*oneRoleCache),
-		deleteCache: make([]string, 0),
-		service:     z.transaction_service,
-		signal:      make(chan TransactionSignal),
-		logs:        z.logs,
-	}
-	z.transaction[unid] = tran
-	return
-}
-
-// 向slave发送创建事务
-//
-//	--> OPERATE_TRAN_BEGIN (前导)
-//	<-- DATA_PLEASE (slave回执)
-//	--> unid(byta)
-//	<-- DATA_ALL_OK(slave回执)
-func (z *ZrStorage) transactionS(unid string, onec *slaveIn) (err error) {
-	cprocess := onec.tcpconn.OpenProgress()
-	defer cprocess.Close()
-	// 前导
-	slave_receipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_TRAN_BEGIN)
-	if err != nil {
-		return err
-	}
-	if slave_receipt.DataStat != DATA_PLEASE {
-		return fmt.Errorf(slave_receipt.Error)
-	}
-	// 发送unid
-	slave_receipt, err = z.sendAndDecodeSlaveReceipt(cprocess, []byte(unid))
-	if err != nil {
-		return err
-	}
-	if slave_receipt.DataStat != DATA_ALL_OK {
-		return fmt.Errorf(slave_receipt.Error)
-	}
-	return nil
-}
-
-// 向slave发送事务创建失败
-//
-//	--> OPERATE_TRAN_BAD (前导)
-//	<-- DATA_PLEASE (slave回执)
-//	--> unid(byta)
-//	<-- DATA_ALL_OK(slave回执)
-func (z *ZrStorage) transactionBad(unid string, onec *slaveIn) (err error) {
-	cprocess := onec.tcpconn.OpenProgress()
-	defer cprocess.Close()
-	// 前导
-	slave_receipt, err := z.sendPrefixStat(cprocess, onec.code, OPERATE_TRAN_BAD)
-	if err != nil {
-		return err
-	}
-	if slave_receipt.DataStat != DATA_PLEASE {
-		return fmt.Errorf(slave_receipt.Error)
-	}
-	// 发送unid
-	slave_receipt, err = z.sendAndDecodeSlaveReceipt(cprocess, []byte(unid))
-	if err != nil {
-		return err
-	}
-	if slave_receipt.DataStat != DATA_ALL_OK {
-		return fmt.Errorf(slave_receipt.Error)
-	}
-	return nil
-}
-
-// 创建事务
-func (z *ZrStorage) Begin() (tran *Transaction, err error) {
-	return z.Transaction()
 }
