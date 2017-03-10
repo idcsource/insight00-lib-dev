@@ -11,6 +11,9 @@ import "fmt"
 
 // 读一个father
 func (t *Transaction) ReadFather(id string) (father string, err error) {
+	if t.be_delete == true {
+		return "", fmt.Errorf("This transaction has been deleted.")
+	}
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("ReadFather: %v", err)
@@ -22,6 +25,9 @@ func (t *Transaction) ReadFather(id string) (father string, err error) {
 
 // 写一个father
 func (t *Transaction) WriteFather(id, father string) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("This transaction has been deleted.")
+	}
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("WriteFather: %v", err)
@@ -33,6 +39,9 @@ func (t *Transaction) WriteFather(id, father string) (err error) {
 
 // 写一个child
 func (t *Transaction) WriteChild(id, child string) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("This transaction has been deleted.")
+	}
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("WriteChild: %v", err)
@@ -44,6 +53,9 @@ func (t *Transaction) WriteChild(id, child string) (err error) {
 
 // 获取children
 func (t *Transaction) ReadChildren(id string) (children []string, err error) {
+	if t.be_delete == true {
+		return nil, fmt.Errorf("This transaction has been deleted.")
+	}
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("ReadChildren: %v", err)
@@ -55,6 +67,9 @@ func (t *Transaction) ReadChildren(id string) (children []string, err error) {
 
 // 事务执行的处理
 func (t *Transaction) Commit() (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("This transaction has been deleted.")
+	}
 	// 构造事务执行的处理信号
 	commit_signal := &tranCommitSignal{
 		tran_id:       t.unid,

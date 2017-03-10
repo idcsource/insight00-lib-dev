@@ -84,8 +84,8 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			// 将这个角色保存
 			t.local_store.StoreRole(rolec.role)
 			// 将这个角色从缓存中移除
-			tran.tran_cache[roleid] = nil
-			delete(tran.tran_cache, roleid)
+			t.tran_service.role_cache[roleid] = nil
+			delete(t.tran_service.role_cache, roleid)
 		} else {
 			fmt.Println("Tran log, 不写入 ", rolec.role.ReturnId())
 			// 替换本尊
@@ -111,6 +111,11 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 		}
 	}
 	// 删除这个事务
+	tran.tran_service = nil
+	tran.tran_cache = nil
+	tran.tran_commit_signal = nil
+	tran.be_delete = true
+	t.transaction[signal.tran_id] = nil
 	delete(t.transaction, signal.tran_id)
 }
 
@@ -143,9 +148,9 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 		// 检查等待队列
 		wait_count := len(rolec.wait_line)
 		if wait_count == 0 {
-			// 如果没有等待队列，将这个角色从缓存中移除
-			tran.tran_cache[roleid] = nil
-			delete(tran.tran_cache, roleid)
+			// 如果没有等待队列，将这个角色从总缓存中移除
+			t.tran_service.role_cache[roleid] = nil
+			delete(t.tran_service.role_cache, roleid)
 		} else {
 			// 如果有排队的
 			// 用本尊替换实体
@@ -171,19 +176,27 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 		}
 	}
 	// 删除这个事务
+	tran.tran_service = nil
+	tran.tran_cache = nil
+	tran.tran_commit_signal = nil
+	t.transaction[signal.tran_id] = nil
+	tran.be_delete = true
 	delete(t.transaction, signal.tran_id)
 }
 
+// 往永久存储写入一个角色
 func (t *TRule) StoreRole(role roles.Roleer) (err error) {
 	err = t.local_store.StoreRole(role)
 	return
 }
 
+// 从永久存储读出一个角色
 func (t *TRule) ReadRole(id string) (role roles.Roleer, err error) {
 	role, err = t.local_store.ReadRole(id)
 	return
 }
 
+// 创建事务
 func (t *TRule) Begin() (tran *Transaction) {
 	t.tran_lock.Lock()
 	defer t.tran_lock.Unlock()
@@ -195,8 +208,14 @@ func (t *TRule) Begin() (tran *Transaction) {
 		tran_time:          time.Now(),
 		lock:               new(sync.RWMutex),
 		tran_commit_signal: t.tran_commit_signal,
+		be_delete:          false,
 	}
 	t.transaction[unid] = tran
 	fmt.Println("Zr Log, New Tran: ", unid)
 	return
+}
+
+// 创建事务，Begin的别名
+func (t *TRule) Transcation() (tan *Transaction) {
+	return t.Begin()
 }

@@ -58,6 +58,8 @@ type Transaction struct {
 	tran_time time.Time
 	// 事务的信号，其实是发送给ZrStorage的
 	tran_commit_signal chan *tranCommitSignal
+	// 被删除标记
+	be_delete bool
 }
 
 // 事务服务
