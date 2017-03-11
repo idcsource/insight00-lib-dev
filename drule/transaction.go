@@ -78,10 +78,32 @@ func (t *Transaction) Commit() (err error) {
 	}
 	// 发送出去
 	t.tran_commit_signal <- commit_signal
-	// 开始看返回
+	// 开始等返回
 	return_sigle := <-commit_signal.return_handle
+	//fmt.Println("等到了返回：", t.unid)
 	if return_sigle.Status != TRAN_RETURN_HANDLE_OK {
 		return return_sigle.Error
+	}
+	return
+}
+
+// 事务的回滚处理
+func (t *Transaction) Rollback() (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("This transaction has been deleted.")
+	}
+	// 构造事务执行的处理信号
+	rollback_signal := &tranCommitSignal{
+		tran_id:       t.unid,
+		ask:           TRAN_COMMIT_ASK_ROLLBACK,
+		return_handle: make(chan tranReturnHandle),
+	}
+	// 发送信号
+	t.tran_commit_signal <- rollback_signal
+	// 开始等返回
+	return_signle := <-rollback_signal.return_handle
+	if return_signle.Status != TRAN_RETURN_HANDLE_OK {
+		return return_signle.Error
 	}
 	return
 }

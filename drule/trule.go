@@ -17,6 +17,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
+// 创建TRule，事务统治者，需要伊俄hadstore的本地存储
 func NewTRule(local_store *hardstore.HardStore) (t *TRule, err error) {
 	trans := &tranService{
 		role_cache:  make(map[string]*roleCache),
@@ -34,7 +35,7 @@ func NewTRule(local_store *hardstore.HardStore) (t *TRule, err error) {
 	return
 }
 
-// 处理事务的信号量
+// 处理事务的信号
 func (t *TRule) tranSignalHandle() {
 	for {
 		signal := <-t.tran_commit_signal
@@ -48,7 +49,7 @@ func (t *TRule) tranSignalHandle() {
 	}
 }
 
-// 处理commit信号量
+// 处理commit信号
 func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	fmt.Println("Tran log, 正在执行 ", signal.tran_id)
 	// 给事务加锁
@@ -110,6 +111,9 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			rolec.lock.Unlock()
 		}
 	}
+	// 发送回执
+	returnHan.Status = TRAN_RETURN_HANDLE_OK
+	signal.return_handle <- returnHan
 	// 删除这个事务
 	tran.tran_service = nil
 	tran.tran_cache = nil
@@ -119,7 +123,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	delete(t.transaction, signal.tran_id)
 }
 
-// 处理rollback信号量
+// 处理rollback信号
 func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 	// 给事务加锁
 	t.tran_lock.Lock()
@@ -175,6 +179,9 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 			rolec.lock.Unlock()
 		}
 	}
+	// 发送回执
+	returnHan.Status = TRAN_RETURN_HANDLE_OK
+	signal.return_handle <- returnHan
 	// 删除这个事务
 	tran.tran_service = nil
 	tran.tran_cache = nil
