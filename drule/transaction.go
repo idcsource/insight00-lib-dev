@@ -10,12 +10,57 @@ package drule
 import (
 	"fmt"
 	"strings"
+
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
+
+/*
+ 以下内容为roleio.RolesInOutManager接口的实现
+*/
+
+// 读取一个角色
+//
+// 角色会缓存并配置成写锁被本事务占用，如果在事务州其中不执行StoreRole保存，那么对这个角色的修改也不会被保存，信息将丢失。
+func (t *Transaction) ReadRole(id string) (role roles.Roleer, err error) {
+	if t.be_delete == true {
+		return nil, fmt.Errorf("DRule[Transaction]ReadRole: This transaction has been deleted.")
+	}
+	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
+	if err != nil {
+		err = fmt.Errorf("DRule[Transacion]ReadRole: %v", err)
+		return
+	}
+	return rolec.role, nil
+}
+
+// 写入一个角色
+//
+// 依然会去缓存中尝试获取角色的写权限，如果找不到,则去写一个新的
+func (t *Transaction) StoreRole(role roles.Roleer) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("DRule[Transaction]StoreRole: This transaction has been deleted.")
+	}
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	roleid := role.ReturnId()
+	var find bool
+	rolec, find := t.tran_cache[roleid]
+	if find == true {
+		rolec.role = role
+	} else {
+		rolec, err = t.tran_service.addRole(t.unid, role)
+		if err != nil {
+			return fmt.Errorf("DRule[Transaction]StoreRole: %v", err)
+		}
+		t.tran_cache[roleid] = rolec
+	}
+	return nil
+}
 
 // 读一个father
 func (t *Transaction) ReadFather(id string) (father string, err error) {
 	if t.be_delete == true {
-		return "", fmt.Errorf("This transaction has been deleted.")
+		return "", fmt.Errorf("DRule[Transaction]ReadFather: This transaction has been deleted.")
 	}
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
@@ -67,6 +112,10 @@ func (t *Transaction) ReadChildren(id string) (children []string, err error) {
 	children = rolec.role.GetChildren()
 	return
 }
+
+/*
+ 以上内容为roleio.RolesInOutManager接口的实现
+*/
 
 // 事务执行的处理
 func (t *Transaction) Commit() (err error) {

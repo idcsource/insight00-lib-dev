@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // 读取角色，lockmode为TRAN_LOCK_MODE_*
@@ -83,6 +85,55 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 				return rolec, nil
 			}
 		}
+	}
+}
+
+// 加入（写入）一个角色
+func (t *tranService) addRole(tran_id string, role roles.Roleer) (rolec *roleCache, err error) {
+	t.lock.Lock()
+	// 先看能找到吗
+	id := role.ReturnId()
+	var find bool
+	rolec, find = t.role_cache[id]
+
+	if find == false {
+		// 找不到
+		role_store := roleStore{}
+		role_store.body, role_store.rela, role_store.vers, err = t.local_store.EncodeRole(role)
+		if err != nil {
+			t.lock.RUnlock()
+			return nil, err
+		}
+		rolec = &roleCache{
+			role:       role,
+			role_store: role_store,
+			tran_time:  time.Now(),
+			wait_line:  make([]*tranAskGetRole, 0),
+			lock:       new(sync.RWMutex),
+		}
+		rolec.tran_id = tran_id
+		t.role_cache[id] = rolec
+		t.lock.Unlock()
+		return rolec, nil
+	} else {
+		// 找到
+		// 构造等待队列
+		wait := &tranAskGetRole{
+			tran_id:  tran_id,
+			ask_time: time.Now(),
+			approved: make(chan bool),
+		}
+		// 加入等待队列
+		rolec.addWait(wait)
+		// 主动解锁
+		t.lock.Unlock()
+		// 等待回音
+		fmt.Println("Tran log ", tran_id, "等待", id)
+		<-wait.approved
+		fmt.Println("Tran log ", tran_id, "等到了", id)
+		// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以就把角色的主体改了吧
+		rolec.role = role
+		return rolec, nil
 	}
 }
 
