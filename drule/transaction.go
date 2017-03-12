@@ -7,7 +7,10 @@
 
 package drule
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // 读一个father
 func (t *Transaction) ReadFather(id string) (father string, err error) {
@@ -90,7 +93,7 @@ func (t *Transaction) Commit() (err error) {
 // 事务的回滚处理
 func (t *Transaction) Rollback() (err error) {
 	if t.be_delete == true {
-		return fmt.Errorf("This transaction has been deleted.")
+		return fmt.Errorf("drule[Transaction]Rollback: This transaction has been deleted.")
 	}
 	// 构造事务执行的处理信号
 	rollback_signal := &tranCommitSignal{
@@ -104,6 +107,30 @@ func (t *Transaction) Rollback() (err error) {
 	return_signle := <-rollback_signal.return_handle
 	if return_signle.Status != TRAN_RETURN_HANDLE_OK {
 		return return_signle.Error
+	}
+	return
+}
+
+// 事务的准备。输入将准备的角色ID，让事务可以先尝试获得写权限
+func (t *Transaction) Prepare(roleids ...string) (err error) {
+	err = t.prepare(roleids)
+	if err != nil {
+		return fmt.Errorf("drule[Transaction]Prepare: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) prepare(roleids []string) (err error) {
+	errall := make([]string, 0)
+	for _, oneid := range roleids {
+		_, errn := t.getrole(oneid, TRAN_LOCK_MODE_WRITE)
+		if errn != nil {
+			errall = append(errall, errn.Error())
+		}
+	}
+	if len(errall) != 0 {
+		errstr := strings.Join(errall, " | ")
+		err = fmt.Errorf(errstr)
 	}
 	return
 }

@@ -226,3 +226,15 @@ func (t *TRule) Begin() (tran *Transaction) {
 func (t *TRule) Transcation() (tan *Transaction) {
 	return t.Begin()
 }
+
+// 创建事务，并依据输入的角色ID进行准备，获取这些角色的写权限
+func (t *TRule) Prepare(roleids ...string) (tran *Transaction, err error) {
+	// 调用Begin()
+	tran = t.Begin()
+	// 调用tran中的prepare()
+	err = tran.prepare(roleids)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]Prepare: %v", err)
+	}
+	return
+}
