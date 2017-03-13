@@ -14,13 +14,15 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
 // 创建一个分布式统治者
 func NewDRule(config *cpool.Block, logs *ilogs.Logs) (d *DRule, err error) {
 	d = &DRule{
-		config: config,
-		logs:   logs,
+		config:  config,
+		connect: &druleConnectService{},
+		logs:    logs,
 	}
 	// 查找运行模式
 	var mode string
@@ -31,13 +33,13 @@ func NewDRule(config *cpool.Block, logs *ilogs.Logs) (d *DRule, err error) {
 	}
 	switch mode {
 	case "own":
-		d.dmode = DMODE_OWN
+		d.connect.dmode = DMODE_OWN
 		err = d.startForOwn()
 	case "master":
-		d.dmode = DMODE_MASTER
+		d.connect.dmode = DMODE_MASTER
 		err = d.startForMaster()
 	case "slave":
-		d.dmode = DMODE_SLAVE
+		d.connect.dmode = DMODE_SLAVE
 		err = d.startForSlave()
 	default:
 		err = fmt.Errorf("drule[DRule]NewDRule: The mode config must own, master or slave.")
@@ -53,11 +55,13 @@ func NewDRule(config *cpool.Block, logs *ilogs.Logs) (d *DRule, err error) {
 func NewOperator(addr, code string, conn_num int, logs *ilogs.Logs) (d *DRule, err error) {
 	// 利用slaves map[string][]*slaveIn，string被设定为operator
 	d = &DRule{
-		dmode:  DMODE_OPERATE,
-		logs:   logs,
-		slaves: make(map[string][]*slaveIn),
+		logs: logs,
+		connect: &druleConnectService{
+			slaves: make(map[string][]*slaveIn),
+			dmode:  DMODE_OPERATE,
+		},
 	}
-	d.slaves["operator"] = make([]*slaveIn, 0)
+	d.connect.slaves["operator"] = make([]*slaveIn, 0)
 	slave, err := nst.NewTcpClient(addr, conn_num, logs)
 	if err != nil {
 		return nil, err
@@ -67,13 +71,13 @@ func NewOperator(addr, code string, conn_num int, logs *ilogs.Logs) (d *DRule, e
 		code:    code,
 		tcpconn: slave,
 	}
-	d.slaves["operator"] = append(d.slaves["operator"], oneSlaveIn)
+	d.connect.slaves["operator"] = append(d.connect.slaves["operator"], oneSlaveIn)
 	return d, nil
 }
 
 // 增加一个服务器到控制器
 func (d *DRule) AddServer(addr, code string, conn_num int) (err error) {
-	if d.dmode != DMODE_OPERATE {
+	if d.connect.dmode != DMODE_OPERATE {
 		err = fmt.Errorf("drule[DRule]AddServer: The Mode not the Operator.")
 		return
 	}
@@ -86,7 +90,7 @@ func (d *DRule) AddServer(addr, code string, conn_num int) (err error) {
 		code:    code,
 		tcpconn: slave,
 	}
-	d.slaves["operator"] = append(d.slaves["operator"], oneSlaveIn)
+	d.connect.slaves["operator"] = append(d.connect.slaves["operator"], oneSlaveIn)
 	return nil
 }
 
@@ -116,11 +120,11 @@ func (d *DRule) startForSlave() (err error) {
 	if err != nil {
 		return err
 	}
-	d.listen, err = nst.NewTcpServer(d, port, d.logs)
+	d.connect.listen, err = nst.NewTcpServer(d, port, d.logs)
 	if err != nil {
 		return err
 	}
-	d.code, err = d.config.GetConfig("main.code")
+	d.connect.code, err = d.config.GetConfig("main.code")
 	if err != nil {
 		return err
 	}
@@ -133,9 +137,9 @@ func (d *DRule) startForMaster() (err error) {
 	if err != nil {
 		return
 	}
-	d.slaves = make(map[string][]*slaveIn)
-	d.slavepool = make(map[string]*nst.TcpClient)
-	d.slavecpool = make(map[string]*slaveIn)
+	d.connect.slaves = make(map[string][]*slaveIn)
+	d.connect.slavepool = make(map[string]*nst.TcpClient)
+	d.connect.slavecpool = make(map[string]*slaveIn)
 	// 获取slave的配置名
 	slaves, err := d.config.GetEnum("main.slave")
 	if err != nil {
@@ -182,8 +186,8 @@ func (d *DRule) startForMaster() (err error) {
 			d.closeSlavePool()
 			return err
 		}
-		d.slavepool[one] = sconn
-		d.slavecpool[one] = &slaveIn{
+		d.connect.slavepool[one] = sconn
+		d.connect.slavecpool[one] = &slaveIn{
 			name:    one,
 			code:    code,
 			tcpconn: sconn,
@@ -191,11 +195,11 @@ func (d *DRule) startForMaster() (err error) {
 		// 遍历可管理角色首字母创建连接序列
 		for _, onewho := range control_whos {
 			// 序列里没有这个字母就建立一个
-			if _, have := d.slaves[onewho]; have == false {
-				d.slaves[onewho] = make([]*slaveIn, 0)
+			if _, have := d.connect.slaves[onewho]; have == false {
+				d.connect.slaves[onewho] = make([]*slaveIn, 0)
 			}
 			// 将这个字母的序列中加入这个slave的名字
-			d.slaves[onewho] = append(d.slaves[onewho], d.slavecpool[one])
+			d.connect.slaves[onewho] = append(d.connect.slaves[onewho], d.connect.slavecpool[one])
 		}
 	}
 	return
@@ -203,7 +207,22 @@ func (d *DRule) startForMaster() (err error) {
 
 // 关闭整个slavepool
 func (d *DRule) closeSlavePool() {
-	for _, conn := range d.slavepool {
+	for _, conn := range d.connect.slavepool {
 		conn.Close()
 	}
+}
+
+// 创建事务
+func (d *DRule) Begin() (dtran *druleTransaction) {
+	// 生成事务id
+	tranid := random.GetRand(40)
+	// 生成事务
+	tran := d.trule.beginForDRule(tranid)
+	// 创建分布式事务
+	dtran = &druleTransaction{
+		unid:        tranid,
+		transaction: tran,
+		connect:     d.connect,
+	}
+	return
 }
