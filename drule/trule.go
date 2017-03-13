@@ -17,7 +17,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
-// 创建TRule，事务统治者，需要伊俄hadstore的本地存储
+// 创建TRule，事务统治者，需要依赖hadstore的本地存储
 func NewTRule(local_store *hardstore.HardStore) (t *TRule, err error) {
 	trans := &tranService{
 		role_cache:  make(map[string]*roleCache),
@@ -209,18 +209,6 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 	delete(t.transaction, signal.tran_id)
 }
 
-// 往永久存储写入一个角色
-func (t *TRule) StoreRole(role roles.Roleer) (err error) {
-	err = t.local_store.StoreRole(role)
-	return
-}
-
-// 从永久存储读出一个角色
-func (t *TRule) ReadRole(id string) (role roles.Roleer, err error) {
-	role, err = t.local_store.ReadRole(id)
-	return
-}
-
 // 创建事务
 func (t *TRule) Begin() (tran *Transaction) {
 	t.tran_lock.Lock()
@@ -254,5 +242,435 @@ func (t *TRule) Prepare(roleids ...string) (tran *Transaction, err error) {
 	if err != nil {
 		err = fmt.Errorf("drule[TRule]Prepare: %v", err)
 	}
+	return
+}
+
+// 由DRule来控制创建事务
+func (t *TRule) beginForDRule(unid string) (tran *Transaction) {
+	t.tran_lock.Lock()
+	defer t.tran_lock.Unlock()
+	tran = &Transaction{
+		unid:               unid,
+		tran_cache:         make(map[string]*roleCache),
+		tran_service:       t.tran_service,
+		tran_time:          time.Now(),
+		lock:               new(sync.RWMutex),
+		tran_commit_signal: t.tran_commit_signal,
+		be_delete:          false,
+	}
+	t.transaction[unid] = tran
+	fmt.Println("Zr Log, New Tran: ", unid)
+	return
+}
+
+/* 下面是rolesio.RolesInOutManager接口的实现 */
+
+// 往永久存储写入一个角色，直接调用底层HardStore存储（也就是说，直接使用这个是不安全的）
+func (t *TRule) StoreRole(role roles.Roleer) (err error) {
+	err = t.local_store.StoreRole(role)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]StoreRole: %v", err)
+	}
+	return
+}
+
+// 从永久存储读出一个角色，直接调用底层HardStore存储（也就是说，直接使用这个是不安全的）
+func (t *TRule) ReadRole(id string) (role roles.Roleer, err error) {
+	role, err = t.local_store.ReadRole(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadRole: %v", err)
+	}
+	return
+}
+
+// 从永久存储删除一个角色，直接调用底层HardStore存储（也就是说，直接使用这个是不安全的）
+func (t *TRule) DeleteRole(id string) (err error) {
+	err = t.local_store.DeleteRole(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]DeleteRole: %v", err)
+	}
+	return
+}
+
+// 设置父角色
+func (t *TRule) WriteFather(id, father string) (err error) {
+	tran := t.Begin()
+	err = tran.WriteFather(id, father)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]WriteFather: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 获取父角色
+func (t *TRule) ReadFather(id string) (father string, err error) {
+	tran := t.Begin()
+	father, err = tran.ReadFather(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadFather: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 重置父角色
+func (t *TRule) ResetFather(id string) (err error) {
+	tran := t.Begin()
+	err = tran.ResetFather(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ResetFather: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 读取所有角色的子角色
+func (t *TRule) ReadChildren(id string) (children []string, err error) {
+	tran := t.Begin()
+	children, err = tran.ReadChildren(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadChildren: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 写入所有角色的子角色
+func (t *TRule) WriteChildren(id string, children []string) (err error) {
+	tran := t.Begin()
+	err = tran.WriteChildren(id, children)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]WriteChildren: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 删除所有子角色
+func (t *TRule) ResetChildren(id string) (err error) {
+	tran := t.Begin()
+	err = tran.ResetChildren(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ResetChildren: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 写入一个子角色
+func (t *TRule) WriteChild(id, child string) (err error) {
+	tran := t.Begin()
+	err = tran.WriteChild(id, child)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]WriteChild: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 删除一个子角色
+func (t *TRule) DeleteChild(id, child string) (err error) {
+	tran := t.Begin()
+	err = tran.DeleteChild(id, child)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]DeleteChild: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 查询是否有角色
+func (t *TRule) ExistChild(id, child string) (have bool, err error) {
+	tran := t.Begin()
+	have, err = tran.ExistChild(id, child)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ExistChild: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 读取所有朋友关系
+func (t *TRule) ReadFriends(id string) (friends map[string]roles.Status, err error) {
+	tran := t.Begin()
+	friends, err = tran.ReadFriends(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadFriends: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 写入所有朋友关系
+func (t *TRule) WriteFriends(id string, friends map[string]roles.Status) (err error) {
+	tran := t.Begin()
+	err = tran.WriteFriends(id, friends)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]WriteFriends: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 重置朋友关系
+func (t *TRule) ResetFriends(id string) (err error) {
+	tran := t.Begin()
+	err = tran.ResetFriends(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ResetFriends: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 写一个朋友关系并绑定
+func (t *TRule) WriteFriend(id, friend string, bind int64) (err error) {
+	tran := t.Begin()
+	err = tran.WriteFriend(id, friend, bind)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]WriteFriend: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 删除一个朋友关系
+func (t *TRule) DeleteFriend(id, friend string) (err error) {
+	tran := t.Begin()
+	err = tran.DeleteFriend(id, friend)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]DeleteFriend: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 创建一个空的上下文
+func (t *TRule) CreateContext(id, contextname string) (err error) {
+	tran := t.Begin()
+	err = tran.CreateContext(id, contextname)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]CreateContext: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 删除一个上下文
+func (t *TRule) DropContext(id, contextname string) (err error) {
+	tran := t.Begin()
+	err = tran.DropContext(id, contextname)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]DropContext: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 返回某个上下文全部的信息
+func (t *TRule) ReadContext(id, contextname string) (context roles.Context, have bool, err error) {
+	tran := t.Begin()
+	context, have, err = tran.ReadContext(id, contextname)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadContext: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 删除一个上下文绑定
+func (t *TRule) DeleteContextBind(id, contextname string, upordown uint8, bindrole string) (err error) {
+	tran := t.Begin()
+	err = tran.DeleteContextBind(id, contextname, upordown, bindrole)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]DeleteContextBind: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 返回某个上下文的同样绑定值的所有
+func (t *TRule) ReadContextSameBind(id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
+	tran := t.Begin()
+	rolesid, have, err = tran.ReadContextSameBind(id, contextname, upordown, bind)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadContextSameBind: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 返回所有上下文组的名称
+func (t *TRule) ReadContextsName(id string) (names []string, err error) {
+	tran := t.Begin()
+	names, err = tran.ReadContextsName(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadContextsName: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 设置朋友的状态属性
+func (t *TRule) WriteFriendStatus(id, friends string, bindbit int, value interface{}) (err error) {
+	tran := t.Begin()
+	err = tran.WriteFriendStatus(id, friends, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]WriteFriendStatus: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 获取朋友的状态属性
+func (t *TRule) ReadFriendStatus(id, friends string, bindbit int, value interface{}) (err error) {
+	tran := t.Begin()
+	err = tran.ReadFriendStatus(id, friends, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadFriendStatus: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 设置上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
+func (t *TRule) WriteContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+	tran := t.Begin()
+	err = tran.WriteContextStatus(id, contextname, upordown, bindroleid, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]WriteContextStatus: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 获取上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
+func (t *TRule) ReadContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+	tran := t.Begin()
+	err = tran.ReadContextStatus(id, contextname, upordown, bindroleid, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadContextStatus: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 设定上下文
+func (t *TRule) WriteContexts(id string, context map[string]roles.Context) (err error) {
+	tran := t.Begin()
+	err = tran.WriteContexts(id, context)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]WriteContexts: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 获取上下文
+func (t *TRule) ReadContexts(id string) (contexts map[string]roles.Context, err error) {
+	tran := t.Begin()
+	contexts, err = tran.ReadContexts(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadContexts: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 重置上下文
+func (t *TRule) ResetContexts(id string) (err error) {
+	tran := t.Begin()
+	err = tran.ResetContexts(id)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ResetContexts: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 把data的数据装入role的name值下，如果找不到name，则返回错误。
+func (t *TRule) WriteData(id, name string, data interface{}) (err error) {
+	tran := t.Begin()
+	err = tran.WriteData(id, name, data)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]WriteData: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 从角色中知道name的数据名并返回其数据。
+func (t *TRule) ReadData(id, name string, data interface{}) (err error) {
+	tran := t.Begin()
+	err = tran.ReadData(id, name, data)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]ReadData: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 运行时保存
+func (t *TRule) ToStore() (err error) {
+	err = fmt.Errorf("drule[TRule]ToStore: Transaction does not provide this method.")
 	return
 }

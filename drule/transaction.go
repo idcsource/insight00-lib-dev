@@ -530,6 +530,12 @@ func (t *Transaction) ReadData(id, name string, data interface{}) (err error) {
 	return
 }
 
+// 运行时保存
+func (t *Transaction) ToStore() (err error) {
+	err = fmt.Errorf("drule[Transaction]ToStore: Transaction does not provide this method.")
+	return
+}
+
 /*
  以上内容为roleio.RolesInOutManager接口的实现
 */
@@ -549,7 +555,7 @@ func (t *Transaction) Commit() (err error) {
 	t.tran_commit_signal <- commit_signal
 	// 开始等返回
 	return_sigle := <-commit_signal.return_handle
-	//fmt.Println("等到了返回：", t.unid)
+	fmt.Println("等到了返回：", t.unid)
 	if return_sigle.Status != TRAN_RETURN_HANDLE_OK {
 		return return_sigle.Error
 	}
@@ -571,6 +577,7 @@ func (t *Transaction) Rollback() (err error) {
 	t.tran_commit_signal <- rollback_signal
 	// 开始等返回
 	return_signle := <-rollback_signal.return_handle
+	fmt.Println("等到了返回：", t.unid)
 	if return_signle.Status != TRAN_RETURN_HANDLE_OK {
 		return return_signle.Error
 	}
