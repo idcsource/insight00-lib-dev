@@ -62,21 +62,21 @@ func NewHardStore(config *cpool.Section) (*HardStore, error) {
 	var err error
 	local_path, err = config.GetConfig("path")
 	if err != nil {
-		return nil, errors.New("hardstore: NewHardStore: The configure have not local_path !")
+		return nil, errors.New("hardstore[HardStore]NewHardStore: The configure have not local_path !")
 	}
 	local_path = pubfunc.LocalPath(local_path)
 
 	path_deep, err = config.TranInt64("path_deep")
 	if err != nil {
-		return nil, errors.New("hardstore: NewHardStore: The configure have not local_deep !")
+		return nil, errors.New("hardstore[HardStore]NewHardStore: The configure have not local_deep !")
 	}
 
 	path_info, err := os.Stat(local_path)
 	if err != nil {
-		return nil, errors.New("hardstore: NewHardStore: The loal_path have not be access !")
+		return nil, errors.New("hardstore[HardStore]NewHardStore: The loal_path have not be access !")
 	}
 	if path_info.IsDir() != true {
-		return nil, errors.New("hardstore: NewHardStore: The loal_path have not a path !")
+		return nil, errors.New("hardstore[HardStore]NewHardStore: The loal_path have not a path !")
 	}
 
 	l_path_name := []string{"a", "b", "c", "d", "e", "f", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
@@ -106,7 +106,7 @@ func NewHardStore(config *cpool.Section) (*HardStore, error) {
 			} else {
 				err4 := os.Mkdir(v, 0700)
 				if err4 != nil {
-					return nil, fmt.Errorf("hardstore: %v", err4)
+					return nil, fmt.Errorf("hardstore[HardStore]NewHardStore: %v", err4)
 				}
 			}
 		}
@@ -145,20 +145,20 @@ func (h *HardStore) ReadRole(id string) (roles.Roleer, error) {
 	f_version_name := f_name + h.version_name
 	f_body_name := f_name + h.body_name
 	if pubfunc.FileExist(f_body_name) == false || pubfunc.FileExist(f_relation_name) == false || pubfunc.FileExist(f_version_name) == false {
-		return nil, errors.New("hardstore: ReadRole: Can't find the Role " + id)
+		return nil, errors.New("hardstore[HardStore]ReadRole: Can't find the Role " + id)
 	}
 
 	r_byte, err := ioutil.ReadFile(f_body_name)
 	if err != nil {
-		return nil, fmt.Errorf("hardstore: ReadRole: %v", err)
+		return nil, fmt.Errorf("hardstore[HardStore]ReadRole: %v", err)
 	}
 	r_r_byte, err2 := ioutil.ReadFile(f_relation_name)
 	if err2 != nil {
-		return nil, fmt.Errorf("hardstore: ReadRole: %v", err2)
+		return nil, fmt.Errorf("hardstore[HardStore]ReadRole: %v", err2)
 	}
 	r_v_byte, err2_0 := ioutil.ReadFile(f_version_name)
 	if err2_0 != nil {
-		return nil, fmt.Errorf("hardstore: ReadRole: %v", err2_0)
+		return nil, fmt.Errorf("hardstore[HardStore]ReadRole: %v", err2_0)
 	}
 
 	role, err := h.DecodeRole(r_byte, r_r_byte, r_v_byte)
