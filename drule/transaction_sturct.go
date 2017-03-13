@@ -78,6 +78,8 @@ type roleCache struct {
 	role roles.Roleer
 	// 角色的本尊
 	role_store roleStore
+	// 被删除
+	be_delete uint8
 	// 占用的事务id
 	tran_id string
 	// 被事务的占用开始时间

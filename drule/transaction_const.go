@@ -33,3 +33,12 @@ const (
 	// 返回错误
 	TRAN_RETURN_HANDLE_ERROR
 )
+
+const (
+	// 角色被删除——没有
+	TRAN_ROLE_BE_DELETE_NO = iota
+	// 角色被标记删除
+	TRAN_ROLE_BE_DELETE_YES
+	// 角色被真正删除掉了
+	TRAN_ROLE_BE_DELETE_COMMIT
+)

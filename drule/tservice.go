@@ -40,6 +40,7 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 		rolec = &roleCache{
 			role:       role,
 			role_store: role_store,
+			be_delete:  TRAN_ROLE_BE_DELETE_NO,
 			tran_time:  time.Now(),
 			wait_line:  make([]*tranAskGetRole, 0),
 			lock:       new(sync.RWMutex),
@@ -107,6 +108,7 @@ func (t *tranService) addRole(tran_id string, role roles.Roleer) (rolec *roleCac
 		rolec = &roleCache{
 			role:       role,
 			role_store: role_store,
+			be_delete:  TRAN_ROLE_BE_DELETE_NO,
 			tran_time:  time.Now(),
 			wait_line:  make([]*tranAskGetRole, 0),
 			lock:       new(sync.RWMutex),
@@ -133,6 +135,13 @@ func (t *tranService) addRole(tran_id string, role roles.Roleer) (rolec *roleCac
 		fmt.Println("Tran log ", tran_id, "等到了", id)
 		// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以就把角色的主体改了吧
 		rolec.role = role
+		// 如果被确认删除了还就很麻烦的
+		if rolec.be_delete != TRAN_ROLE_BE_DELETE_NO {
+			role_store := roleStore{}
+			role_store.body, role_store.rela, role_store.vers, err = t.local_store.EncodeRole(role)
+			rolec.role_store = role_store
+			rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
+		}
 		return rolec, nil
 	}
 }

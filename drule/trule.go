@@ -82,15 +82,25 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 		if wait_count == 0 {
 			fmt.Println("Tran log, 写入 ", rolec.role.ReturnId())
 			// 如果没有等待队列
-			// 将这个角色保存
-			t.local_store.StoreRole(rolec.role)
+			// 将这个角色保存或删除
+			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
+				t.local_store.StoreRole(rolec.role)
+			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
+				t.local_store.DeleteRole(rolec.role.ReturnId())
+			}
 			// 将这个角色从缓存中移除
 			t.tran_service.role_cache[roleid] = nil
 			delete(t.tran_service.role_cache, roleid)
 		} else {
 			fmt.Println("Tran log, 不写入 ", rolec.role.ReturnId())
-			// 替换本尊
-			rolec.role_store.body, rolec.role_store.rela, rolec.role_store.vers, _ = hardstore.EncodeRole(rolec.role)
+			// 替换本尊或删除
+			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
+				rolec.role_store.body, rolec.role_store.rela, rolec.role_store.vers, _ = hardstore.EncodeRole(rolec.role)
+			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
+				t.local_store.DeleteRole(rolec.role.ReturnId())
+				rolec.role = nil
+				rolec.be_delete = TRAN_ROLE_BE_DELETE_COMMIT
+			}
 			// 删除占用标记
 			rolec.tran_id = ""
 			// 得到第一个等待的队列
@@ -105,7 +115,9 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			}
 			// 修改占用标记
 			rolec.tran_id = wait_first.tran_id
-			// 发送允许的信息
+			// 修改占用时间
+			rolec.tran_time = time.Now()
+			// 发送允许的信息，接收者要自行判断是否被删除
 			wait_first.approved <- true
 			// 给这个角色解锁
 			rolec.lock.Unlock()
@@ -158,7 +170,13 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 		} else {
 			// 如果有排队的
 			// 用本尊替换实体
-			rolec.role, _ = hardstore.DecodeRole(rolec.role_store.body, rolec.role_store.rela, rolec.role_store.vers)
+			if rolec.be_delete != TRAN_ROLE_BE_DELETE_COMMIT {
+				rolec.role, _ = hardstore.DecodeRole(rolec.role_store.body, rolec.role_store.rela, rolec.role_store.vers)
+			}
+			// 重置删除标记
+			if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
+				rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
+			}
 			// 删除占用标记
 			rolec.tran_id = ""
 			// 得到第一个等待的队列
