@@ -11,6 +11,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // 这是DRule——分布式统治者
@@ -44,9 +45,11 @@ type druleConnectService struct {
 }
 
 // drule的事务模式
-type druleTransaction struct {
+type DRuleTransaction struct {
 	// 事务的id
 	unid string
+	// 已经被删除，也就是commit或rollback了
+	be_delete bool
 	// 事务
 	transaction *Transaction
 	// 连接服务
@@ -58,4 +61,135 @@ type slaveIn struct {
 	name    string
 	code    string
 	tcpconn *nst.TcpClient
+}
+
+/* 下面是网络传输所需要的结构 */
+
+// 前缀状态，每次向slave发信息都要先把这个状态发出去
+type Net_PrefixStat struct {
+	// 操作类型，从OPERATE_*
+	Operate int
+	// 身份验证码
+	Code string
+}
+
+// slave回执，slave收到PrefixStat之后的第一步返回信息
+type Net_SlaveReceipt struct {
+	// 数据状态，来自DATA_*
+	DataStat uint8
+	// 返回的错误
+	Error string
+}
+
+// slave回执带数据体
+type Net_SlaveReceipt_Data struct {
+	// 数据状态，来自DATA_*
+	DataStat uint8
+	// 返回的错误
+	Error string
+	// 数据体
+	Data []byte
+}
+
+// 角色的接收与发送格式
+type Net_RoleSendAndReceive struct {
+	// 角色的身体
+	RoleBody []byte
+	// 角色的关系
+	RoleRela []byte
+	// 角色的版本
+	RoleVer []byte
+}
+
+// 角色的father修改的数据格式
+type Net_RoleFatherChange struct {
+	Id     string
+	Father string
+}
+
+// 角色的所有子角色
+type Net_RoleAndChildren struct {
+	Id       string
+	Children []string
+}
+
+// 角色的单个子角色关系的网络数据格式
+type Net_RoleAndChild struct {
+	Id    string
+	Child string
+}
+
+// 角色的所有朋友
+type Net_RoleAndFriends struct {
+	Id      string
+	Friends map[string]roles.Status
+}
+
+// 角色的单个朋友角色关系的网络数据格式
+type Net_RoleAndFriend struct {
+	Id     string
+	Friend string
+	Bind   int64
+	Status roles.Status
+	// 单一的绑定属性修改，1为int，2为float，3为complex
+	Single uint8
+	// 单一的绑定修改所对应的位置，也就是0到9
+	Bit int
+	// 单一修改的Int
+	Int int64
+	// 单一修改的Float
+	Float float64
+	// 单一修改的Complex
+	Complex complex128
+}
+
+// 角色的单个上下文关系的网络数据格式
+type Net_RoleAndContext struct {
+	Id string
+	// 上下文的名字
+	Context string
+	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
+	UpOrDown uint8
+	// 要操作的绑定角色的ID
+	BindRole string
+}
+
+// 角色的全部上下文
+type Net_RoleAndContexts struct {
+	Id       string
+	Contexts map[string]roles.Context
+}
+
+// 角色的单个上下文关系数据的网络数据格式
+type Net_RoleAndContext_Data struct {
+	Id string
+	// 上下文的名字
+	Context string
+	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
+	UpOrDown uint8
+	// 要操作的绑定角色的ID
+	BindRole string
+	// 一个的状态位结构
+	Status roles.Status
+	// 上下文的结构
+	ContextBody roles.Context
+	// 单一的绑定属性修改，1为int，2为float，3为complex
+	Single uint8
+	// 单一的绑定修改所对应的位置，也就是0到9
+	Bit int
+	// 单一修改的Int
+	Int int64
+	// 单一修改的Float
+	Float float64
+	// 单一修改的Complex
+	Complex complex128
+}
+
+// 角色的单个数据的数据体的网络格式
+type Net_RoleData_Data struct {
+	Id string
+	// 数据点的名字
+	Name string
+	// 数据的字节流
+	Data []byte
 }

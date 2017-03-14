@@ -9,6 +9,7 @@ package drule
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
@@ -49,49 +50,6 @@ func NewDRule(config *cpool.Block, logs *ilogs.Logs) (d *DRule, err error) {
 		err = fmt.Errorf("drule[DRule]NewDRule: %v", err)
 	}
 	return
-}
-
-// 创建一个分布式控制者
-func NewOperator(addr, code string, conn_num int, logs *ilogs.Logs) (d *DRule, err error) {
-	// 利用slaves map[string][]*slaveIn，string被设定为operator
-	d = &DRule{
-		logs: logs,
-		connect: &druleConnectService{
-			slaves: make(map[string][]*slaveIn),
-			dmode:  DMODE_OPERATE,
-		},
-	}
-	d.connect.slaves["operator"] = make([]*slaveIn, 0)
-	slave, err := nst.NewTcpClient(addr, conn_num, logs)
-	if err != nil {
-		return nil, err
-	}
-	oneSlaveIn := &slaveIn{
-		name:    addr,
-		code:    code,
-		tcpconn: slave,
-	}
-	d.connect.slaves["operator"] = append(d.connect.slaves["operator"], oneSlaveIn)
-	return d, nil
-}
-
-// 增加一个服务器到控制器
-func (d *DRule) AddServer(addr, code string, conn_num int) (err error) {
-	if d.connect.dmode != DMODE_OPERATE {
-		err = fmt.Errorf("drule[DRule]AddServer: The Mode not the Operator.")
-		return
-	}
-	slave, err := nst.NewTcpClient(addr, conn_num, d.logs)
-	if err != nil {
-		return err
-	}
-	oneSlaveIn := &slaveIn{
-		name:    addr,
-		code:    code,
-		tcpconn: slave,
-	}
-	d.connect.slaves["operator"] = append(d.connect.slaves["operator"], oneSlaveIn)
-	return nil
 }
 
 // OWN模式启动
@@ -213,16 +171,65 @@ func (d *DRule) closeSlavePool() {
 }
 
 // 创建事务
-func (d *DRule) Begin() (dtran *druleTransaction) {
+func (d *DRule) Begin() (dtran *DRuleTransaction, err error) {
 	// 生成事务id
 	tranid := random.GetRand(40)
+	// 如果模式是master或operator
+	if d.connect.dmode == DMODE_MASTER {
+		var can []*slaveIn
+		can, err = d.startTransactionForSlaves(tranid)
+		if err != nil {
+			// 向can发送关闭事务（Rollback）
+			d.rollbackTransactionIfError(tranid, can)
+			err = fmt.Errorf("drule[DRule]Begin: %v", err)
+			return
+		}
+	}
 	// 生成事务
 	tran := d.trule.beginForDRule(tranid)
 	// 创建分布式事务
-	dtran = &druleTransaction{
+	dtran = &DRuleTransaction{
 		unid:        tranid,
 		transaction: tran,
 		connect:     d.connect,
+		be_delete:   false,
 	}
+
+	return
+}
+
+// slave的事务创建
+func (d *DRule) startTransactionForSlaves(tranid string) (can []*slaveIn, err error) {
+	can = make([]*slaveIn, 0)
+	errarray := make([]string, 0)
+	for _, onec := range d.connect.slavecpool {
+		errn := d.startTransactionForOneSlave(tranid, onec)
+		if errn != nil {
+			errarray = append(errarray, errn.Error())
+		} else {
+			can = append(can, onec)
+		}
+	}
+	if len(errarray) != 0 {
+		errstr := strings.Join(errarray, " | ")
+		err = fmt.Errorf(errstr)
+	}
+	return
+}
+
+// slave的单个事务创建
+func (d *DRule) startTransactionForOneSlave(tranid string, onec *slaveIn) (err error) {
+	return
+}
+
+// 错误时候的回滚事务
+func (d *DRule) rollbackTransactionIfError(tranid string, can []*slaveIn) {
+	for _, onec := range can {
+		d.rollback(tranid, onec)
+	}
+}
+
+// 回滚事务
+func (d *DRule) rollback(tranid string, onec *slaveIn) (err error) {
 	return
 }
