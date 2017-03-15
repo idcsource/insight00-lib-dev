@@ -39,10 +39,10 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	switch prefix_stat.Operate {
 	case OPERATE_TRAN_BEGIN:
 		// 开启事务，如果出错则自己负责回滚掉开启的slave的事务
-		err = d.beginTransaction()
+		err = d.beginTransaction(conn_exec)
 	case OPERATE_TRAN_ROLLBACK:
 		// 回滚事务
-		err = d.rollbackTransaction()
+		err = d.rollbackTransaction(conn_exec)
 	case OPERATE_TRAN_COMMIT:
 		// 执行事务
 
@@ -54,6 +54,9 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	if err != nil {
 		err = d.serverDataReceipt(conn_exec, DATA_RETURN_ERROR, nil, err)
 		return nil
+	} else {
+		//统一发送DATA_ALL_OK的回执
+		err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
 	}
 	return
 }

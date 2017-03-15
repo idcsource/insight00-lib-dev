@@ -12,7 +12,7 @@ import (
 )
 
 // 向slave发送前导状态，也就是身份验证码和要操作的状态，并获取slave是否可以继续传输的要求
-func SendPrefixStat(process *nst.ProgressData, code, transactionid string, operate int, intransaction bool) (receipt Net_SlaveReceipt, err error) {
+func SendPrefixStat(process *nst.ProgressData, code, transactionid string, operate int, intransaction bool) (receipt Net_SlaveReceipt_Data, err error) {
 	thestat := Net_PrefixStat{
 		Operate:       operate,
 		Code:          code,
@@ -27,7 +27,7 @@ func SendPrefixStat(process *nst.ProgressData, code, transactionid string, opera
 	if err != nil {
 		return
 	}
-	receipt = Net_SlaveReceipt{}
+	receipt = Net_SlaveReceipt_Data{}
 	err = nst.BytesGobStruct(rdata, &receipt)
 	return
 }

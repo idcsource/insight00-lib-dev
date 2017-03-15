@@ -47,6 +47,8 @@ const (
 	DATA_RETURN_IS_TRUE
 	// 数据返回为flase
 	DATA_RETURN_IS_FALSE
+	// 事务找不到
+	DATA_TRAN_NOT_EXIST
 )
 
 // 操作方式列表

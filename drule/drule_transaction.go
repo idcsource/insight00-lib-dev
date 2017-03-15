@@ -11,28 +11,41 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/Insight-0-0-lib/nst"
 )
 
 // 创建事务
-func (d *DRule) beginTransaction() (err error) {
-	// 生成事务id
-	tranid := random.GetRand(40)
-	// 如果模式是master
+// <-- 发送DATA_PLEASE（slave回执）
+// --> 接收创建事务的ID
+func (d *DRule) beginTransaction(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = d.serverDataReceipt(conn_exec, DATA_PLEASE, nil, nil)
+	if err != nil {
+		return err
+	}
+	// 接收事务的创建ID
+	tranid_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	tranid := string(tranid_b)
+
+	// 如果模式是master，则向所有slave发送创建ID
 	if d.dmode == DMODE_MASTER {
 		var can []*slaveIn
 		can, err = d.startTransactionForSlaves(tranid)
 		if err != nil {
 			// 向can发送关闭事务（Rollback）
 			d.rollbackTransactionIfError(tranid, can)
-			return
+			// 返回失败，交由ExecTCP发送失败信息
+			return err
 		}
 	}
-	// 生成本地的事务
+	// 生成本地自身的事务
 	err = d.trule.beginForDRule(tranid)
-	if err != nil {
+	if err != nil && d.dmode == DMODE_MASTER {
 		// 全部回滚事务
-		d.rollbackTransaction(tranid)
+		d.rollbackTransactionAll(tranid)
 	}
 	return
 }
@@ -57,7 +70,30 @@ func (d *DRule) startTransactionForSlaves(tranid string) (can []*slaveIn, err er
 }
 
 // slave的单个事务创建
+// --> 发送请求OPERATE_TRAN_BEGIN（前导）
+// <-- DATA_PLEASE（回执）
+// --> tranid
+// <-- DATA_ALL_OK（回执）
 func (d *DRule) startTransactionForOneSlave(tranid string, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 发送前导
+	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, OPERATE_TRAN_BEGIN, false)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return fmt.Errorf(slave_receipt.Error)
+	}
+	// 发送tranid
+	slave_receipt, err = SendAndDecodeSlaveReceiptData(cprocess, []byte(tranid))
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		return fmt.Errorf(slave_receipt.Error)
+	}
 	return
 }
 
@@ -68,11 +104,15 @@ func (d *DRule) rollbackTransactionIfError(tranid string, can []*slaveIn) {
 	}
 }
 
-// 回滚事务
-func (d *DRule) rollbackTransaction(tranid string) (err error) {
+// 全部回滚事务
+func (d *DRule) rollbackTransactionAll(tranid string) (err error) {
 	for _, onec := range d.slavecpool {
 		d.rollbackOne(tranid, onec)
 	}
+	return
+}
+
+func (d *DRule) rollbackTransaction(conn_exec *nst.ConnExec) (err error) {
 	return
 }
 

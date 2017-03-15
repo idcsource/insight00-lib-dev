@@ -260,7 +260,7 @@ func (t *TRule) beginForDRule(unid string) (err error) {
 	}
 	_, find := t.transaction[unid]
 	if find == true {
-		err = fmt.Errorf("The transaction is already exist: %v .", unid)
+		err = fmt.Errorf("The transaction is already exist, can't recreate : %v .", unid)
 		return
 	}
 	t.transaction[unid] = tran
