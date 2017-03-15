@@ -42,9 +42,10 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		err = d.beginTransaction()
 	case OPERATE_TRAN_ROLLBACK:
 		// 回滚事务
+		err = d.rollbackTransaction()
 	case OPERATE_TRAN_COMMIT:
 		// 执行事务
-		err = d.rollbackTransaction()
+
 	default:
 		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))
 		conn_exec.SendClose()
