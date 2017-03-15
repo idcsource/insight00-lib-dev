@@ -246,10 +246,10 @@ func (t *TRule) Prepare(roleids ...string) (tran *Transaction, err error) {
 }
 
 // 由DRule来控制创建事务
-func (t *TRule) beginForDRule(unid string) (tran *Transaction) {
+func (t *TRule) beginForDRule(unid string) (err error) {
 	t.tran_lock.Lock()
 	defer t.tran_lock.Unlock()
-	tran = &Transaction{
+	tran := &Transaction{
 		unid:               unid,
 		tran_cache:         make(map[string]*roleCache),
 		tran_service:       t.tran_service,
@@ -258,8 +258,24 @@ func (t *TRule) beginForDRule(unid string) (tran *Transaction) {
 		tran_commit_signal: t.tran_commit_signal,
 		be_delete:          false,
 	}
+	_, find := t.transaction[unid]
+	if find == true {
+		err = fmt.Errorf("The transaction is already exist: %v .", unid)
+		return
+	}
 	t.transaction[unid] = tran
 	fmt.Println("Zr Log, New Tran: ", unid)
+	return
+}
+
+// 由DRule来控制的获取到事务
+func (t *TRule) getTransactionForDRule(unid string) (tran *Transaction, err error) {
+	var find bool
+	tran, find = t.transaction[unid]
+	if find == false {
+		err = fmt.Errorf("Can not find transaction : %v .", unid)
+		return
+	}
 	return
 }
 

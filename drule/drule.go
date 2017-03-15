@@ -9,21 +9,22 @@ package drule
 
 import (
 	"fmt"
-	"strings"
+	"reflect"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // 创建一个分布式统治者
+//
+// 注意：如果想用drcm.ZrStorage那样的Own模式，则直接去用TRule。
 func NewDRule(config *cpool.Block, logs *ilogs.Logs) (d *DRule, err error) {
 	d = &DRule{
-		config:  config,
-		connect: &druleConnectService{},
-		logs:    logs,
+		config: config,
+		logs:   logs,
 	}
 	// 查找运行模式
 	var mode string
@@ -33,17 +34,14 @@ func NewDRule(config *cpool.Block, logs *ilogs.Logs) (d *DRule, err error) {
 		return
 	}
 	switch mode {
-	case "own":
-		d.connect.dmode = DMODE_OWN
-		err = d.startForOwn()
 	case "master":
-		d.connect.dmode = DMODE_MASTER
+		d.dmode = DMODE_MASTER
 		err = d.startForMaster()
 	case "slave":
-		d.connect.dmode = DMODE_SLAVE
+		d.dmode = DMODE_SLAVE
 		err = d.startForSlave()
 	default:
-		err = fmt.Errorf("drule[DRule]NewDRule: The mode config must own, master or slave.")
+		err = fmt.Errorf("drule[DRule]NewDRule: The mode config must master or slave.")
 		return
 	}
 	if err != nil {
@@ -52,7 +50,7 @@ func NewDRule(config *cpool.Block, logs *ilogs.Logs) (d *DRule, err error) {
 	return
 }
 
-// OWN模式启动
+// 本地的启动
 func (d *DRule) startForOwn() (err error) {
 	// 创建本地存储
 	hardstore_config, err := d.config.GetSection("local")
@@ -78,11 +76,11 @@ func (d *DRule) startForSlave() (err error) {
 	if err != nil {
 		return err
 	}
-	d.connect.listen, err = nst.NewTcpServer(d, port, d.logs)
+	d.listen, err = nst.NewTcpServer(d, port, d.logs)
 	if err != nil {
 		return err
 	}
-	d.connect.code, err = d.config.GetConfig("main.code")
+	d.code, err = d.config.GetConfig("main.code")
 	if err != nil {
 		return err
 	}
@@ -95,9 +93,9 @@ func (d *DRule) startForMaster() (err error) {
 	if err != nil {
 		return
 	}
-	d.connect.slaves = make(map[string][]*slaveIn)
-	d.connect.slavepool = make(map[string]*nst.TcpClient)
-	d.connect.slavecpool = make(map[string]*slaveIn)
+	d.slaves = make(map[string][]*slaveIn)
+	d.slavepool = make(map[string]*nst.TcpClient)
+	d.slavecpool = make(map[string]*slaveIn)
 	// 获取slave的配置名
 	slaves, err := d.config.GetEnum("main.slave")
 	if err != nil {
@@ -144,8 +142,8 @@ func (d *DRule) startForMaster() (err error) {
 			d.closeSlavePool()
 			return err
 		}
-		d.connect.slavepool[one] = sconn
-		d.connect.slavecpool[one] = &slaveIn{
+		d.slavepool[one] = sconn
+		d.slavecpool[one] = &slaveIn{
 			name:    one,
 			code:    code,
 			tcpconn: sconn,
@@ -153,11 +151,11 @@ func (d *DRule) startForMaster() (err error) {
 		// 遍历可管理角色首字母创建连接序列
 		for _, onewho := range control_whos {
 			// 序列里没有这个字母就建立一个
-			if _, have := d.connect.slaves[onewho]; have == false {
-				d.connect.slaves[onewho] = make([]*slaveIn, 0)
+			if _, have := d.slaves[onewho]; have == false {
+				d.slaves[onewho] = make([]*slaveIn, 0)
 			}
 			// 将这个字母的序列中加入这个slave的名字
-			d.connect.slaves[onewho] = append(d.connect.slaves[onewho], d.connect.slavecpool[one])
+			d.slaves[onewho] = append(d.slaves[onewho], d.slavecpool[one])
 		}
 	}
 	return
@@ -165,71 +163,71 @@ func (d *DRule) startForMaster() (err error) {
 
 // 关闭整个slavepool
 func (d *DRule) closeSlavePool() {
-	for _, conn := range d.connect.slavepool {
+	for _, conn := range d.slavepool {
 		conn.Close()
 	}
 }
 
-// 创建事务
-func (d *DRule) Begin() (dtran *DRuleTransaction, err error) {
-	// 生成事务id
-	tranid := random.GetRand(40)
-	// 如果模式是master或operator
-	if d.connect.dmode == DMODE_MASTER {
-		var can []*slaveIn
-		can, err = d.startTransactionForSlaves(tranid)
-		if err != nil {
-			// 向can发送关闭事务（Rollback）
-			d.rollbackTransactionIfError(tranid, can)
-			err = fmt.Errorf("drule[DRule]Begin: %v", err)
-			return
-		}
-	}
-	// 生成事务
-	tran := d.trule.beginForDRule(tranid)
-	// 创建分布式事务
-	dtran = &DRuleTransaction{
-		unid:        tranid,
-		transaction: tran,
-		connect:     d.connect,
-		be_delete:   false,
+// 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
+func (d *DRule) findConn(id string) (connmode uint8, conn []*slaveIn) {
+	// 如果模式为own，则直接返回本地
+	if d.dmode == DMODE_OWN {
+		connmode = CONN_IS_LOCAL
+		return
 	}
 
-	return
-}
-
-// slave的事务创建
-func (d *DRule) startTransactionForSlaves(tranid string) (can []*slaveIn, err error) {
-	can = make([]*slaveIn, 0)
-	errarray := make([]string, 0)
-	for _, onec := range d.connect.slavecpool {
-		errn := d.startTransactionForOneSlave(tranid, onec)
-		if errn != nil {
-			errarray = append(errarray, errn.Error())
-		} else {
-			can = append(can, onec)
-		}
-	}
-	if len(errarray) != 0 {
-		errstr := strings.Join(errarray, " | ")
-		err = fmt.Errorf(errstr)
-	}
-	return
-}
-
-// slave的单个事务创建
-func (d *DRule) startTransactionForOneSlave(tranid string, onec *slaveIn) (err error) {
-	return
-}
-
-// 错误时候的回滚事务
-func (d *DRule) rollbackTransactionIfError(tranid string, can []*slaveIn) {
-	for _, onec := range can {
-		d.rollback(tranid, onec)
+	// 找到第一个首字母。
+	theChar := string(id[0])
+	// slave池中有没有
+	conn, find := d.slaves[theChar]
+	if find == false {
+		// 如果在slave池里没有找到，那么就默认为本地存储
+		connmode = CONN_IS_LOCAL
+		return
+	} else {
+		connmode = CONN_IS_SLAVE
+		return
 	}
 }
 
-// 回滚事务
-func (d *DRule) rollback(tranid string, onec *slaveIn) (err error) {
-	return
+// 判断friend或context的状态的类型，types：1为int，2为float，3为complex
+func (d *DRule) statusValueType(value interface{}) (types uint8) {
+	valuer := reflect.Indirect(reflect.ValueOf(value))
+	vname := valuer.Type().String()
+	switch vname {
+	case "int64":
+		return roles.STATUS_VALUE_TYPE_INT
+	case "float64":
+		return roles.STATUS_VALUE_TYPE_FLOAT
+	case "complex128":
+		return roles.STATUS_VALUE_TYPE_COMPLEX
+	default:
+		return roles.STATUS_VALUE_TYPE_NULL
+	}
+}
+
+// 处理错误日志
+func (d *DRule) logerr(err error) {
+	if err == nil {
+		return
+	}
+	err = fmt.Errorf("drule[DRule]: %v", err)
+	if d.logs != nil {
+		d.logs.ErrLog(err)
+	} else {
+		fmt.Println(err)
+	}
+}
+
+// 处理运行日志
+func (d *DRule) logrun(err error) {
+	if err == nil {
+		return
+	}
+	err = fmt.Errorf("drule[DRule]: %v", err)
+	if d.logs != nil {
+		d.logs.RunLog(err)
+	} else {
+		fmt.Println(err)
+	}
 }

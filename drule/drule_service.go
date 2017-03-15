@@ -8,10 +8,70 @@
 package drule
 
 import (
+	"fmt"
+
 	"github.com/idcsource/Insight-0-0-lib/nst"
 )
 
 // ExecTCP nst的ConnExecer接口
 func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
+	// 接收前导
+	prefix_stat_b, err := conn_exec.GetData()
+	if err != nil {
+		d.logerr(fmt.Errorf("Get the Prefix Stat err : %v", err))
+		return err
+	}
+	// 解码前导
+	prefix_stat := Net_PrefixStat{}
+	err = nst.BytesGobStruct(prefix_stat_b, &prefix_stat)
+	if err != nil {
+		d.logerr(fmt.Errorf("Get the Prefix Stat err : %v", err))
+		return err
+	}
+	// 检查身份验证码
+	if prefix_stat.Code != d.code {
+		// 发送错误
+		d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The service code is wrong : %v .", prefix_stat.Code))
+		conn_exec.SendClose()
+		return fmt.Errorf("The service code is wrong : %v .", prefix_stat.Code)
+	}
+	// 开始遍历操作
+	switch prefix_stat.Operate {
+	case OPERATE_TRAN_BEGIN:
+		// 开启事务，如果出错则自己负责回滚掉开启的slave的事务
+		err = d.beginTransaction()
+	case OPERATE_TRAN_ROLLBACK:
+		// 回滚事务
+	case OPERATE_TRAN_COMMIT:
+		// 执行事务
+		err = d.rollbackTransaction()
+	default:
+		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))
+		conn_exec.SendClose()
+		return nil
+	}
+	if err != nil {
+		err = d.serverDataReceipt(conn_exec, DATA_RETURN_ERROR, nil, err)
+		return nil
+	}
 	return
+}
+
+// 向请求方返回带有数据体的回执信息
+func (d *DRule) serverDataReceipt(conn_exec *nst.ConnExec, stat uint8, data []byte, err error) (err2 error) {
+	// 构建回执
+	slave_receipt := Net_SlaveReceipt_Data{
+		DataStat: stat,
+		Error:    fmt.Sprint(err),
+		Data:     data,
+	}
+	slave_receipt_b, err2 := nst.StructGobBytes(slave_receipt)
+	if err2 != nil {
+		return err2
+	}
+	err2 = conn_exec.SendData(slave_receipt_b)
+	if err2 != nil {
+		return err2
+	}
+	return nil
 }

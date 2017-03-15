@@ -21,15 +21,6 @@ type DRule struct {
 	// 事务统治者
 	trule *TRule
 
-	// 连接服务
-	connect *druleConnectService
-
-	// 日志
-	logs *ilogs.Logs
-}
-
-// drule的连接服务
-type druleConnectService struct {
 	// 分布式服务模式，DMODE_*
 	dmode uint8
 	// 自身的身份码，slave和master时需要
@@ -42,18 +33,9 @@ type druleConnectService struct {
 	slavepool map[string]*nst.TcpClient
 	// slave的slaveIn连接池
 	slavecpool map[string]*slaveIn
-}
 
-// drule的事务模式
-type DRuleTransaction struct {
-	// 事务的id
-	unid string
-	// 已经被删除，也就是commit或rollback了
-	be_delete bool
-	// 事务
-	transaction *Transaction
-	// 连接服务
-	connect *druleConnectService
+	// 日志
+	logs *ilogs.Logs
 }
 
 // 一台从机的信息
@@ -71,6 +53,10 @@ type Net_PrefixStat struct {
 	Operate int
 	// 身份验证码
 	Code string
+	// 在事务中
+	InTransaction bool
+	// 事务ID
+	TransactionId string
 }
 
 // slave回执，slave收到PrefixStat之后的第一步返回信息
