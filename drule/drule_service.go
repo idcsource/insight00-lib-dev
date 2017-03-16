@@ -42,9 +42,21 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		err = d.beginTransaction(conn_exec)
 	case OPERATE_TRAN_ROLLBACK:
 		// 回滚事务
-		err = d.rollbackTransaction(conn_exec)
+		if prefix_stat.InTransaction == false || len(prefix_stat.TransactionId) == 0 {
+			err = fmt.Errorf("This is not in a transaction.")
+		} else {
+			err = d.rollbackTransaction(prefix_stat.TransactionId, conn_exec)
+		}
 	case OPERATE_TRAN_COMMIT:
 		// 执行事务
+		if prefix_stat.InTransaction == false || len(prefix_stat.TransactionId) == 0 {
+			err = fmt.Errorf("This is not in a transaction.")
+		} else {
+			err = d.commitTransaction(prefix_stat.TransactionId, conn_exec)
+		}
+	case OPERATE_READ_ROLE:
+		err = d.readRole(prefix_stat,conn_exec)
+		// 读取角色
 
 	default:
 		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))

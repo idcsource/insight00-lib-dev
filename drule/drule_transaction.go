@@ -100,23 +100,93 @@ func (d *DRule) startTransactionForOneSlave(tranid string, onec *slaveIn) (err e
 // 错误时候的部分回滚事务
 func (d *DRule) rollbackTransactionIfError(tranid string, can []*slaveIn) {
 	for _, onec := range can {
-		d.rollbackOne(tranid, onec)
+		d.rollbackSlaveOne(tranid, onec)
 	}
 }
 
-// 全部回滚事务
+// 全部回滚事务（向所有slave发送）
 func (d *DRule) rollbackTransactionAll(tranid string) (err error) {
 	for _, onec := range d.slavecpool {
-		d.rollbackOne(tranid, onec)
+		d.rollbackSlaveOne(tranid, onec)
 	}
 	return
 }
 
-func (d *DRule) rollbackTransaction(conn_exec *nst.ConnExec) (err error) {
+// ExecTCP的回滚事务
+func (d *DRule) rollbackTransaction(tranid string, conn_exec *nst.ConnExec) (err error) {
+	// 如果是Master模式，就向slave发送回滚命令
+	if d.dmode == DMODE_MASTER {
+		d.rollbackTransactionAll(tranid)
+	}
+	// 自身回滚事务
+	tran, err := d.trule.getTransactionForDRule(tranid)
+	if err == nil {
+		tran.Rollback()
+	}
+	return nil
+}
+
+// 向某一个slave发送的回滚事务
+// --> 发送请求OPERATE_TRAN_ROLLBACK（前导）
+// <-- DATA_ALL_OK，接收回执
+func (d *DRule) rollbackSlaveOne(tranid string, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress()
+	defer cprocess.Close()
+
+	// 发送前导
+	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, OPERATE_TRAN_ROLLBACK, true)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		return fmt.Errorf(slave_receipt.Error)
+	}
 	return
 }
 
-// 回滚事务
-func (d *DRule) rollbackOne(tranid string, onec *slaveIn) (err error) {
+// 服务于ExecTCP的执行事务
+func (d *DRule) commitTransaction(tranid string, conn_exec *nst.ConnExec) (err error) {
+	errarray := make([]string, 0)
+	// 如果是Master模式，就向slave发送
+	if d.dmode == DMODE_MASTER {
+		for _, onec := range d.slavecpool {
+			errone := d.commitTransactionForOneSlave(tranid, onec)
+			if errone != nil {
+				errarray = append(errarray, fmt.Sprint(errone))
+			}
+		}
+	}
+	// 自身的执行事务
+	tran, errone := d.trule.getTransactionForDRule(tranid)
+	if errone != nil {
+		errarray = append(errarray, fmt.Sprint(errone))
+	} else {
+		errone = tran.Commit()
+		if errone != nil {
+			errarray = append(errarray, fmt.Sprint(errone))
+		}
+	}
+	if len(errarray) != 0 {
+		errstr := strings.Join(errarray, " | ")
+		err = fmt.Errorf(errstr)
+	}
+	return
+}
+
+// 针对某一个slave的执行事务
+func (d *DRule) commitTransactionForOneSlave(tranid string, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress()
+	defer cprocess.Close()
+
+	// 发送前导
+	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, OPERATE_TRAN_COMMIT, true)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		return fmt.Errorf(slave_receipt.Error)
+	}
 	return
 }
