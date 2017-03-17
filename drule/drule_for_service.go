@@ -123,12 +123,12 @@ func (d *DRule) getRoleFromSlaves(prefix_stat Net_PrefixStat, roleid string, con
 // 为ExecTCP的保存角色
 //	--> DATA_PLEASE
 //	<-- Net_RoleSendAndReceive
-//	--> 交由ExecTCP发送DATA_ALL_OK
+//	--> 发送DATA_ALL_OK
 func (d *DRule) storeRole(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
 	// 看看有roleid吗
 	roleid := prefix_stat.RoleId
 	if len(roleid) == 0 {
-		err = fmt.Errorf("Don't set the Role id.")
+		err = fmt.Errorf("The Role id no be set.")
 		return err
 	}
 	// 发送DATA_PLEASE
@@ -181,6 +181,7 @@ func (d *DRule) storeRole(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (
 			return err
 		}
 	}
+	err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
 	return
 }
 
@@ -226,4 +227,344 @@ func (d *DRule) storeRoleForOneSlave(prefix_stat Net_PrefixStat, role_body_b []b
 		return fmt.Errorf(slave_receipt.Error)
 	}
 	return nil
+}
+
+// 为ExecTCP的删除角色
+//	<-- 交由ExecTCP发送DATA_ALL_OK
+func (d *DRule) deleteRole(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
+	// 查看有roleid吗
+	roleid := prefix_stat.RoleId
+	if len(roleid) == 0 {
+		err = fmt.Errorf("The Role id not be set.")
+		return err
+	}
+	// 查看角色的位置
+	connmode, conn := d.findConn(roleid)
+	if connmode == CONN_IS_LOCAL {
+		// 本地
+		// 查看事务情况
+		if prefix_stat.InTransaction == true && len(prefix_stat.TransactionId) != 0 {
+			// In transaction
+			tran, err := d.trule.getTransactionForDRule(prefix_stat.TransactionId)
+			if err != nil {
+				return err
+			}
+			err = tran.DeleteRole(roleid)
+			if err != nil {
+				return err
+			}
+		} else {
+			// Not in transaction
+			err = d.trule.DeleteRole(roleid)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// In slaves
+		err = d.deleteRoleFromSlaves(prefix_stat, conn)
+		if err != nil {
+			return err
+		}
+	}
+	err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
+	return nil
+}
+
+// 为所有slave的删除角色
+func (d *DRule) deleteRoleFromSlaves(prefix_stat Net_PrefixStat, conns []*slaveIn) (err error) {
+	errarray := make([]string, 0)
+	for _, conn := range conns {
+		errone := d.deleteRoleFromOneSlave(prefix_stat, conn)
+		if errone != nil {
+			errarray = append(errarray, fmt.Sprint(errone))
+		}
+	}
+	if len(errarray) != 0 {
+		errstr := strings.Join(errarray, " | ")
+		return fmt.Errorf(errstr)
+	}
+	return nil
+}
+
+// 为某一个slave删除角色
+//	--> OPERATE_DEL_ROLE
+//	<-- DATA_ALL_OK
+func (d *DRule) deleteRoleFromOneSlave(prefix_stat Net_PrefixStat, conn *slaveIn) (err error) {
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 发送前导
+	slave_receipt, err := SendPrefixStat(cprocess, conn.code, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, OPERATE_DEL_ROLE)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		return fmt.Errorf(slave_receipt.Error)
+	}
+	return nil
+}
+
+// 为WriteSometing的设置父角色（事务版）
+func (d *DRule) writeFatherTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	net_role_father_change := Net_RoleFatherChange{}
+	err = nst.BytesGobStruct(byte_slice_data, &net_role_father_change)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = tran.WriteFather(net_role_father_change.Id, net_role_father_change.Father)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// 为WriteSometing的设置父角色（非事务版）
+func (d *DRule) writeFatherNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	net_role_father_change := Net_RoleFatherChange{}
+	err = nst.BytesGobStruct(byte_slice_data, &net_role_father_change)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = d.trule.WriteFather(net_role_father_change.Id, net_role_father_change.Father)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// 为readSometing的读取父角色（事务版）
+func (d *DRule) readFatherTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	net_role_father_change := Net_RoleFatherChange{}
+	err = nst.BytesGobStruct(byte_slice_data, &net_role_father_change)
+	if err != nil {
+		return
+	}
+	// 执行
+	net_role_father_change.Father, err = tran.ReadFather(net_role_father_change.Id)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(net_role_father_change)
+	return
+}
+
+// 为readSometing的读取父角色（非事务版）
+func (d *DRule) readFatherNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	net_role_father_change := Net_RoleFatherChange{}
+	err = nst.BytesGobStruct(byte_slice_data, &net_role_father_change)
+	if err != nil {
+		return
+	}
+	// 执行
+	net_role_father_change.Father, err = d.trule.ReadFather(net_role_father_change.Id)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(net_role_father_change)
+	return
+}
+
+// 为readSometing的读取所有子角色（事务版）
+func (d *DRule) readChildrenTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	roleid := string(byte_slice_data)
+	// 执行
+	children, err := tran.ReadChildren(roleid)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(children)
+	return
+}
+
+// 为readSometing的读取所有子角色（事务版）
+func (d *DRule) readChildrenNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	roleid := string(byte_slice_data)
+	// 执行
+	children, err := d.trule.ReadChildren(roleid)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(children)
+	return
+}
+
+// 为writeSometing的设置所有子角色（事务版）
+func (d *DRule) writeChildrenTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_children := Net_RoleAndChildren{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_children)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = tran.WriteChildren(role_and_children.Id, role_and_children.Children)
+	return
+}
+
+// 为writeSometing的设置所有子角色（非事务版）
+func (d *DRule) writeChildrenNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_children := Net_RoleAndChildren{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_children)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = d.trule.WriteChildren(role_and_children.Id, role_and_children.Children)
+	return
+}
+
+// 为writeSometing的设置一个子角色（事务版）
+func (d *DRule) writeChildTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_child := Net_RoleAndChild{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_child)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = tran.WriteChild(role_and_child.Id, role_and_child.Child)
+	return
+}
+
+// 为writeSometing的设置一个子角色（非事务版）
+func (d *DRule) writeChildNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_child := Net_RoleAndChild{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_child)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = d.trule.WriteChild(role_and_child.Id, role_and_child.Child)
+	return
+}
+
+// 为writeSometing的删除一个子角色（事务版）
+func (d *DRule) deleteChildTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_child := Net_RoleAndChild{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_child)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = tran.DeleteChild(role_and_child.Id, role_and_child.Child)
+	return
+}
+
+// 为writeSometing的删除一个子角色（非事务版）
+func (d *DRule) deleteChildNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_child := Net_RoleAndChild{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_child)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = d.trule.DeleteChild(role_and_child.Id, role_and_child.Child)
+	return
+}
+
+// 为readSometing的是否有子角色（事务版）
+func (d *DRule) existChildTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_and_child := Net_RoleAndChild{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_child)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_and_child.Exist, err = tran.ExistChild(role_and_child.Id, role_and_child.Child)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_and_child)
+	return
+}
+
+// 为readSometing的是否有子角色（非事务版）
+func (d *DRule) existChildNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_and_child := Net_RoleAndChild{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_child)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_and_child.Exist, err = d.trule.ExistChild(role_and_child.Id, role_and_child.Child)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_and_child)
+	return
+}
+
+// 为readSometing的读取所有朋友（事务版）
+func (d *DRule) readFriendsTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	roleid := string(byte_slice_data)
+	// 执行
+	friends, err := tran.ReadFriends(roleid)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(friends)
+	return
+}
+
+// 为readSometing的读取所有朋友（非事务版）
+func (d *DRule) readFriendsNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	roleid := string(byte_slice_data)
+	// 执行
+	friends, err := d.trule.ReadFriends(roleid)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(friends)
+	return
+}
+
+// 为writeSometing的设置所有朋友（事务版）
+func (d *DRule) writeFriendsTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_friends := Net_RoleAndFriends{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_friends)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = tran.WriteFriends(role_and_friends.Id, role_and_friends.Friends)
+	return
+}
+
+// 为writeSometing的设置所有朋友（非事务版）
+func (d *DRule) writeFriendsNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_friends := Net_RoleAndFriends{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_friends)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = d.trule.WriteFriends(role_and_friends.Id, role_and_friends.Friends)
+	return
 }

@@ -105,6 +105,7 @@ type Net_RoleAndChildren struct {
 type Net_RoleAndChild struct {
 	Id    string
 	Child string
+	Exist bool
 }
 
 // 角色的所有朋友
