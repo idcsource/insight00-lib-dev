@@ -57,6 +57,8 @@ type Net_PrefixStat struct {
 	InTransaction bool
 	// 事务ID
 	TransactionId string
+	// 涉及到的角色id
+	RoleId string
 }
 
 // slave回执，slave收到PrefixStat之后的第一步返回信息

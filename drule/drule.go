@@ -170,6 +170,7 @@ func (d *DRule) closeSlavePool() {
 
 // 查看连接是哪个，id为角色的id，connmode来自CONN_IS_*
 func (d *DRule) findConn(id string) (connmode uint8, conn []*slaveIn) {
+	id = hardstore.GetRoleStoreName(id)
 	// 如果模式为own，则直接返回本地
 	if d.dmode == DMODE_OWN {
 		connmode = CONN_IS_LOCAL

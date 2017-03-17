@@ -57,6 +57,8 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_READ_ROLE:
 		err = d.readRole(prefix_stat,conn_exec)
 		// 读取角色
+	case OPERATE_WRITE_ROLE:
+		err = d.storeRole(prefix_stat,conn_exec)
 
 	default:
 		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))

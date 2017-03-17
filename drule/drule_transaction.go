@@ -79,7 +79,7 @@ func (d *DRule) startTransactionForOneSlave(tranid string, onec *slaveIn) (err e
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, OPERATE_TRAN_BEGIN, false)
+	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, false, "", OPERATE_TRAN_BEGIN)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (d *DRule) rollbackSlaveOne(tranid string, onec *slaveIn) (err error) {
 	defer cprocess.Close()
 
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, OPERATE_TRAN_ROLLBACK, true)
+	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, true, "", OPERATE_TRAN_ROLLBACK)
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func (d *DRule) commitTransactionForOneSlave(tranid string, onec *slaveIn) (err 
 	defer cprocess.Close()
 
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, OPERATE_TRAN_COMMIT, true)
+	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, true, "", OPERATE_TRAN_COMMIT)
 	if err != nil {
 		return err
 	}

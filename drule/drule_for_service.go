@@ -9,6 +9,7 @@ package drule
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/nst"
@@ -19,7 +20,7 @@ import (
 // ExecTCP的读取角色，需要判断是否在事务中
 //	<-- 发送DATA_PLEASE
 //	--> 接收角色id
-//	<-- 判断是否在事务中
+//	<-- Net_RoleSendAndReceive
 func (d *DRule) readRole(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
 	// 发送DATA_PLEASE
 	err = d.serverDataReceipt(conn_exec, DATA_PLEASE, nil, nil)
@@ -102,7 +103,7 @@ func (d *DRule) getRoleFromSlaves(prefix_stat Net_PrefixStat, roleid string, con
 	cprocess := conns[connrandom].tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 前导
-	slave_receipt, err := SendPrefixStat(cprocess, conns[connrandom].code, prefix_stat.TransactionId, OPERATE_READ_ROLE, prefix_stat.InTransaction)
+	slave_receipt, err := SendPrefixStat(cprocess, conns[connrandom].code, prefix_stat.TransactionId, prefix_stat.InTransaction, roleid, OPERATE_READ_ROLE)
 	if err != nil {
 		return
 	}
@@ -117,4 +118,112 @@ func (d *DRule) getRoleFromSlaves(prefix_stat Net_PrefixStat, roleid string, con
 	}
 	role_send_b = slave_receipt.Data
 	return
+}
+
+// 为ExecTCP的保存角色
+//	--> DATA_PLEASE
+//	<-- Net_RoleSendAndReceive
+//	--> 交由ExecTCP发送DATA_ALL_OK
+func (d *DRule) storeRole(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
+	// 看看有roleid吗
+	roleid := prefix_stat.RoleId
+	if len(roleid) == 0 {
+		err = fmt.Errorf("Don't set the Role id.")
+		return err
+	}
+	// 发送DATA_PLEASE
+	err = d.serverDataReceipt(conn_exec, DATA_PLEASE, nil, nil)
+	if err != nil {
+		return err
+	}
+
+	// 接收Net_RoleSendAndReceive
+	role_body_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 查看角色应该在哪里保存
+	connmode, conn := d.findConn(roleid)
+	if connmode == CONN_IS_LOCAL {
+		// 本地处理
+		// 解码角色
+		role_body := Net_RoleSendAndReceive{}
+		err = nst.BytesGobStruct(role_body_b, &role_body)
+		if err != nil {
+			return err
+		}
+		role, err := hardstore.DecodeRole(role_body.RoleBody, role_body.RoleRela, role_body.RoleVer)
+		if err != nil {
+			return err
+		}
+		// 查看是不是在事务中
+		if prefix_stat.InTransaction == true && len(prefix_stat.TransactionId) != 0 {
+			// 在事务中
+			tran, err := d.trule.getTransactionForDRule(prefix_stat.TransactionId)
+			if err != nil {
+				return err
+			}
+			err = tran.StoreRole(role)
+			if err != nil {
+				return err
+			}
+		} else {
+			// 不在事务中
+			err = d.trule.StoreRole(role)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// 在slave上的话
+		err = d.storeRoleForSlaves(prefix_stat, role_body_b, conn)
+		if err != nil {
+			return err
+		}
+	}
+	return
+}
+
+// 为所有slave的存储角色
+func (d *DRule) storeRoleForSlaves(prefix_stat Net_PrefixStat, role_body_b []byte, conns []*slaveIn) (err error) {
+	errarray := make([]string, 0)
+	for _, conn := range conns {
+		errone := d.storeRoleForOneSlave(prefix_stat, role_body_b, conn)
+		if errone != nil {
+			errarray = append(errarray, fmt.Sprint(errone))
+		}
+	}
+	if len(errarray) != 0 {
+		errstr := strings.Join(errarray, " | ")
+		return fmt.Errorf(errstr)
+	}
+	return
+}
+
+// 为某一个slave存储角色
+//	--> OPERATE_WRITE_ROLE(前导)
+//	<-- DATA_PLEASE
+//	--> Net_RoleSendAndReceive(byte)
+//	<-- DATA_ALL_OK
+func (d *DRule) storeRoleForOneSlave(prefix_stat Net_PrefixStat, role_body_b []byte, conn *slaveIn) (err error) {
+	// 分配连接
+	cprocess := conn.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 前导
+	slave_receipt, err := SendPrefixStat(cprocess, conn.code, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, OPERATE_WRITE_ROLE)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return fmt.Errorf(slave_receipt.Error)
+	}
+	// 发送Net_RoleSendAndReceive
+	slave_receipt, err = SendAndDecodeSlaveReceiptData(cprocess, role_body_b)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		return fmt.Errorf(slave_receipt.Error)
+	}
+	return nil
 }

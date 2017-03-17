@@ -14,12 +14,13 @@ import (
 // 向slave发送前导状态，也就是身份验证码和要操作的状态，并获取slave是否可以继续传输的要求
 //
 // transactionid为事务的id，不在事务中可以为“”，intransaction为是否在事务里。
-func SendPrefixStat(process *nst.ProgressData, code, transactionid string, operate int, intransaction bool) (receipt Net_SlaveReceipt_Data, err error) {
+func SendPrefixStat(process *nst.ProgressData, code, transactionid string, intransaction bool, roleid string, operate int) (receipt Net_SlaveReceipt_Data, err error) {
 	thestat := Net_PrefixStat{
 		Operate:       operate,
 		Code:          code,
 		TransactionId: transactionid,
 		InTransaction: intransaction,
+		RoleId:        roleid,
 	}
 	statbyte, err := nst.StructGobBytes(thestat)
 	if err != nil {
