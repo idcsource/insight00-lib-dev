@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/random"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
@@ -64,4 +65,9 @@ func EncodeRole(role roles.Roleer) (roleb, relab, verb []byte, err error) {
 		return nil, nil, nil, fmt.Errorf("hardstore[HardStore]EncodeRole: %v", err)
 	}
 	return
+}
+
+// 得到角色的保存名
+func GetRoleStoreName(id string) (name string) {
+	return random.GetSha1Sum(id)
 }
