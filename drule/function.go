@@ -35,36 +35,10 @@ func SendPrefixStat(process *nst.ProgressData, code, transactionid string, intra
 	return
 }
 
-// 从[]byte解码SlaveReceipt
-func DecodeSlaveReceipt(b []byte) (receipt Net_SlaveReceipt, err error) {
-	receipt = Net_SlaveReceipt{}
-	err = nst.BytesGobStruct(b, &receipt)
-	return
-}
-
 // 从[]byte解码SlaveReceipt带数据体
 func DecodeSlaveReceiptData(b []byte) (receipt Net_SlaveReceipt_Data, err error) {
 	receipt = Net_SlaveReceipt_Data{}
 	err = nst.BytesGobStruct(b, &receipt)
-	return
-}
-
-// 发送数据并解码返回的SlaveReceipt
-func SendAndDecodeSlaveReceipt(cprocess *nst.ProgressData, data []byte) (receipt Net_SlaveReceipt, err error) {
-	s_r_b, err := cprocess.SendAndReturn(data)
-	if err != nil {
-		return
-	}
-	receipt, err = DecodeSlaveReceipt(s_r_b)
-	if err != nil {
-		receipt_data, err := DecodeSlaveReceiptData(s_r_b)
-		if err != nil {
-			return receipt, err
-		}
-		receipt.DataStat = receipt_data.DataStat
-		receipt.Error = receipt_data.Error
-		return receipt, nil
-	}
 	return
 }
 
@@ -75,14 +49,5 @@ func SendAndDecodeSlaveReceiptData(cprocess *nst.ProgressData, data []byte) (rec
 		return
 	}
 	receipt_data, err = DecodeSlaveReceiptData(s_r_b)
-	if err != nil {
-		receipt, err := DecodeSlaveReceipt(s_r_b)
-		if err != nil {
-			return receipt_data, err
-		}
-		receipt_data.DataStat = receipt.DataStat
-		receipt_data.Error = receipt.Error
-		return receipt_data, nil
-	}
 	return
 }

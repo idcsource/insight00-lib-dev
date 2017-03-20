@@ -61,14 +61,6 @@ type Net_PrefixStat struct {
 	RoleId string
 }
 
-// slave回执，slave收到PrefixStat之后的第一步返回信息
-type Net_SlaveReceipt struct {
-	// 数据状态，来自DATA_*
-	DataStat uint8
-	// 返回的错误
-	Error string
-}
-
 // slave回执带数据体
 type Net_SlaveReceipt_Data struct {
 	// 数据状态，来自DATA_*
