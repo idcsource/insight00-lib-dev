@@ -568,3 +568,435 @@ func (d *DRule) writeFriendsNoTran(byte_slice_data []byte) (err error) {
 	err = d.trule.WriteFriends(role_and_friends.Id, role_and_friends.Friends)
 	return
 }
+
+// 为writeSometing的删除一个朋友（事务版）
+func (d *DRule) deleteFriendTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_friend := Net_RoleAndFriend{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_friend)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = tran.DeleteFriend(role_and_friend.Id, role_and_friend.Friend)
+	return
+}
+
+// 为writeSometing的删除一个朋友（非事务版）
+func (d *DRule) deleteFriendNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_friend := Net_RoleAndFriend{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_friend)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = d.trule.DeleteFriend(role_and_friend.Id, role_and_friend.Friend)
+	return
+}
+
+// 为writeSometing的创建一个空的上下文（事务版）
+func (d *DRule) createContextTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = tran.CreateContext(role_and_context.Id, role_and_context.Context)
+	return
+}
+
+// 为writeSometing的创建一个空的上下文（非事务版）
+func (d *DRule) createContextNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = d.trule.CreateContext(role_and_context.Id, role_and_context.Context)
+	return
+}
+
+// 为writeSometing的删除一个上下文（事务版）
+func (d *DRule) dropContextTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = tran.DropContext(role_and_context.Id, role_and_context.Context)
+	return
+}
+
+// 为writeSometing的删除一个上下文（非事务版）
+func (d *DRule) dropContextNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = d.trule.DropContext(role_and_context.Id, role_and_context.Context)
+	return
+}
+
+// 为readSometing的读取某个上下文（事务版）
+func (d *DRule) readContextTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_and_context.ContextBody, role_and_context.Exist, err = tran.ReadContext(role_and_context.Id, role_and_context.Context)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_and_context)
+	return
+}
+
+// 为readSometing的读取某个上下文（事务版）
+func (d *DRule) readContextNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_and_context.ContextBody, role_and_context.Exist, err = d.trule.ReadContext(role_and_context.Id, role_and_context.Context)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_and_context)
+	return
+}
+
+// 为writeSometing的删除一个上下文中的绑定（事务版）
+func (d *DRule) deleteContextBindTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = tran.DeleteContextBind(role_and_context.Id, role_and_context.Context, role_and_context.UpOrDown, role_and_context.BindRole)
+	return
+}
+
+// 为writeSometing的删除一个上下文中的绑定（非事务版）
+func (d *DRule) deleteContextBindNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	err = d.trule.DeleteContextBind(role_and_context.Id, role_and_context.Context, role_and_context.UpOrDown, role_and_context.BindRole)
+	return
+}
+
+// 为readSometing的返回某个上下文的同样绑定值的所有（事务版）
+func (d *DRule) readContextSameBindTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_and_context.Gather, role_and_context.Exist, err = tran.ReadContextSameBind(role_and_context.Id, role_and_context.Context, role_and_context.UpOrDown, role_and_context.Int)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_and_context)
+	return
+}
+
+// 为readSometing的返回某个上下文的同样绑定值的所有（非事务版）
+func (d *DRule) readContextSameBindNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_and_context.Gather, role_and_context.Exist, err = d.trule.ReadContextSameBind(role_and_context.Id, role_and_context.Context, role_and_context.UpOrDown, role_and_context.Int)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_and_context)
+	return
+}
+
+// 为readSometing的返回所有上下文组的名称（事务版）
+func (d *DRule) readContextsNameTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_and_context.Gather, err = tran.ReadContextsName(role_and_context.Id)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_and_context)
+	return
+}
+
+// 为readSometing的返回所有上下文组的名称（非事务版）
+func (d *DRule) readContextsNameNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_and_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_and_context.Gather, err = d.trule.ReadContextsName(role_and_context.Id)
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_and_context)
+	return
+}
+
+// 为writeSometing的设置朋友的状态（事务版）
+func (d *DRule) writeFriendStatusTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_friend := Net_RoleAndFriend{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_friend)
+	if err != nil {
+		return
+	}
+	// 执行
+	switch role_friend.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		err = tran.WriteFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, role_friend.Int)
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		err = tran.WriteFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, role_friend.Float)
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		err = tran.WriteFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, role_friend.Complex)
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	return
+}
+
+// 为writeSometing的设置朋友的状态（非事务版）
+func (d *DRule) writeFriendStatusNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_friend := Net_RoleAndFriend{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_friend)
+	if err != nil {
+		return
+	}
+	// 执行
+	switch role_friend.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		err = d.trule.WriteFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, role_friend.Int)
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		err = d.trule.WriteFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, role_friend.Float)
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		err = d.trule.WriteFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, role_friend.Complex)
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	return
+}
+
+// 为readSometing的获取朋友的状态（事务版）
+func (d *DRule) readFriendStatusTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_friend := Net_RoleAndFriend{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_friend)
+	if err != nil {
+		return
+	}
+	// 执行
+	switch role_friend.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		var value int64
+		err = tran.ReadFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, &value)
+		role_friend.Int = value
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		var value float64
+		err = tran.ReadFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, &value)
+		role_friend.Float = value
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		var value complex128
+		err = tran.ReadFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, &value)
+		role_friend.Complex = value
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_friend)
+	return
+}
+
+// 为readSometing的获取朋友的状态（非事务版）
+func (d *DRule) readFriendStatusNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_friend := Net_RoleAndFriend{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_friend)
+	if err != nil {
+		return
+	}
+	// 执行
+	switch role_friend.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		var value int64
+		err = d.trule.ReadFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, &value)
+		role_friend.Int = value
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		var value float64
+		err = d.trule.ReadFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, &value)
+		role_friend.Float = value
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		var value complex128
+		err = d.trule.ReadFriendStatus(role_friend.Id, role_friend.Friend, role_friend.Bit, &value)
+		role_friend.Complex = value
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_friend)
+	return
+}
+
+// 为writeSometing的设置某个上下文的属性（事务版）
+func (d *DRule) writeContextStatusTran(tran *Transaction, byte_slice_data []byte) (err error) {
+	// 解码
+	role_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	switch role_context.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		err = tran.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Int)
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		err = tran.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Float)
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		err = tran.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Complex)
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	return
+}
+
+// 为writeSometing的设置某个上下文的属性（非事务版）
+func (d *DRule) writeContextStatusNoTran(byte_slice_data []byte) (err error) {
+	// 解码
+	role_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	switch role_context.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		err = d.trule.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Int)
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		err = d.trule.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Float)
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		err = d.trule.WriteContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, role_context.Complex)
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	return
+}
+
+// 为readSometing的获取某个上下文的状态（事务版）
+func (d *DRule) readContextStatusTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	switch role_context.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		var value int64
+		err = tran.ReadContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, &value)
+		role_context.Int = value
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		var value float64
+		err = tran.ReadContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, &value)
+		role_context.Float = value
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		var value complex128
+		err = tran.ReadContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, &value)
+		role_context.Complex = value
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_context)
+	return
+}
+
+// 为readSometing的获取某个上下文的状态（非事务版）
+func (d *DRule) readContextStatusNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_context := Net_RoleAndContext_Data{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_context)
+	if err != nil {
+		return
+	}
+	// 执行
+	switch role_context.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		var value int64
+		err = d.trule.ReadContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, &value)
+		role_context.Int = value
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		var value float64
+		err = d.trule.ReadContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, &value)
+		role_context.Float = value
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		var value complex128
+		err = d.trule.ReadContextStatus(role_context.Id, role_context.Context, role_context.UpOrDown, role_context.BindRole, role_context.Bit, &value)
+		role_context.Complex = value
+	default:
+		err = fmt.Errorf("The value's type not int64, float64 or complex128.")
+	}
+	if err != nil {
+		return
+	}
+	// 编码
+	return_data, err = nst.StructGobBytes(role_context)
+	return
+}

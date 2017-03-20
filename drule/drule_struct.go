@@ -154,6 +154,8 @@ type Net_RoleAndContext_Data struct {
 	Id string
 	// 上下文的名字
 	Context string
+	// 要求的上下文是否存在
+	Exist bool
 	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
 	UpOrDown uint8
 	// 要操作的绑定角色的ID
@@ -162,6 +164,8 @@ type Net_RoleAndContext_Data struct {
 	Status roles.Status
 	// 上下文的结构
 	ContextBody roles.Context
+	// 名字等的集合
+	Gather []string
 	// 单一的绑定属性修改，1为int，2为float，3为complex
 	Single uint8
 	// 单一的绑定修改所对应的位置，也就是0到9

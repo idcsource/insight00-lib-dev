@@ -92,6 +92,39 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_SET_FRIENDS:
 		// 设置所有朋友
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+	case OPERATE_DEL_FRIEND:
+		// 删除一个朋友
+		err = d.writeSomeThing(prefix_stat, conn_exec)
+	case OPERATE_ADD_CONTEXT:
+		// 创建空上下文
+		err = d.writeSomeThing(prefix_stat, conn_exec)
+	case OPERATE_DROP_CONTEXT:
+		// 删除一个上下文
+		err = d.writeSomeThing(prefix_stat, conn_exec)
+	case OPERATE_READ_CONTEXT:
+		// 读出某个上下文的全部
+		err = d.readSomeThing(prefix_stat, conn_exec)
+	case OPERATE_DEL_CONTEXT_BIND:
+		// 删除一个上下文中的绑定
+		err = d.writeSomeThing(prefix_stat, conn_exec)
+	case OPERATE_SAME_BIND_CONTEXT:
+		// 返回某个上下文中同样的绑定值的所有
+		err = d.readSomeThing(prefix_stat, conn_exec)
+	case OPERATE_GET_CONTEXTS_NAME:
+		// 返回所有上下文组的名称
+		err = d.readSomeThing(prefix_stat, conn_exec)
+	case OPERATE_SET_FRIEND_STATUS:
+		// 设置朋友的状态
+		err = d.writeSomeThing(prefix_stat, conn_exec)
+	case OPERATE_GET_FRIEND_STATUS:
+		// 获取朋友的状态
+		err = d.readSomeThing(prefix_stat, conn_exec)
+	case OPERATE_SET_CONTEXT_STATUS:
+		// 设置某个上下文的属性
+		err = d.writeSomeThing(prefix_stat, conn_exec)
+	case OPERATE_GET_CONTEXT_STATUS:
+		// 读取某个上下文的属性
+		err = d.readSomeThing(prefix_stat, conn_exec)
 	default:
 		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))
 		conn_exec.SendClose()
@@ -174,6 +207,24 @@ func (d *DRule) writeSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnEx
 			case OPERATE_SET_FRIENDS:
 				// 设置所有朋友
 				err = d.writeFriendsTran(tran, byte_slice_data)
+			case OPERATE_DEL_FRIEND:
+				// 删除一个朋友
+				err = d.deleteFriendTran(tran, byte_slice_data)
+			case OPERATE_ADD_CONTEXT:
+				// 创建空上下文
+				err = d.createContextTran(tran, byte_slice_data)
+			case OPERATE_DROP_CONTEXT:
+				// 删除一个上下文
+				err = d.dropContextTran(tran, byte_slice_data)
+			case OPERATE_DEL_CONTEXT_BIND:
+				// 删除一个上下文中的绑定
+				err = d.deleteContextBindTran(tran, byte_slice_data)
+			case OPERATE_SET_FRIEND_STATUS:
+				// 设置朋友的状态
+				err = d.writeFriendStatusTran(tran, byte_slice_data)
+			case OPERATE_SET_CONTEXT_STATUS:
+				// 设置某个上下文的属性
+				err = d.writeContextStatusTran(tran, byte_slice_data)
 			default:
 				err = fmt.Errorf("The oprerate can not found.")
 			}
@@ -195,6 +246,24 @@ func (d *DRule) writeSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnEx
 			case OPERATE_SET_FRIENDS:
 				// 设置所有朋友
 				err = d.writeFriendsNoTran(byte_slice_data)
+			case OPERATE_DEL_FRIEND:
+				// 删除一个朋友
+				err = d.deleteFriendNoTran(byte_slice_data)
+			case OPERATE_ADD_CONTEXT:
+				// 创建空上下文
+				err = d.createContextNoTran(byte_slice_data)
+			case OPERATE_DROP_CONTEXT:
+				// 删除一个上下文
+				err = d.dropContextNoTran(byte_slice_data)
+			case OPERATE_DEL_CONTEXT_BIND:
+				// 删除一个上下文中的绑定
+				err = d.deleteContextBindNoTran(byte_slice_data)
+			case OPERATE_SET_FRIEND_STATUS:
+				// 设置朋友的状态
+				err = d.writeFriendStatusNoTran(byte_slice_data)
+			case OPERATE_SET_CONTEXT_STATUS:
+				// 设置某个上下文的属性
+				err = d.writeContextStatusNoTran(byte_slice_data)
 			default:
 				err = fmt.Errorf("The oprerate can not found.")
 			}
@@ -296,6 +365,21 @@ func (d *DRule) readSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExe
 			case OPERATE_GET_FRIENDS:
 				// 读取所有的朋友
 				return_data, err = d.readFriendsTran(tran, byte_slice_data)
+			case OPERATE_READ_CONTEXT:
+				// 读出某个上下文的全部
+				return_data, err = d.readContextTran(tran, byte_slice_data)
+			case OPERATE_SAME_BIND_CONTEXT:
+				// 返回某个上下文中同样的绑定值的所有
+				return_data, err = d.readContextSameBindTran(tran, byte_slice_data)
+			case OPERATE_GET_CONTEXTS_NAME:
+				// 返回所有上下文组的名称
+				return_data, err = d.readContextsNameTran(tran, byte_slice_data)
+			case OPERATE_GET_FRIEND_STATUS:
+				// 获取朋友的状态
+				return_data, err = d.readFriendStatusTran(tran, byte_slice_data)
+			case OPERATE_GET_CONTEXT_STATUS:
+				// 读取某个上下文的属性
+				return_data, err = d.readContextStatusTran(tran, byte_slice_data)
 			default:
 				err = fmt.Errorf("The oprerate can not found.")
 			}
@@ -314,6 +398,21 @@ func (d *DRule) readSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExe
 			case OPERATE_GET_FRIENDS:
 				// 读取所有的朋友
 				return_data, err = d.readFriendsNoTran(byte_slice_data)
+			case OPERATE_READ_CONTEXT:
+				// 读出某个上下文的全部
+				return_data, err = d.readContextNoTran(byte_slice_data)
+			case OPERATE_SAME_BIND_CONTEXT:
+				// 返回某个上下文中同样的绑定值的所有
+				return_data, err = d.readContextSameBindNoTran(byte_slice_data)
+			case OPERATE_GET_CONTEXTS_NAME:
+				// 返回所有上下文组的名称
+				return_data, err = d.readContextsNameNoTran(byte_slice_data)
+			case OPERATE_GET_FRIEND_STATUS:
+				// 获取朋友的状态
+				return_data, err = d.readFriendStatusNoTran(byte_slice_data)
+			case OPERATE_GET_CONTEXT_STATUS:
+				// 读取某个上下文的属性
+				return_data, err = d.readContextStatusNoTran(byte_slice_data)
 			default:
 				err = fmt.Errorf("The oprerate can not found.")
 			}
