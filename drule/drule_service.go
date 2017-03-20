@@ -58,13 +58,13 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		}
 	case OPERATE_READ_ROLE:
 		// 读取角色
-		err = d.readRole(prefix_stat, conn_exec)
+		err = d.readSomeThing(prefix_stat, conn_exec)
 	case OPERATE_WRITE_ROLE:
 		// 保存角色
-		err = d.storeRole(prefix_stat, conn_exec)
+		err = d.writeSomeThing(prefix_stat, conn_exec)
 	case OPERATE_DEL_ROLE:
 		// 删除角色
-		err = d.deleteRole(prefix_stat, conn_exec)
+		err = d.writeSomeThing(prefix_stat, conn_exec)
 	case OPERATE_SET_FATHER:
 		// 设置父角色
 		err = d.writeSomeThing(prefix_stat, conn_exec)
@@ -125,6 +125,18 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_GET_CONTEXT_STATUS:
 		// 读取某个上下文的属性
 		err = d.readSomeThing(prefix_stat, conn_exec)
+	case OPERATE_SET_DATA:
+		// 设定一个值
+		err = d.writeSomeThing(prefix_stat, conn_exec)
+	case OPERATE_GET_DATA:
+		// 读取一个值
+		err = d.readSomeThing(prefix_stat, conn_exec)
+	case OPERATE_SET_CONTEXTS:
+		// 设置全部的上下文
+		err = d.writeSomeThing(prefix_stat, conn_exec)
+	case OPERATE_GET_CONTEXTS:
+		// 读取全部的上下文
+		err = d.readSomeThing(prefix_stat, conn_exec)
 	default:
 		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))
 		conn_exec.SendClose()
@@ -163,7 +175,7 @@ func (d *DRule) serverDataReceipt(conn_exec *nst.ConnExec, stat uint8, data []by
 //	分析Net_PrefixStat：角色位置，事务状态
 //	DATA_ALL_OK
 func (d *DRule) writeSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
-	// 查看又无role id
+	// 查看有无role id
 	roleid := prefix_stat.RoleId
 	if len(roleid) == 0 {
 		err = fmt.Errorf("The Role id not be set.")
@@ -192,6 +204,12 @@ func (d *DRule) writeSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnEx
 			}
 			// 遍历请求
 			switch prefix_stat.Operate {
+			case OPERATE_WRITE_ROLE:
+				// 存一个角色
+				err = d.storeRoleTran(tran, byte_slice_data)
+			case OPERATE_DEL_ROLE:
+				// 删除角色
+				err = d.deleteRoleTran(tran, byte_slice_data)
 			case OPERATE_SET_FATHER:
 				// 设置父角色
 				err = d.writeFatherTran(tran, byte_slice_data)
@@ -225,12 +243,24 @@ func (d *DRule) writeSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnEx
 			case OPERATE_SET_CONTEXT_STATUS:
 				// 设置某个上下文的属性
 				err = d.writeContextStatusTran(tran, byte_slice_data)
+			case OPERATE_SET_DATA:
+				// 设定一个值
+				err = d.writeDataTran(tran, byte_slice_data)
+			case OPERATE_SET_CONTEXTS:
+				// 设置全部的上下文
+				err = d.writeContextsTran(tran, byte_slice_data)
 			default:
 				err = fmt.Errorf("The oprerate can not found.")
 			}
 		} else {
 			// 不在事务中，遍历请求
 			switch prefix_stat.Operate {
+			case OPERATE_WRITE_ROLE:
+				// 存一个角色
+				err = d.storeRoleNoTran(byte_slice_data)
+			case OPERATE_DEL_ROLE:
+				// 删除角色
+				err = d.deleteRoleNoTran(byte_slice_data)
 			case OPERATE_SET_FATHER:
 				// 设置父角色
 				err = d.writeFatherNoTran(byte_slice_data)
@@ -264,6 +294,12 @@ func (d *DRule) writeSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnEx
 			case OPERATE_SET_CONTEXT_STATUS:
 				// 设置某个上下文的属性
 				err = d.writeContextStatusNoTran(byte_slice_data)
+			case OPERATE_SET_DATA:
+				// 设定一个值
+				err = d.writeDataNoTran(byte_slice_data)
+			case OPERATE_SET_CONTEXTS:
+				// 设置全部的上下文
+				err = d.writeContextsNoTran(byte_slice_data)
 			default:
 				err = fmt.Errorf("The oprerate can not found.")
 			}
@@ -353,6 +389,9 @@ func (d *DRule) readSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExe
 			}
 			// 遍历请求
 			switch prefix_stat.Operate {
+			case OPERATE_READ_ROLE:
+				// 读取角色
+				return_data, err = d.readRoleTran(tran, byte_slice_data)
 			case OPERATE_GET_FATHER:
 				// 获取父角色
 				return_data, err = d.readFatherTran(tran, byte_slice_data)
@@ -380,12 +419,21 @@ func (d *DRule) readSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExe
 			case OPERATE_GET_CONTEXT_STATUS:
 				// 读取某个上下文的属性
 				return_data, err = d.readContextStatusTran(tran, byte_slice_data)
+			case OPERATE_GET_DATA:
+				// 读取一个值
+				return_data, err = d.readDataTran(tran, byte_slice_data)
+			case OPERATE_GET_CONTEXTS:
+				// 读取全部的上下文
+				return_data, err = d.readContextsTran(tran, byte_slice_data)
 			default:
 				err = fmt.Errorf("The oprerate can not found.")
 			}
 		} else {
 			// 不在事务中，遍历请求
 			switch prefix_stat.Operate {
+			case OPERATE_READ_ROLE:
+				// 读取角色
+				return_data, err = d.readRoleNoTran(byte_slice_data)
 			case OPERATE_GET_FATHER:
 				// 获取父角色
 				return_data, err = d.readFatherNoTran(byte_slice_data)
@@ -413,6 +461,12 @@ func (d *DRule) readSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExe
 			case OPERATE_GET_CONTEXT_STATUS:
 				// 读取某个上下文的属性
 				return_data, err = d.readContextStatusNoTran(byte_slice_data)
+			case OPERATE_GET_DATA:
+				// 读取一个值
+				return_data, err = d.readDataNoTran(byte_slice_data)
+			case OPERATE_GET_CONTEXTS:
+				// 读取全部的上下文
+				return_data, err = d.readContextsNoTran(byte_slice_data)
 			default:
 				err = fmt.Errorf("The oprerate can not found.")
 			}

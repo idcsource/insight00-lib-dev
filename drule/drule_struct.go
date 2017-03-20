@@ -81,6 +81,8 @@ type Net_SlaveReceipt_Data struct {
 
 // 角色的接收与发送格式
 type Net_RoleSendAndReceive struct {
+	// 角色的ID
+	RoleID string
 	// 角色的身体
 	RoleBody []byte
 	// 角色的关系

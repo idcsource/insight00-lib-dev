@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
@@ -496,6 +497,38 @@ func (t *Transaction) WriteData(id, name string, data interface{}) (err error) {
 	return
 }
 
+// 从Byte写入Data，这是一个内部的函数
+func (t *Transaction) writeDataFromByte(id, name string, data []byte) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]WriteData: This transaction has been deleted.")
+		return
+	}
+	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]WriteData: %v", err)
+		return
+	}
+	defer func() {
+		// 拦截反射的恐慌
+		if e := recover(); e != nil {
+			err = fmt.Errorf("drule[Transaction]WriteData: %v", e)
+		}
+	}()
+	// 开始反射的那些乱七八遭
+	rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(name)
+	rv_type := rv.Type()
+	if rv.CanSet() != true {
+		err = fmt.Errorf("The data type %v not be set.", rv_type)
+		return err
+	}
+	err = nst.BytesGobReflect(data, rv)
+	if err != nil {
+		return err
+	}
+	rolec.role.SetDataChanged()
+	return
+}
+
 // 从角色中找到name的数据名并返回其数据
 func (t *Transaction) ReadData(id, name string, data interface{}) (err error) {
 	if t.be_delete == true {
@@ -527,6 +560,27 @@ func (t *Transaction) ReadData(id, name string, data interface{}) (err error) {
 		return err
 	}
 	dv.Set(rv)
+	return
+}
+
+func (t *Transaction) readDataToByte(role_data *Net_RoleData_Data) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]ReadData: This transaction has been deleted.")
+		return
+	}
+	rolec, err := t.getrole(role_data.Id, TRAN_LOCK_MODE_READ)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
+		return
+	}
+	defer func() {
+		// 拦截反射的恐慌
+		if e := recover(); e != nil {
+			err = fmt.Errorf("drule[Transaction]ReadData: %v", e)
+		}
+	}()
+	rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(role_data.Name)
+	role_data.Data, err = nst.StructGobBytes(rv.Interface())
 	return
 }
 

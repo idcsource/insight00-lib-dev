@@ -672,12 +672,34 @@ func (t *TRule) WriteData(id, name string, data interface{}) (err error) {
 	return
 }
 
+func (t *TRule) writeDataFromByte(id, name string, data []byte) (err error) {
+	tran := t.Begin()
+	err = tran.writeDataFromByte(id, name, data)
+	if err != nil {
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
 // 从角色中知道name的数据名并返回其数据。
 func (t *TRule) ReadData(id, name string, data interface{}) (err error) {
 	tran := t.Begin()
 	err = tran.ReadData(id, name, data)
 	if err != nil {
 		err = fmt.Errorf("drule[TRule]ReadData: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+func (t *TRule) readDataToByte(role_data *Net_RoleData_Data) (err error) {
+	tran := t.Begin()
+	err = tran.readDataToByte(role_data)
+	if err != nil {
 		tran.Rollback()
 		return
 	}
