@@ -47,6 +47,16 @@ type slaveIn struct {
 
 /* 下面是网络传输所需要的结构 */
 
+// 对事务的数据
+type Net_Transaction struct {
+	// 事务的ID
+	TransactionId string
+	// 准备的角色ID
+	PrepareIDs []string
+	// 请求什么操作，见DRULE_TRAN_*
+	AskFor uint8
+}
+
 // 前缀状态，每次向slave发信息都要先把这个状态发出去
 type Net_PrefixStat struct {
 	// 操作类型，从OPERATE_*

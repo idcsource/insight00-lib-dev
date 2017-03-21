@@ -27,6 +27,20 @@ const (
 	CONN_IS_SLAVE
 )
 
+// DRule的事务请求
+const (
+	// 事务的提交请求
+	DRULE_TRAN_NO = iota
+	// 请求新建
+	DRULE_TRAN_BEGIN
+	// 请求准备
+	DRULE_TRAN_PREPARE
+	// 请求执行
+	DRULE_TRAN_COMMIT
+	// 请求回滚
+	DRULE_TRAN_ROLLBACK
+)
+
 // 数据标记状态
 const (
 	// 数据没有任何的状态
@@ -173,4 +187,6 @@ const (
 	OPERATE_TRAN_COMMIT
 	// 事务错误
 	OPERATE_TRAN_ERROR
+	// 准备事务
+	OPERATE_TRAN_PREPARE
 )

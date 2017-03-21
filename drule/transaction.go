@@ -17,7 +17,7 @@ import (
 )
 
 /*
- 以下内容为roleio.RolesInOutManager接口的实现
+ 以下内容与roleio.RolesInOutManager接口一致（除了ToStore()）
 */
 
 // 读取一个角色
@@ -583,16 +583,6 @@ func (t *Transaction) readDataToByte(role_data *Net_RoleData_Data) (err error) {
 	role_data.Data, err = nst.StructGobBytes(rv.Interface())
 	return
 }
-
-// 运行时保存
-func (t *Transaction) ToStore() (err error) {
-	err = fmt.Errorf("drule[Transaction]ToStore: Transaction does not provide this method.")
-	return
-}
-
-/*
- 以上内容为roleio.RolesInOutManager接口的实现
-*/
 
 // 事务执行的处理
 func (t *Transaction) Commit() (err error) {

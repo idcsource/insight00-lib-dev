@@ -245,6 +245,21 @@ func (t *TRule) Prepare(roleids ...string) (tran *Transaction, err error) {
 	return
 }
 
+// 创建事务，并依据输入的角色ID进行准备，获取这些角色的写权限
+func (t *TRule) prepareForDRule(unid string, roleids []string) (err error) {
+	// 调用Begin()
+	err = t.beginForDRule(unid)
+	if err != nil {
+		return err
+	}
+	// 调用tran中的prepare()
+	err = t.transaction[unid].prepare(roleids)
+	if err != nil {
+		return err
+	}
+	return
+}
+
 // 由DRule来控制创建事务
 func (t *TRule) beginForDRule(unid string) (err error) {
 	t.tran_lock.Lock()

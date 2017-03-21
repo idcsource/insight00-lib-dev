@@ -47,6 +47,10 @@ func (d *DRule) beginTransaction(conn_exec *nst.ConnExec) (err error) {
 		// 全部回滚事务
 		d.rollbackTransactionAll(tranid)
 	}
+	if err == nil {
+		d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
+	}
+
 	return
 }
 
@@ -97,6 +101,99 @@ func (d *DRule) startTransactionForOneSlave(tranid string, onec *slaveIn) (err e
 	return
 }
 
+// 事务准备
+// --> DATA_PLEASE（回执）
+// <-- Net_Transaction
+// --> DATA_ALL_OK（回执）
+func (d *DRule) prepareTransaction(conn_exec *nst.ConnExec) (err error) {
+	// 发送回执
+	err = d.serverDataReceipt(conn_exec, DATA_PLEASE, nil, nil)
+	if err != nil {
+		return err
+	}
+	// 接收事务的Net结构体
+	tran_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	tran_net := Net_Transaction{}
+	err = nst.BytesGobStruct(tran_b, &tran_net)
+
+	// 如果模式是master，则向所有slave发送创建ID
+	if d.dmode == DMODE_MASTER {
+		var can []*slaveIn
+		can, err = d.prepareTransactionForSlaves(tran_net)
+		if err != nil {
+			// 向can发送关闭事务（Rollback）
+			d.rollbackTransactionIfError(tran_net.TransactionId, can)
+			// 返回失败，交由ExecTCP发送失败信息
+			return err
+		}
+	}
+	// 生成本地自身的事务
+	err = d.trule.prepareForDRule(tran_net.TransactionId, tran_net.PrepareIDs)
+	if err != nil && d.dmode == DMODE_MASTER {
+		// 全部回滚事务
+		d.rollbackTransactionAll(tran_net.TransactionId)
+	}
+	if err == nil {
+		d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
+	}
+
+	return
+}
+
+// slave的事务创建
+func (d *DRule) prepareTransactionForSlaves(tran_net Net_Transaction) (can []*slaveIn, err error) {
+	can = make([]*slaveIn, 0)
+	errarray := make([]string, 0)
+	for _, onec := range d.slavecpool {
+		errn := d.prepareTransactionForOneSlave(tran_net, onec)
+		if errn != nil {
+			errarray = append(errarray, errn.Error())
+		} else {
+			can = append(can, onec)
+		}
+	}
+	if len(errarray) != 0 {
+		errstr := strings.Join(errarray, " | ")
+		err = fmt.Errorf(errstr)
+	}
+	return
+}
+
+// slave的单个事务创建
+// --> 发送请求OPERATE_TRAN_PREPARE（前导）
+// <-- DATA_PLEASE（回执）
+// --> Net_Transaction
+// <-- DATA_ALL_OK（回执）
+func (d *DRule) prepareTransactionForOneSlave(tran_net Net_Transaction, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 发送前导
+	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tran_net.TransactionId, false, "", OPERATE_TRAN_PREPARE)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return fmt.Errorf(slave_receipt.Error)
+	}
+	// 发送tran_net
+	tran_b, err := nst.StructGobBytes(tran_net)
+	if err != nil {
+		return err
+	}
+	slave_receipt, err = SendAndDecodeSlaveReceiptData(cprocess, tran_b)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		return fmt.Errorf(slave_receipt.Error)
+	}
+	return
+}
+
 // 错误时候的部分回滚事务
 func (d *DRule) rollbackTransactionIfError(tranid string, can []*slaveIn) {
 	for _, onec := range can {
@@ -122,6 +219,7 @@ func (d *DRule) rollbackTransaction(tranid string, conn_exec *nst.ConnExec) (err
 	tran, err := d.trule.getTransactionForDRule(tranid)
 	if err == nil {
 		tran.Rollback()
+		d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
 	}
 	return nil
 }
@@ -170,7 +268,10 @@ func (d *DRule) commitTransaction(tranid string, conn_exec *nst.ConnExec) (err e
 	if len(errarray) != 0 {
 		errstr := strings.Join(errarray, " | ")
 		err = fmt.Errorf(errstr)
+	} else {
+		d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
 	}
+
 	return
 }
 

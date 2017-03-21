@@ -42,6 +42,9 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_TRAN_BEGIN:
 		// 开启事务，如果出错则自己负责回滚掉开启的slave的事务
 		err = d.beginTransaction(conn_exec)
+	case OPERATE_TRAN_PREPARE:
+		// 准备事务，唯一不同就是做好角色的写锁准备
+		err = d.prepareTransaction(conn_exec)
 	case OPERATE_TRAN_ROLLBACK:
 		// 回滚事务
 		if prefix_stat.InTransaction == false || len(prefix_stat.TransactionId) == 0 {
@@ -176,6 +179,7 @@ func (d *DRule) serverDataReceipt(conn_exec *nst.ConnExec, stat uint8, data []by
 //	DATA_ALL_OK
 func (d *DRule) writeSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
 	// 查看有无role id
+
 	roleid := prefix_stat.RoleId
 	if len(roleid) == 0 {
 		err = fmt.Errorf("The Role id not be set.")
