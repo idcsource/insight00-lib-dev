@@ -174,7 +174,7 @@ func (o *Operator) Rollback() (err error) {
 // 执行事务
 func (o *Operator) Commit() (err error) {
 	if o.inTransaction == false {
-		err = fmt.Errorf("There's no function Rollback.")
+		err = fmt.Errorf("There's no function Commit.")
 		return
 	}
 	errall := make([]string, 0)
@@ -200,6 +200,73 @@ func (o *Operator) commitSlaveOne(tranid string, onec *slaveIn) (err error) {
 
 	// 发送前导
 	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, true, "", OPERATE_TRAN_COMMIT)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		return fmt.Errorf(slave_receipt.Error)
+	}
+	return
+}
+
+// 事务准备
+func (o *Operator) Prepare(roleids ...string) (operator *Operator, err error) {
+	if o.inTransaction == true {
+		return nil, fmt.Errorf("There's no function Prepare.")
+	}
+	tranid := random.GetRand(40)
+	// 对所有镜像开启
+	can := make([]*slaveIn, 0)
+	errall := make([]string, 0)
+	for key := range o.slaves {
+		errone := o.prepareTransactionForOne(tranid, roleids, o.slaves[key])
+		if errone != nil {
+			errall = append(errall, errone.Error())
+		} else {
+			can = append(can, o.slaves[key])
+		}
+	}
+	if len(errall) != 0 {
+		errstr := strings.Join(errall, " | ")
+		err = fmt.Errorf(errstr)
+		o.rollbackTransactionIfError(tranid, can)
+		return
+	}
+	// 对本地开启
+	operator = &Operator{
+		selfname:      o.selfname,
+		inTransaction: true,
+		transactionId: tranid,
+		slaves:        o.slaves,
+		logs:          o.logs,
+	}
+	return
+}
+
+// 开启一个的事务（准备）
+func (o *Operator) prepareTransactionForOne(tranid string, roleids []string, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 发送前导
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, false, "", OPERATE_TRAN_PREPARE)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return fmt.Errorf(slave_receipt.Error)
+	}
+	net_tran := Net_Transaction{
+		TransactionId: tranid,
+		PrepareIDs:    roleids,
+		AskFor:        DRULE_TRAN_PREPARE,
+	}
+	net_tran_b, err := nst.StructGobBytes(net_tran)
+	if err != nil {
+		return err
+	}
+	// 发送net_tran
+	slave_receipt, err = SendAndDecodeSlaveReceiptData(cprocess, net_tran_b)
 	if err != nil {
 		return err
 	}
@@ -290,6 +357,11 @@ func (o *Operator) sendWriteToOneServer(roleid string, operate int, senddata []b
 		return
 	}
 	return
+}
+
+// 查看是否在事务中，在则返回true
+func (o *Operator) InTransaction() (in bool) {
+	return o.inTransaction
 }
 
 // 随机一个连接
