@@ -20,6 +20,8 @@ type DRule struct {
 	config *cpool.Block
 	// 事务统治者
 	trule *TRule
+	// 自己的名字
+	selfname string
 
 	// 分布式服务模式，DMODE_*
 	dmode uint8
@@ -61,6 +63,8 @@ type Net_Transaction struct {
 type Net_PrefixStat struct {
 	// 操作类型，从OPERATE_*
 	Operate int
+	// 客户端名称
+	ClientName string
 	// 身份验证码
 	Code string
 	// 在事务中

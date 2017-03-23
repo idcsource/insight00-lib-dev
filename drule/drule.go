@@ -63,6 +63,8 @@ func (d *DRule) startForOwn() (err error) {
 	}
 	// 创建事务统治者
 	d.trule, err = NewTRule(local_store)
+	// 查看自己的名字，没有就直接忽略
+	d.selfname, _ = d.config.GetConfig("main.selfname")
 	return
 }
 

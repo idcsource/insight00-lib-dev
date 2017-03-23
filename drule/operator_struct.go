@@ -13,6 +13,8 @@ import (
 
 // 这叫做“操作机”，是用来远程连接DRule的。
 type Operator struct {
+	// 自己的名字
+	selfname string
 	// 是否在事务里
 	inTransaction bool
 	// 事务的ID

@@ -38,13 +38,16 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		return fmt.Errorf("The service code is wrong : %v .", prefix_stat.Code)
 	}
 	// 开始遍历操作
+	var operate_string string
 	switch prefix_stat.Operate {
 	case OPERATE_TRAN_BEGIN:
 		// 开启事务，如果出错则自己负责回滚掉开启的slave的事务
 		err = d.beginTransaction(conn_exec)
+		operate_string = "OPERATE_TRAN_BEGIN"
 	case OPERATE_TRAN_PREPARE:
 		// 准备事务，唯一不同就是做好角色的写锁准备
 		err = d.prepareTransaction(conn_exec)
+		operate_string = "OPERATE_TRAN_PREPARE"
 	case OPERATE_TRAN_ROLLBACK:
 		// 回滚事务
 		if prefix_stat.InTransaction == false || len(prefix_stat.TransactionId) == 0 {
@@ -52,6 +55,7 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		} else {
 			err = d.rollbackTransaction(prefix_stat.TransactionId, conn_exec)
 		}
+		operate_string = "OPERATE_TRAN_ROLLBACK"
 	case OPERATE_TRAN_COMMIT:
 		// 执行事务
 		if prefix_stat.InTransaction == false || len(prefix_stat.TransactionId) == 0 {
@@ -62,91 +66,120 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_READ_ROLE:
 		// 读取角色
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_READ_ROLE"
 	case OPERATE_WRITE_ROLE:
 		// 保存角色
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_WRITE_ROLE"
 	case OPERATE_DEL_ROLE:
 		// 删除角色
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_DEL_ROLE"
 	case OPERATE_SET_FATHER:
 		// 设置父角色
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_SET_FATHER"
 	case OPERATE_GET_FATHER:
 		// 获取父角色
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_GET_FATHER"
 	case OPERATE_GET_CHILDREN:
 		// 获取所有子角色
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_GET_CHILDREN"
 	case OPERATE_SET_CHILDREN:
 		// 设置所有子角色
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_SET_CHILDREN"
 	case OPERATE_ADD_CHILD:
 		// 设置一个子角色
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_ADD_CHILD"
 	case OPERATE_DEL_CHILD:
 		// 删除一个子角色
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_DEL_CHILD"
 	case OPERATE_EXIST_CHILD:
 		// 含有某个子角色
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_EXIST_CHILD"
 	case OPERATE_GET_FRIENDS:
 		// 读取所有的朋友
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_GET_FRIENDS"
 	case OPERATE_SET_FRIENDS:
 		// 设置所有朋友
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_SET_FRIENDS"
 	case OPERATE_DEL_FRIEND:
 		// 删除一个朋友
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_DEL_FRIEND"
 	case OPERATE_ADD_CONTEXT:
 		// 创建空上下文
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_ADD_CONTEXT"
 	case OPERATE_DROP_CONTEXT:
 		// 删除一个上下文
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_DROP_CONTEXT"
 	case OPERATE_READ_CONTEXT:
 		// 读出某个上下文的全部
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_READ_CONTEXT"
 	case OPERATE_DEL_CONTEXT_BIND:
 		// 删除一个上下文中的绑定
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_DEL_CONTEXT_BIND"
 	case OPERATE_SAME_BIND_CONTEXT:
 		// 返回某个上下文中同样的绑定值的所有
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_SAME_BIND_CONTEXT"
 	case OPERATE_GET_CONTEXTS_NAME:
 		// 返回所有上下文组的名称
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_GET_CONTEXTS_NAME"
 	case OPERATE_SET_FRIEND_STATUS:
 		// 设置朋友的状态
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_SET_FRIEND_STATUS"
 	case OPERATE_GET_FRIEND_STATUS:
 		// 获取朋友的状态
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_GET_FRIEND_STATUS"
 	case OPERATE_SET_CONTEXT_STATUS:
 		// 设置某个上下文的属性
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_SET_CONTEXT_STATUS"
 	case OPERATE_GET_CONTEXT_STATUS:
 		// 读取某个上下文的属性
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_GET_CONTEXT_STATUS"
 	case OPERATE_SET_DATA:
 		// 设定一个值
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_SET_DATA"
 	case OPERATE_GET_DATA:
 		// 读取一个值
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_GET_DATA"
 	case OPERATE_SET_CONTEXTS:
 		// 设置全部的上下文
 		err = d.writeSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_SET_CONTEXTS"
 	case OPERATE_GET_CONTEXTS:
 		// 读取全部的上下文
 		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_GET_CONTEXTS"
 	default:
 		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))
+		d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client requested a nonexistent operation."))
 		conn_exec.SendClose()
 		return nil
 	}
 	if err != nil {
-		err = d.serverDataReceipt(conn_exec, DATA_RETURN_ERROR, nil, err)
+		d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client %v's operation %v returned an error: ", prefix_stat.ClientName, operate_string, err))
+		d.serverDataReceipt(conn_exec, DATA_RETURN_ERROR, nil, err)
 		return nil
 	}
 	return
@@ -310,6 +343,9 @@ func (d *DRule) writeSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnEx
 		}
 	} else {
 		// 在slave的
+		if len(d.selfname) != 0 {
+			prefix_stat.ClientName = prefix_stat.ClientName + "|" + d.selfname
+		}
 		err = d.writeSomeThingFromSlaves(prefix_stat, byte_slice_data, conn)
 	}
 	if err == nil {
@@ -345,7 +381,7 @@ func (d *DRule) writeSomeThingFromOneSlave(prefix_stat Net_PrefixStat, byte_slic
 	cprocess := conn.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, conn.code, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
+	slave_receipt, err := SendPrefixStat(cprocess, conn.code, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
 	if err != nil {
 		return err
 	}
@@ -479,6 +515,9 @@ func (d *DRule) readSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExe
 		// 在slave的
 		conncount := len(conn)
 		connrandom := random.GetRandNum(conncount - 1)
+		if len(d.selfname) != 0 {
+			prefix_stat.ClientName = prefix_stat.ClientName + "|" + d.selfname
+		}
 		return_data, err = d.readSomeThingFromSlave(prefix_stat, byte_slice_data, conn[connrandom])
 	}
 	if err == nil {
@@ -498,7 +537,7 @@ func (d *DRule) readSomeThingFromSlave(prefix_stat Net_PrefixStat, byte_slice_da
 	cprocess := conn.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, conn.code, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
+	slave_receipt, err := SendPrefixStat(cprocess, conn.code, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
 	if err != nil {
 		return
 	}

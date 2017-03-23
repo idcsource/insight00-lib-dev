@@ -17,8 +17,9 @@ import (
 )
 
 // 新建一个操作机，addr和code是默认的drule的地址（含端口号）和身份码，conn_num为连接池的个数
-func NewOperator(addr, code string, conn_num int, logs *ilogs.Logs) (operator *Operator, err error) {
+func NewOperator(selfname string, addr, code string, conn_num int, logs *ilogs.Logs) (operator *Operator, err error) {
 	operator = &Operator{
+		selfname:      selfname,
 		slaves:        make([]*slaveIn, 0),
 		inTransaction: false,
 		logs:          logs,
@@ -90,6 +91,7 @@ func (o *Operator) beginTransaction() (operator *Operator, err error) {
 	}
 	// 对本地开启
 	operator = &Operator{
+		selfname:      o.selfname,
 		inTransaction: true,
 		transactionId: tranid,
 		slaves:        o.slaves,
@@ -114,7 +116,7 @@ func (o *Operator) rollbackSlaveOne(tranid string, onec *slaveIn) (err error) {
 	defer cprocess.Close()
 
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, true, "", OPERATE_TRAN_ROLLBACK)
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, true, "", OPERATE_TRAN_ROLLBACK)
 	if err != nil {
 		return err
 	}
@@ -130,7 +132,7 @@ func (o *Operator) startTransactionForOne(tranid string, onec *slaveIn) (err err
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, false, "", OPERATE_TRAN_BEGIN)
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, false, "", OPERATE_TRAN_BEGIN)
 	if err != nil {
 		return err
 	}
@@ -197,7 +199,7 @@ func (o *Operator) commitSlaveOne(tranid string, onec *slaveIn) (err error) {
 	defer cprocess.Close()
 
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, onec.code, tranid, true, "", OPERATE_TRAN_COMMIT)
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, true, "", OPERATE_TRAN_COMMIT)
 	if err != nil {
 		return err
 	}
@@ -210,6 +212,83 @@ func (o *Operator) commitSlaveOne(tranid string, onec *slaveIn) (err error) {
 // 运行时保存，用的话就弹错误
 func (o *Operator) ToStore() (err error) {
 	err = fmt.Errorf("drule[Operator]ToStore: Transaction does not provide this method.")
+	return
+}
+
+// 发送前导并返回解码后的data数据
+// slavercode为服务端的验证字符串，roleid为涉及到的角色ID，operate为操作的类型（OPERATE_*），senddata为发送的数据，returndata为要求装入的内容
+func (o *Operator) sendReadAndDecodeData(roleid string, operate int, senddata []byte, returndata interface{}) (slave_receipt Net_SlaveReceipt_Data, err error) {
+	// 随机一个连接
+	onec := o.randomLink()
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 发送前导
+	slave_receipt, err = SendPrefixStat(cprocess, o.selfname, onec.code, o.transactionId, o.inTransaction, roleid, operate)
+	if err != nil {
+		return
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		err = fmt.Errorf(slave_receipt.Error)
+		return
+	}
+	// 发送数据
+	slave_receipt, err = SendAndDecodeSlaveReceiptData(cprocess, senddata)
+	if err != nil {
+		return
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		err = fmt.Errorf(slave_receipt.Error)
+		return
+	}
+	// 解码装入
+	err = nst.BytesGobStruct(slave_receipt.Data, returndata)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// 向服务器发送写入命令
+// roleid为涉及的角色ID，operate为操作类型（OPERATE_*），senddata为发送的数据
+func (o *Operator) sendWriteToServer(roleid string, operate int, senddata []byte) (err error) {
+	errall := make([]string, 0)
+	for key := range o.slaves {
+		errone := o.sendWriteToOneServer(roleid, operate, senddata, o.slaves[key])
+		if errone != nil {
+			errall = append(errall, errone.Error())
+		}
+	}
+	if len(errall) != 0 {
+		errstr := strings.Join(errall, " | ")
+		err = fmt.Errorf(errstr)
+		return
+	}
+	return
+}
+
+func (o *Operator) sendWriteToOneServer(roleid string, operate int, senddata []byte, onec *slaveIn) (err error) {
+	// 分配连接
+	cprocess := onec.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 发送前导
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, o.transactionId, o.inTransaction, roleid, operate)
+	if err != nil {
+		return
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		err = fmt.Errorf(slave_receipt.Error)
+		return
+	}
+	// 发送数据
+	slave_receipt, err = SendAndDecodeSlaveReceiptData(cprocess, senddata)
+	if err != nil {
+		return
+	}
+	if slave_receipt.DataStat != DATA_ALL_OK {
+		err = fmt.Errorf(slave_receipt.Error)
+		return
+	}
 	return
 }
 
