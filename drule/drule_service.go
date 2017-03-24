@@ -33,7 +33,7 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	// 检查身份验证码
 	if prefix_stat.Code != d.code {
 		// 发送错误
-		d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The service code is wrong : %v .", prefix_stat.Code))
+		d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The service code from %v is wrong : %v .", prefix_stat.ClientName, prefix_stat.Code))
 		conn_exec.SendClose()
 		return fmt.Errorf("The service code is wrong : %v .", prefix_stat.Code)
 	}
@@ -178,7 +178,7 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		return nil
 	}
 	if err != nil {
-		d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client %v's operation %v returned an error: ", prefix_stat.ClientName, operate_string, err))
+		d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client %v's operation %v returned an error: %v", prefix_stat.ClientName, operate_string, err))
 		d.serverDataReceipt(conn_exec, DATA_RETURN_ERROR, nil, err)
 		return nil
 	}
@@ -381,7 +381,15 @@ func (d *DRule) writeSomeThingFromOneSlave(prefix_stat Net_PrefixStat, byte_slic
 	cprocess := conn.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, conn.code, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
+	slave_receipt, err := SendPrefixStat(cprocess, prefix_stat.ClientName, conn.code, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
+	if err != nil {
+		return err
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		return fmt.Errorf(slave_receipt.Error)
+	}
+	// 发送数据
+	slave_receipt, err = SendAndDecodeSlaveReceiptData(cprocess, byte_slice_data)
 	if err != nil {
 		return err
 	}
@@ -537,7 +545,16 @@ func (d *DRule) readSomeThingFromSlave(prefix_stat Net_PrefixStat, byte_slice_da
 	cprocess := conn.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, conn.code, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
+	slave_receipt, err := SendPrefixStat(cprocess, prefix_stat.ClientName, conn.code, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
+	if err != nil {
+		return
+	}
+	if slave_receipt.DataStat != DATA_PLEASE {
+		err = fmt.Errorf(slave_receipt.Error)
+		return
+	}
+	// 发送数据
+	slave_receipt, err = SendAndDecodeSlaveReceiptData(cprocess, byte_slice_data)
 	if err != nil {
 		return
 	}

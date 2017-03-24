@@ -396,3 +396,11 @@ func (o *Operator) randomLink() (conn *slaveIn) {
 	connrandom := random.GetRandNum(conncount - 1)
 	return o.slaves[connrandom]
 }
+
+// 关闭
+func (o *Operator) Close() (err error) {
+	for _, onec := range o.slaves {
+		onec.tcpconn.Close()
+	}
+	return nil
+}
