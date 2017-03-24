@@ -243,13 +243,38 @@ func (o *Operator) Prepare(roleids ...string) (operator *Operator, err error) {
 	return
 }
 
+// 获取锁住角色
+func (o *Operator) LockRoles(roleids ...string) (err error) {
+	if o.inTransaction == false {
+		err = fmt.Errorf("There's no function LockRoles.")
+		return
+	}
+	// 对所有镜像开启
+	can := make([]*slaveIn, 0)
+	errall := make([]string, 0)
+	for key := range o.slaves {
+		errone := o.prepareTransactionForOne(o.transactionId, roleids, o.slaves[key])
+		if errone != nil {
+			errall = append(errall, errone.Error())
+		} else {
+			can = append(can, o.slaves[key])
+		}
+	}
+	if len(errall) != 0 {
+		errstr := strings.Join(errall, " | ")
+		err = fmt.Errorf(errstr)
+		return
+	}
+	return
+}
+
 // 开启一个的事务（准备）
 func (o *Operator) prepareTransactionForOne(tranid string, roleids []string, onec *slaveIn) (err error) {
 	// 分配连接
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, false, "", OPERATE_TRAN_PREPARE)
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, o.inTransaction, "", OPERATE_TRAN_PREPARE)
 	if err != nil {
 		return err
 	}
@@ -258,6 +283,7 @@ func (o *Operator) prepareTransactionForOne(tranid string, roleids []string, one
 	}
 	net_tran := Net_Transaction{
 		TransactionId: tranid,
+		InTransaction: o.inTransaction,
 		PrepareIDs:    roleids,
 		AskFor:        DRULE_TRAN_PREPARE,
 	}

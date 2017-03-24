@@ -628,8 +628,8 @@ func (t *Transaction) Rollback() (err error) {
 	return
 }
 
-// 事务的准备。输入将准备的角色ID，让事务可以先尝试获得写权限
-func (t *Transaction) Prepare(roleids ...string) (err error) {
+// 输入将锁定的角色ID，让事务可以先尝试获得写权限（类似TRule下的Prepare()）
+func (t *Transaction) LockRole(roleids ...string) (err error) {
 	err = t.prepare(roleids)
 	if err != nil {
 		return fmt.Errorf("drule[Transaction]Prepare: %v", err)

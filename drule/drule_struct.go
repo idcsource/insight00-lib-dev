@@ -53,6 +53,8 @@ type slaveIn struct {
 type Net_Transaction struct {
 	// 事务的ID
 	TransactionId string
+	// 是否在事务中
+	InTransaction bool
 	// 准备的角色ID
 	PrepareIDs []string
 	// 请求什么操作，见DRULE_TRAN_*
