@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 )
 
@@ -131,6 +132,8 @@ func (d *DRule) prepareTransaction(conn_exec *nst.ConnExec) (err error) {
 		}
 	}
 	// 生成本地自身的事务
+	// 这里必须修改一下tran_net，剔除不是这个服务器的
+	tran_net.PrepareIDs = d.prepareCheckIdsIfInThisLocal(tran_net.PrepareIDs)
 	err = d.trule.prepareForDRule(tran_net.TransactionId, tran_net.PrepareIDs)
 	if err != nil && d.dmode == DMODE_MASTER {
 		// 全部回滚事务
@@ -180,7 +183,7 @@ func (d *DRule) prepareTransactionForOneSlave(tran_net Net_Transaction, onec *sl
 		return fmt.Errorf(slave_receipt.Error)
 	}
 	// 这里必须修改一下tran_net，剔除不是这个服务器的
-	tran_net.PrepareIDs = d.checkIdsIfInThisSlave(tran_net.PrepareIDs, onec)
+	tran_net.PrepareIDs = d.prepareCheckIdsIfInThisSlave(tran_net.PrepareIDs, onec)
 	// 发送tran_net
 	tran_b, err := nst.StructGobBytes(tran_net)
 	if err != nil {
@@ -192,6 +195,43 @@ func (d *DRule) prepareTransactionForOneSlave(tran_net Net_Transaction, onec *sl
 	}
 	if slave_receipt.DataStat != DATA_ALL_OK {
 		return fmt.Errorf(slave_receipt.Error)
+	}
+	return
+}
+
+// 准备的辅助函数，查看是否在这个slave上
+func (d *DRule) prepareCheckIdsIfInThisSlave(ids []string, conn *slaveIn) (newids []string) {
+	newids = make([]string, 0)
+	for key := range ids {
+		id := hardstore.GetRoleStoreName(ids[key])
+		// 找到第一个首字母。
+		theChar := string(id[0])
+		// slave池中有没有
+		conns, find := d.slaves[theChar]
+		if find == true {
+			for onek := range conns {
+				if conns[onek].name == conn.name && conns[onek].code == conn.code {
+					newids = append(newids, ids[key])
+					break
+				}
+			}
+		}
+	}
+	return
+}
+
+// 准备的辅助函数，查看是否在本地上
+func (d *DRule) prepareCheckIdsIfInThisLocal(ids []string) (newids []string) {
+	newids = make([]string, 0)
+	for key := range ids {
+		id := hardstore.GetRoleStoreName(ids[key])
+		// 找到第一个首字母。
+		theChar := string(id[0])
+		// slave池中有没有
+		_, find := d.slaves[theChar]
+		if find == false {
+			newids = append(newids, ids[key])
+		}
 	}
 	return
 }

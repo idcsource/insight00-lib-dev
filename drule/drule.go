@@ -193,26 +193,6 @@ func (d *DRule) findConn(id string) (connmode uint8, conn []*slaveIn) {
 	}
 }
 
-func (d *DRule) checkIdsIfInThisSlave(ids []string, conn *slaveIn) (newids []string) {
-	newids = make([]string, 0)
-	for key := range ids {
-		id := hardstore.GetRoleStoreName(ids[key])
-		// 找到第一个首字母。
-		theChar := string(id[0])
-		// slave池中有没有
-		conns, find := d.slaves[theChar]
-		if find == true {
-			for onek := range conns {
-				if conns[onek].name == conn.name && conns[onek].code == conn.code {
-					newids = append(newids, ids[key])
-					break
-				}
-			}
-		}
-	}
-	return
-}
-
 // 判断friend或context的状态的类型，types：1为int，2为float，3为complex
 func (d *DRule) statusValueType(value interface{}) (types uint8) {
 	valuer := reflect.Indirect(reflect.ValueOf(value))
