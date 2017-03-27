@@ -179,6 +179,8 @@ func (d *DRule) prepareTransactionForOneSlave(tran_net Net_Transaction, onec *sl
 	if slave_receipt.DataStat != DATA_PLEASE {
 		return fmt.Errorf(slave_receipt.Error)
 	}
+	// 这里必须修改一下tran_net，剔除不是这个服务器的
+	tran_net.PrepareIDs = d.checkIdsIfInThisSlave(tran_net.PrepareIDs, onec)
 	// 发送tran_net
 	tran_b, err := nst.StructGobBytes(tran_net)
 	if err != nil {

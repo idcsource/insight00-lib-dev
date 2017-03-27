@@ -241,6 +241,7 @@ func (t *TRule) Prepare(roleids ...string) (tran *Transaction, err error) {
 	err = tran.prepare(roleids)
 	if err != nil {
 		err = fmt.Errorf("drule[TRule]Prepare: %v", err)
+		tran.Rollback()
 	}
 	return
 }
@@ -259,6 +260,7 @@ func (t *TRule) prepareForDRule(unid string, roleids []string) (err error) {
 	// 调用tran中的prepare()
 	err = t.transaction[unid].prepare(roleids)
 	if err != nil {
+		t.transaction[unid].Rollback()
 		return err
 	}
 	return
