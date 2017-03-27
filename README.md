@@ -2,7 +2,7 @@
 
 CoderG the 2016 project, Insight 0+0 [ 洞悉 0+0 ]
 
-![data-switch-between-roles](doc/logo.png)
+![logo](doc/logo.png)
 
 *这是洞悉项目的依赖库*
 
@@ -15,6 +15,15 @@ Insight （洞悉 ） 是小说《[那曾经的旅程](http://hareading.com/book
 Insight 0+0并不是以实现小说中描述的强大智能为目的，它只是尝试展现一个最基本的数据抓取、规整、检索、处理的模型，也就是Insight（洞悉）可能会有的最基本原型。或者说这只是本人的个人玩乐喜好而以，并不是一个严肃的项目。
 
 ## 目前
+
+**—— 2017年3月27日 ——**
+
+增加了drule包，作为一套新的分布式角色控制系统，并以此代替之前的drcmb包。drule包实现了基础的事务功能，且在其他方面对代码进行了有优化。目前本包已经通过了最基本的测试。
+
+事务的实现流程图如下：
+
+![drule-trule-transaction](doc/drule-trule-transaction.png)
+
 
 **—— 2017年3月3日 ——**
 
