@@ -70,6 +70,9 @@ type NodeConfig struct {
 	NextWorkSet  uint8            // 下一个工作状态设置，WORK_SET_*
 	RoleType     uint8            // 角色类型，是分组还是具体的，ROLE_TYPE_*
 	Config       cpool.PoolEncode // 配置信息
+	NewConfig    bool             // 是否有新配置文件
+	RunLog       []string         // 运行日志
+	ErrLog       []string         // 错误日志
 }
 
 // 节点发送给中心的数据结构
@@ -89,6 +92,7 @@ type CenterSend struct {
 	SetStartTime int64            // 下一个工作状态的开始时间
 	NewConfig    bool             // 是否有新配置文件
 	Config       cpool.PoolEncode // 配置文件
+	Error        string           // 错误
 }
 
 // 一个节点对应的发送与接收信息
@@ -99,11 +103,11 @@ type sendAndReceive struct {
 
 // 中央的蔓延节点数据类型，也就是中央的服务器
 type CenterSmcs struct {
-	name    string                    // 自己的名字，用来做身份验证
-	node    map[string]sendAndReceive // 中心将要发送走的信息，string为节点的名称
-	store   *drule.TRule              // 存储配置信息的方法，使用drule的TRule进行存储管理
-	root_id string                    // 中央节点的ID
-	root    roles.Roleer              // 中央节点，这是一个roles.Role类型
+	name    string                     // 自己的名字，用来做身份验证
+	node    map[string]*sendAndReceive // 中心将要发送走的信息，string为节点的名称
+	store   *drule.TRule               // 存储配置信息的方法，使用drule的TRule进行存储管理
+	root_id string                     // 中央节点的ID
+	root    roles.Roleer               // 中央节点，这是一个roles.Role类型
 }
 
 // 节点的蔓延数据类型，也就是节点的服务器

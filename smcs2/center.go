@@ -20,7 +20,7 @@ import (
 func NewCenterSmcs(name string, store *drule.TRule) (center *CenterSmcs, err error) {
 	center = &CenterSmcs{
 		name:  name,
-		node:  make(map[string]sendAndReceive),
+		node:  make(map[string]*sendAndReceive),
 		store: store,
 	}
 	root_id := name + "_" + ROLE_ROOT
@@ -119,6 +119,11 @@ func (c *CenterSmcs) SetNodeConfig(nodename string, config *cpool.ConfigPool) (e
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfig: %v", err)
 	}
+	err = tran.WriteData(node_id, "NewConfig", true)
+	if err != nil {
+		tran.Rollback()
+		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfig: %v", err)
+	}
 	tran.Commit()
 	return
 }
@@ -133,6 +138,11 @@ func (c *CenterSmcs) SetNodeConfigEncode(nodename string, config *cpool.PoolEnco
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigCode: %v", err)
 	}
 	err = tran.WriteData(node_id, "ConfigStatusCode", uint8(CONFIG_NOT_READY))
+	if err != nil {
+		tran.Rollback()
+		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigCode: %v", err)
+	}
+	err = tran.WriteData(node_id, "NewConfig", true)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigCode: %v", err)
@@ -206,6 +216,125 @@ func (c *CenterSmcs) GetNodeConfigStatus(nodename string) (status uint8, err err
 }
 
 // nst的TcpServer接口实现
+//
+// 首先接收一段NodeSend
 func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
+	node_send_b, err := ce.GetData()
+	if err != nil {
+		return
+	}
+	node_send := NodeSend{}
+	err = nst.BytesGobStruct(node_send_b, &node_send)
+	if err != nil {
+		return
+	}
+	// 查看是不是发给这个节点的
+	if node_send.CenterName != c.name {
+		c.sendError(ce, "The CenterName is wrong.")
+		return
+	}
+	// 开始找寻有没有这个节点
+	node_id := c.name + "_" + node_send.Name
+	_, err = c.store.ReadRole(node_id)
+	if err != nil {
+		c.sendError(ce, "Can't found the Node set: "+node_send.Name)
+		return
+	}
+	// 在c.node里找到，找不到就新建
+	_, find := c.node[node_id]
+	if find == false {
+		c.node[node_id] = &sendAndReceive{}
+	}
+	c.node[node_id].nodeSend = node_send
+	// 开启事务
+	tran, _ := c.store.Begin()
+	// 更新错误日志和运行日志
+	log := make([]string, 0)
+	if len(node_send.RunLog) != 0 {
+		err = tran.ReadData(node_id, "RunLog", &log)
+		if err != nil {
+			tran.Rollback()
+			c.sendError(ce, "Update node log error.")
+			return
+		}
+		log = append(log, node_send.RunLog...)
+		err = tran.WriteData(node_id, "RunLog", log)
+		if err != nil {
+			tran.Rollback()
+			c.sendError(ce, "Update node log error.")
+			return
+		}
+	}
+	if len(node_send.ErrLog) != 0 {
+		err = tran.ReadData(node_id, "ErrLog", &log)
+		if err != nil {
+			tran.Rollback()
+			c.sendError(ce, "Update node log error.")
+			return
+		}
+		log = append(log, node_send.ErrLog...)
+		err = tran.WriteData(node_id, "ErrLog", log)
+		if err != nil {
+			tran.Rollback()
+			c.sendError(ce, "Update node log error.")
+			return
+		}
+	}
+	// 执行事务
+	tran.Commit()
+	// 开启事务
+	tran, _ = c.store.Begin()
+	// 构建发送机制
+	center_send := CenterSend{}
+	err = tran.ReadData(node_id, "NextWorkSet", &center_send.NextWorkSet)
+	if err != nil {
+		tran.Rollback()
+		c.sendError(ce, "Build CenterSend error.")
+		return
+	}
+	err = tran.ReadData(node_id, "ConfigStatus", &center_send.ConfigStatus)
+	if err != nil {
+		tran.Rollback()
+		c.sendError(ce, "Build CenterSend error.")
+		return
+	}
+	err = tran.ReadData(node_id, "Config", &center_send.Config)
+	if err != nil {
+		tran.Rollback()
+		c.sendError(ce, "Build CenterSend error.")
+		return
+	}
+	err = tran.ReadData(node_id, "NewConfig", &center_send.NewConfig)
+	if err != nil {
+		tran.Rollback()
+		c.sendError(ce, "Build CenterSend error.")
+		return
+	}
+	err = tran.WriteData(node_id, "NewConfig", false)
+	if err != nil {
+		tran.Rollback()
+		c.sendError(ce, "Build CenterSend error.")
+		return
+	}
+	// 执行事务
+	tran.Commit()
+	// 编码发送
+	center_send_b, err := nst.StructGobBytes(center_send)
+	if err != nil {
+		c.sendError(ce, "Build CenterSend error.")
+		return
+	}
+	err = ce.SendData(center_send_b)
+	return
+}
+
+func (c *CenterSmcs) sendError(ce *nst.ConnExec, err string) {
+	// 构造发送出去的结构体
+	center_send := CenterSend{}
+	center_send.Error = err
+	//编码
+	center_send_b, _ := nst.StructGobBytes(center_send)
+	// 发送错误
+	ce.SendData(center_send_b)
 	return
 }
