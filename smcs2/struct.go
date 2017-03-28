@@ -9,7 +9,7 @@
 //
 // 中心与节点之间的状态与配置的相互通讯。这里是第二个版本，因为第一版存在剥离问题，故还未彻底放弃。
 //
-// 第二版将才用角色进行节点配置信息的保存并支持更好的在线配置修改。
+// 第二版将才用角色进行节点配置信息的保存并支持更好的在线配置修改。节点配置信息的保存使用drule包的TRule。
 package smcs2
 
 import (
@@ -17,10 +17,10 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/bridges"
 	"github.com/idcsource/Insight-0-0-lib/cpool"
+	"github.com/idcsource/Insight-0-0-lib/drule"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesio"
 )
 
 const (
@@ -78,8 +78,8 @@ type NodeSend struct {
 	Name       string   // 节点的名称
 	Status     uint8    // 节点状态，NODE_STATUS_*
 	WorkSet    uint8    // 当前工作状态，WORK_SET_*
-	RunLog     []string // 要发送出去的日志
-	ErrLog     []string // 要发送出去的日志
+	RunLog     []string // 要发送出去的运行日志
+	ErrLog     []string // 要发送出去的错误日志
 }
 
 // 中心发送给节点的数据结构
@@ -97,15 +97,16 @@ type sendAndReceive struct {
 	nodeSend   NodeSend   // 节点发送的信息
 }
 
-// 中央的蔓延节点数据类型
+// 中央的蔓延节点数据类型，也就是中央的服务器
 type CenterSmcs struct {
-	name  string                    // 自己的名字，用来做身份验证
-	node  map[string]sendAndReceive // 中心将要发送走的信息，string为节点的名称
-	store rolesio.RolesInOutManager // 存储配置信息的方法
-	root  roles.Roleer              // 中央节点
+	name    string                    // 自己的名字，用来做身份验证
+	node    map[string]sendAndReceive // 中心将要发送走的信息，string为节点的名称
+	store   *drule.TRule              // 存储配置信息的方法，使用drule的TRule进行存储管理
+	root_id string                    // 中央节点的ID
+	root    roles.Roleer              // 中央节点，这是一个roles.Role类型
 }
 
-// 节点的蔓延数据类型
+// 节点的蔓延数据类型，也就是节点的服务器
 type NodeSmcs struct {
 	name       string                 // 节点的名字
 	tcpc       *nst.TcpClient         // TCP连接

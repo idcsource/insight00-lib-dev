@@ -11,19 +11,20 @@ import (
 	"fmt"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
+	"github.com/idcsource/Insight-0-0-lib/drule"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesio"
 )
 
 // 新建一个中央蔓延点，这里的name也将作为配置节点的名称前缀
-func NewCenterSmcs(name string, store rolesio.RolesInOutManager) (center *CenterSmcs, err error) {
+func NewCenterSmcs(name string, store *drule.TRule) (center *CenterSmcs, err error) {
 	center = &CenterSmcs{
 		name:  name,
 		node:  make(map[string]sendAndReceive),
 		store: store,
 	}
 	root_id := name + "_" + ROLE_ROOT
+	center.root_id = root_id
 	// 查看是否存在这个root
 	root, err := center.store.ReadRole(root_id)
 	if err != nil {
@@ -45,16 +46,19 @@ func (c *CenterSmcs) AddNode(nodename string, types uint8, groupname string) (er
 	var group_id string
 	if groupname == "" {
 		// 根的名字
-		group_id = c.name + "_" + ROLE_ROOT
+		group_id = c.root_id
 	} else {
 		group_id = c.name + "_" + groupname
 	}
 	node_id := c.name + "_" + nodename
-	have, err := c.store.ExistChild(group_id, node_id)
+	tran, _ := c.store.Begin()
+	have, err := tran.ExistChild(group_id, node_id)
 	if err != nil {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
 	}
 	if have == true {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: The node name %v already exist in group.", nodename)
 	}
 	node := &NodeConfig{}
@@ -63,32 +67,40 @@ func (c *CenterSmcs) AddNode(nodename string, types uint8, groupname string) (er
 	node.RoleType = types
 	node.ConfigStatus = CONFIG_NO
 	node.SetFather(group_id)
-	err = c.store.StoreRole(node)
+	err = tran.StoreRole(node)
 	if err != nil {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
 	}
-	err = c.store.WriteChild(group_id, node_id)
+	err = tran.WriteChild(group_id, node_id)
 	if err != nil {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
 	}
+	tran.Commit()
 	return
 }
 
 // 删除一个节点，如果这个节点有子节点则不允许删除
 func (c *CenterSmcs) DelNode(nodename string) (err error) {
 	node_id := c.name + "_" + nodename
+	tran, _ := c.store.Begin()
 	// 获取是否有子节点
-	children, err := c.store.ReadChildren(node_id)
+	children, err := tran.ReadChildren(node_id)
 	if err != nil {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
 	}
 	if len(children) != 0 {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]DelNode: The Node %v has child node.", nodename)
 	}
-	err = c.store.DeleteRole(node_id)
+	err = tran.DeleteRole(node_id)
 	if err != nil {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
 	}
+	tran.Commit()
 	return
 }
 
@@ -96,28 +108,36 @@ func (c *CenterSmcs) DelNode(nodename string) (err error) {
 func (c *CenterSmcs) SetNodeConfig(nodename string, config *cpool.ConfigPool) (err error) {
 	node_id := c.name + "_" + nodename
 	poolEncode := config.EncodePool()
-	err = c.store.WriteData(node_id, "Config", poolEncode)
+	tran, _ := c.store.Begin()
+	err = tran.WriteData(node_id, "Config", poolEncode)
 	if err != nil {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfig: %v", err)
 	}
-	err = c.store.WriteData(node_id, "ConfigStatus", uint8(CONFIG_NOT_READY))
+	err = tran.WriteData(node_id, "ConfigStatus", uint8(CONFIG_NOT_READY))
 	if err != nil {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfig: %v", err)
 	}
+	tran.Commit()
 	return
 }
 
 // 设置节点的配置信息（编码模式）
 func (c *CenterSmcs) SetNodeConfigEncode(nodename string, config *cpool.PoolEncode) (err error) {
 	node_id := c.name + "_" + nodename
-	err = c.store.WriteData(node_id, "Config", config)
+	tran, _ := c.store.Begin()
+	err = tran.WriteData(node_id, "Config", config)
 	if err != nil {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigCode: %v", err)
 	}
-	err = c.store.WriteData(node_id, "ConfigStatusCode", uint8(CONFIG_NOT_READY))
+	err = tran.WriteData(node_id, "ConfigStatusCode", uint8(CONFIG_NOT_READY))
 	if err != nil {
+		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigCode: %v", err)
 	}
+	tran.Commit()
 	return
 }
 
@@ -181,15 +201,6 @@ func (c *CenterSmcs) GetNodeConfigStatus(nodename string) (status uint8, err err
 	err = c.store.ReadData(node_id, "ConfigStatus", &status)
 	if err != nil {
 		return 0, fmt.Errorf("smcs[CenterSmcs]GetNodeConfigStatus: %v", err)
-	}
-	return
-}
-
-// 设置的运行时保存
-func (c *CenterSmcs) ToStore() (err error) {
-	err = c.store.ToStore()
-	if err != nil {
-		return fmt.Errorf("smcs[CenterSmcs]ToStore: %v", err)
 	}
 	return
 }
