@@ -62,6 +62,14 @@ const (
 	ROLE_TYPE_NODE  = iota // 角色是一个节点
 )
 
+// 节点树的数据类型
+type NodeTree struct {
+	Name     string              // 显示名
+	Id       string              // 角色id
+	RoleType uint8               // 角色类型，是分组还是具体的，ROLE_TYPE_*
+	Tree     map[string]NodeTree // 节点树
+}
+
 // 节点的配置信息
 type NodeConfig struct {
 	roles.Role                    // 角色
@@ -113,13 +121,14 @@ type CenterSmcs struct {
 // 节点的蔓延数据类型，也就是节点的服务器
 type NodeSmcs struct {
 	name       string                 // 节点的名字
+	centername string                 // 中央的名称
 	tcpc       *nst.TcpClient         // TCP连接
 	runtimeid  string                 // 运行时UNID
 	operate    uint8                  // 对用NODE_OPERATE_*，来选择是outbridge还是outoperate处理
 	outbridge  *bridges.BridgeOperate // 输出通讯桥，得到配置将发送到通讯桥
 	outoperate NodeOperator           // 得到配置后将交由符合这个接口的方法
 	nodesend   NodeSend               // 发送出去的类型
-	sleepTime  int64                  // 每次请求中心的等待时间
+	sleeptime  int64                  // 每次请求中心的等待时间
 	logs       *ilogs.Logs            // 运行日志
 }
 

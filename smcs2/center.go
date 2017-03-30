@@ -9,6 +9,7 @@ package smcs2
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule"
@@ -42,7 +43,7 @@ func NewCenterSmcs(name string, store *drule.TRule) (center *CenterSmcs, err err
 }
 
 // 添加一个节点，types见ROLE_TYPE_*，group为所在分组
-func (c *CenterSmcs) AddNode(nodename string, types uint8, groupname string) (err error) {
+func (c *CenterSmcs) AddNode(nodename, disname string, types uint8, groupname string) (err error) {
 	var group_id string
 	if groupname == "" {
 		// 根的名字
@@ -68,6 +69,11 @@ func (c *CenterSmcs) AddNode(nodename string, types uint8, groupname string) (er
 	node.ConfigStatus = CONFIG_NO
 	node.SetFather(group_id)
 	err = tran.StoreRole(node)
+	if err != nil {
+		tran.Rollback()
+		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
+	}
+	err = tran.WriteData(node_id, "Name", disname)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
@@ -211,6 +217,103 @@ func (c *CenterSmcs) GetNodeConfigStatus(nodename string) (status uint8, err err
 	err = c.store.ReadData(node_id, "ConfigStatus", &status)
 	if err != nil {
 		return 0, fmt.Errorf("smcs[CenterSmcs]GetNodeConfigStatus: %v", err)
+	}
+	return
+}
+
+// 获取节点所有的错误日志
+func (c *CenterSmcs) GetNodeErrLog(nodename string) (errlog []string, err error) {
+	node_id := c.name + "_" + nodename
+	err = c.store.ReadData(node_id, "ErrLog", &errlog)
+	if err != nil {
+		err = fmt.Errorf("smcs[CenterSmcs]GetNodeErrLog: %v", err)
+	}
+	return
+}
+
+// 获取节点所有的运行日志
+func (c *CenterSmcs) GetNodeRunLog(nodename string) (runlog []string, err error) {
+	node_id := c.name + "_" + nodename
+	err = c.store.ReadData(node_id, "RunLog", &runlog)
+	if err != nil {
+		err = fmt.Errorf("smcs[CenterSmcs]GetNodeRunLog: %v", err)
+	}
+	return
+}
+
+// 清空节点的所有错误日志
+func (c *CenterSmcs) EmptyNodeErrLog(nodename string) (err error) {
+	node_id := c.name + "_" + nodename
+	errlog := make([]string, 0)
+	err = c.store.WriteData(node_id, "ErrLog", errlog)
+	if err != nil {
+		err = fmt.Errorf("smcs[CenterSmcs]EmptyNodeErrLog %v", err)
+	}
+	return
+}
+
+// 清空节点的所有运行日志
+func (c *CenterSmcs) EmptyNodeRunLog(nodename string) (err error) {
+	node_id := c.name + "_" + nodename
+	runlog := make([]string, 0)
+	err = c.store.WriteData(node_id, "RunLog", runlog)
+	if err != nil {
+		err = fmt.Errorf("smcs[CenterSmcs]EmptyNodeRunLog: %v", err)
+	}
+	return
+}
+
+// 返回节点树
+func (c *CenterSmcs) GetNodeTree() (nodetree NodeTree, err error) {
+	nodetree, err = c.getNodeTree(c.root_id)
+	if err != nil {
+		err = fmt.Errorf("smcs[CenterSmcs]GetNodeTree: %v", err)
+	}
+	return
+}
+
+// 返回节点树的内部使用
+func (c *CenterSmcs) getNodeTree(node_id string) (nodetree NodeTree, err error) {
+	children, err := c.store.ReadChildren(node_id)
+	if err != nil {
+		return
+	}
+	if node_id != c.root_id {
+		var name string
+		err = c.store.ReadData(node_id, "Name", &name)
+		if err != nil {
+			return
+		}
+		var roletype uint8
+		err = c.store.ReadData(node_id, "RoleType", &roletype)
+		if err != nil {
+			return
+		}
+		nodetree = NodeTree{
+			Name:     name,
+			Id:       node_id,
+			RoleType: roletype,
+			Tree:     make(map[string]NodeTree),
+		}
+	} else {
+		nodetree = NodeTree{
+			Name:     "Root",
+			Id:       c.root_id,
+			RoleType: ROLE_TYPE_GROUP,
+			Tree:     make(map[string]NodeTree),
+		}
+	}
+
+	errall := make([]string, 0)
+	for _, child := range children {
+		nodetree.Tree[child], err = c.getNodeTree(child)
+		if err != nil {
+			errall = append(errall, err.Error())
+		}
+	}
+	if len(errall) != 0 {
+		errstr := strings.Join(errall, " | ")
+		err = fmt.Errorf(errstr)
 	}
 	return
 }
