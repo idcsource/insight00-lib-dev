@@ -10,7 +10,6 @@ package spiders
 import (
 	"encoding/gob"
 	"fmt"
-	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/bridges"
 	"github.com/idcsource/Insight-0-0-lib/cpool"
@@ -35,7 +34,7 @@ func RegInterfaceForGob() {
 // 这里是作为启动的准备，所以只是处理了角色控制器（也就是存储）和日志。与SMCS进行通讯桥绑定，绑定名为SMCS_Node_Out_Bridge。
 // 新建与站点机器（SiteMachine）沟通的内部通讯桥，绑定名为Spider_Inside_Bridge，发送出去的（给SiteMachine）要求处理的函数名为InsideCom。
 // 而配置文件和其他的诸多状态都为空或关闭，等待运行时被动态修改。
-func NewSpider(name string, rolec *rcontrol.RolesControl, smcsn *smcs2.NodeConfigOperator, logs *ilogs.Logs) *Spider {
+func NewSpider(name string, rolec *rcontrol.RolesControl, smcsn *smcs2.NodeSmcs, logs *ilogs.Logs) *Spider {
 	gob.Register(&Site{})
 	gob.Register(&PageData{})
 	gob.Register(&MediaData{})
@@ -59,15 +58,15 @@ func NewSpider(name string, rolec *rcontrol.RolesControl, smcsn *smcs2.NodeConfi
 
 // 开启蜘蛛。哪怕没有任何其他动作，也需要手动执行此方法才能让蜘蛛真正运行起来。
 func (s *Spider) Start() {
-	s.NodeSMCS.ChangeWorkSet(smcs2.WORK_SET_STOP)
-	s.NodeSMCS.ChangeStatus(smcs2.NODE_STATUS_NO_CONFIG)
-	go s.nodeSmcsLog()
+	//s.NodeSMCS.ChangeWorkSet(smcs2.WORK_SET_STOP)
+	//s.NodeSMCS.ChangeStatus(smcs2.NODE_STATUS_NO_CONFIG)
+	//go s.nodeSmcsLog()
 }
 
 // 接收SMCS-NODE回传服务器设置信息的方法，k和i这里被忽略不进行处理，这个函数名是在smcs包中指定的
 func (s *Spider) SmcsNodeOperator(data smcs2.CenterSend) (err error) {
 	s.NodeStatus = smcs2.NODE_STATUS_OK
-	s.NodeSMCS.ChangeStatus(smcs2.NODE_STATUS_OK)
+	//s.NodeSMCS.ChangeStatus(smcs2.NODE_STATUS_OK)
 	ifrestart := false
 	ifstatus := false
 	ifconfig := false
@@ -193,6 +192,7 @@ func (s *Spider) start(ifstatus, ifconfig bool) {
 }
 
 // 处理将日志交给SMCS
+/*
 func (s *Spider) nodeSmcsLog() {
 	for {
 		runlog := s.ReRunLog()
@@ -209,7 +209,7 @@ func (s *Spider) nodeSmcsLog() {
 		}
 		time.Sleep(30 * time.Second)
 	}
-}
+}*/
 
 // 配置文件中是否指定了某个站点
 func (s *Spider) configHaveSite(sitename string, config []string) bool {

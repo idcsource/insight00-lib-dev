@@ -53,13 +53,13 @@ const (
 type Spider struct {
 	rolesplus.RolePlus
 	Name         string
-	Sites        map[string]*SiteMachine   // 管理的站点，其中string是从配置文件而来的站点配置节点的名称
-	NodeStatus   uint8                     // 结点状态，对应smcs包中的工作状态（NODE_STATUS_*）
-	WorkStatus   uint8                     // 运行状态，对应smcs包中的工作状态（WORK_SET_*）
-	Config       *cpool.ConfigPool         // 配置文件
-	NodeSMCS     *smcs2.NodeConfigOperator // 配置蔓延
-	RolesControl *rcontrol.RolesControl    // 角色管理器
-	insidebridge *bridges.Bridge           // 内部通讯桥
+	Sites        map[string]*SiteMachine // 管理的站点，其中string是从配置文件而来的站点配置节点的名称
+	NodeStatus   uint8                   // 结点状态，对应smcs包中的工作状态（NODE_STATUS_*）
+	WorkStatus   uint8                   // 运行状态，对应smcs包中的工作状态（WORK_SET_*）
+	Config       *cpool.ConfigPool       // 配置文件
+	NodeSMCS     *smcs2.NodeSmcs         // 配置蔓延
+	RolesControl *rcontrol.RolesControl  // 角色管理器
+	insidebridge *bridges.Bridge         // 内部通讯桥
 }
 
 // 站点机器人
