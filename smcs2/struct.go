@@ -14,9 +14,7 @@ package smcs2
 
 import (
 	"encoding/gob"
-	"reflect"
 
-	"github.com/idcsource/Insight-0-0-lib/bridges"
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
@@ -36,13 +34,6 @@ const (
 	NODE_STATUS_BUSY              // 忙碌
 	NODE_STATUS_IDLE              // 闲置
 	NODE_STATUS_STORE_FULL        // 存储满
-)
-
-const (
-	NODE_OPERATE_NO       = iota // 节点收到信息后的处理，无
-	NODE_OPERATE_BRIDGE          // 使用桥
-	NODE_OPERATE_FUNCTION        // 使用函数
-	NODE_OPERATE_BOTH            // 上面二者都
 )
 
 const (
@@ -121,30 +112,15 @@ type CenterSmcs struct {
 
 // 节点的蔓延数据类型，也就是节点的服务器
 type NodeSmcs struct {
-	name       string                 // 节点的名字
-	centername string                 // 中央的名称
-	tcpc       *nst.TcpClient         // TCP连接
-	runtimeid  string                 // 运行时UNID
-	operate    uint8                  // 对用NODE_OPERATE_*，来选择是outbridge还是outoperate处理
-	outbridge  *bridges.BridgeOperate // 输出通讯桥，得到配置将发送到通讯桥
-	outoperate reflect.Value          // 得到配置后将交由符合这个接口的方法
-	nodesend   *NodeSend              // 发送出去的类型
-	sleeptime  int64                  // 每次请求中心的等待时间
-	closeM     chan bool              // 关闭监控信号
-	closeMt    bool                   // 是否处于关闭状态
-	logn       *ilogs.Logs            // 需要发送给Center的日志
-	logs       *ilogs.Logs            // 自己的日志
-}
-
-// 这是一个返回给调用者进行调用的类型
-type NodeConfigOperator struct {
-	nodesend *NodeSend
-	logn     *ilogs.Logs
-}
-
-// 节点的配置后处理接口
-type NodeOperator interface {
-	SmcsNodeOperator(centerSend CenterSend) (err error)
+	name       string         // 节点的名字
+	centername string         // 中央的名称
+	tcpc       *nst.TcpClient // TCP连接
+	runtimeid  string         // 运行时UNID
+	nodesend   NodeSend       // 发送出去的类型
+	sleeptime  int64          // 每次请求中心的等待时间
+	closeM     chan bool      // 关闭监控信号
+	closeMt    bool           // 是否处于关闭状态
+	logs       *ilogs.Logs    // 自己的日志
 }
 
 // 为Gob注册角色类型
