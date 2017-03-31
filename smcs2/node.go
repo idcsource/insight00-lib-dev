@@ -18,7 +18,7 @@ import (
 )
 
 // 新建一个为节点使用的配置蔓延
-func NewNodeSmcs(name, center string, tcp *nst.TcpClient, outoperate NodeOperator, logs *ilogs.Logs) (ns *NodeSmcs, err error) {
+func NewNodeSmcs(name, center string, tcp *nst.TcpClient, logs *ilogs.Logs) (ns *NodeSmcs, err error) {
 	logsn, err := ilogs.NewLogForSmcs(name + "_Node_SMCS_Log")
 	if err != nil {
 		err = fmt.Errorf("smcs2[NodeSmcs]NewNodeSmcs: %v", err)
@@ -29,8 +29,8 @@ func NewNodeSmcs(name, center string, tcp *nst.TcpClient, outoperate NodeOperato
 		centername: center,
 		tcpc:       tcp,
 		runtimeid:  random.GetRand(40),
-		operate:    NODE_OPERATE_FUNCTION,
-		outoperate: reflect.ValueOf(outoperate),
+		//operate:    NODE_OPERATE_FUNCTION,
+		//outoperate: reflect.ValueOf(outoperate),
 		nodesend: &NodeSend{
 			CenterName: center,
 			Name:       name,
@@ -45,8 +45,13 @@ func NewNodeSmcs(name, center string, tcp *nst.TcpClient, outoperate NodeOperato
 		logn:      logsn,
 		logs:      logs,
 	}
-	go ns.goMonitor()
 	return
+}
+
+// 注册内联操作
+func (ns *NodeSmcs) RegOperate(outoperate NodeOperator) {
+	ns.operate = NODE_OPERATE_FUNCTION
+	ns.outoperate = reflect.ValueOf(outoperate)
 }
 
 // 关闭状态监控
@@ -57,7 +62,7 @@ func (ns *NodeSmcs) Close() {
 }
 
 // 重启状态监控
-func (ns *NodeSmcs) ReStart() {
+func (ns *NodeSmcs) Start() {
 	if ns.closeMt == true {
 		go ns.goMonitor()
 	}
