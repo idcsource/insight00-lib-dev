@@ -14,6 +14,7 @@ package smcs2
 
 import (
 	"encoding/gob"
+	"reflect"
 
 	"github.com/idcsource/Insight-0-0-lib/bridges"
 	"github.com/idcsource/Insight-0-0-lib/cpool"
@@ -126,10 +127,13 @@ type NodeSmcs struct {
 	runtimeid  string                 // 运行时UNID
 	operate    uint8                  // 对用NODE_OPERATE_*，来选择是outbridge还是outoperate处理
 	outbridge  *bridges.BridgeOperate // 输出通讯桥，得到配置将发送到通讯桥
-	outoperate NodeOperator           // 得到配置后将交由符合这个接口的方法
+	outoperate reflect.Value          // 得到配置后将交由符合这个接口的方法
 	nodesend   NodeSend               // 发送出去的类型
 	sleeptime  int64                  // 每次请求中心的等待时间
-	logs       *ilogs.Logs            // 运行日志
+	closeM     chan bool              // 关闭监控信号
+	closeMt    bool                   // 是否处于关闭状态
+	logn       *ilogs.Logs            // 需要发送给Center的日志
+	logs       *ilogs.Logs            // 自己的日志
 }
 
 // 节点的配置后处理接口

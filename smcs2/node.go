@@ -9,6 +9,8 @@ package smcs2
 
 import (
 	"fmt"
+	"reflect"
+	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
@@ -16,8 +18,8 @@ import (
 )
 
 // 新建一个为节点使用的配置蔓延
-func NewNodeSmcs(name, center string, tcp *nst.TcpClient, outoperate NodeOperator) (ns *NodeSmcs, err error) {
-	logs, err := ilogs.NewLog("", "", name+"_Node_SMCS_Log", true)
+func NewNodeSmcs(name, center string, tcp *nst.TcpClient, outoperate NodeOperator, logs *ilogs.Logs) (ns *NodeSmcs, err error) {
+	logsn, err := ilogs.NewLogForSmcs(name + "_Node_SMCS_Log")
 	if err != nil {
 		err = fmt.Errorf("smcs2[NodeSmcs]NewNodeSmcs: %v", err)
 		return
@@ -28,9 +30,128 @@ func NewNodeSmcs(name, center string, tcp *nst.TcpClient, outoperate NodeOperato
 		tcpc:       tcp,
 		runtimeid:  random.GetRand(40),
 		operate:    NODE_OPERATE_FUNCTION,
-		outoperate: outoperate,
-		sleeptime:  60,
-		logs:       logs,
+		outoperate: reflect.ValueOf(outoperate),
+		nodesend: NodeSend{
+			CenterName: center,
+			Name:       name,
+			Status:     NODE_STATUS_NO_CONFIG,
+			WorkSet:    WORK_SET_NO,
+			RunLog:     make([]string, 0),
+			ErrLog:     make([]string, 0),
+		},
+		closeM:    make(chan bool),
+		closeMt:   false,
+		sleeptime: 60,
+		logn:      logsn,
+		logs:      logs,
+	}
+	go ns.goMonitor()
+	return
+}
+
+// 关闭状态监控
+func (ns *NodeSmcs) Close() {
+	if ns.closeMt != true {
+		ns.closeM <- true
+	}
+}
+
+// 重启状态监控
+func (ns *NodeSmcs) ReStart() {
+	if ns.closeMt == true {
+		go ns.goMonitor()
+	}
+}
+
+// 内部的计时发送函数
+func (ns *NodeSmcs) goMonitor() {
+	ns.closeMt = false
+	for {
+		select {
+		case <-ns.closeM:
+			ns.closeMt = true
+			return
+		default:
+			// 这里就是处理发送的
+			err := ns.sendNodeSend()
+			if err != nil {
+				ns.logerr(err)
+			}
+			time.Sleep(time.Duration(ns.sleeptime) * time.Second)
+		}
+	}
+}
+
+// 发送NodeSend
+func (ns *NodeSmcs) sendNodeSend() (err error) {
+	ns.nodesend.RunLog = ns.logn.ReRunLog()
+	ns.nodesend.ErrLog = ns.logn.ReErrLog()
+	// 编码
+	node_send_b, err := nst.StructGobBytes(ns.nodesend)
+	if err != nil {
+		return err
+	}
+	// 分配连接
+	cprocess := ns.tcpc.OpenProgress()
+	defer cprocess.Close()
+	// 发送nodesend
+	return_b, err := cprocess.SendAndReturn(node_send_b)
+	if err != nil {
+		return err
+	}
+	// 解码CenterSend
+	center_send := CenterSend{}
+	err = nst.BytesGobStruct(return_b, &center_send)
+	if err != nil {
+		return err
+	}
+	if center_send.Error != "" {
+		return fmt.Errorf(center_send.Error)
+	}
+	// 发送给NodeOperator接口
+	in := make([]reflect.Value, 1)
+	in[0] = reflect.ValueOf(center_send)
+	rerror := ns.outoperate.MethodByName("SmcsNodeOperator").Call(in)
+	erra := rerror[0].Interface()
+	if erra != nil {
+		err = erra.(error)
 	}
 	return
+}
+
+// 更改状态
+func (ns *NodeSmcs) ChangeStatus(status uint8) {
+	ns.nodesend.Status = status
+}
+
+// 更改工作设置
+func (ns *NodeSmcs) ChangeWorkSet(workset uint8) {
+	ns.nodesend.WorkSet = workset
+}
+
+// 追加错误日志
+func (ns *NodeSmcs) ErrLog(err ...interface{}) {
+	ns.logn.ErrLog(err...)
+}
+
+// 追加运行日志
+func (ns *NodeSmcs) RunLog(err ...interface{}) {
+	ns.logn.RunLog(err...)
+}
+
+// 更改等待间隔
+func (ns *NodeSmcs) ChangeSleepTime(t int64) {
+	ns.sleeptime = t
+}
+
+// Logerr 做日志
+func (ns *NodeSmcs) logerr(err interface{}) {
+	if err == nil {
+		return
+	}
+	if ns.logs != nil {
+		ns.logs.ErrLog(err)
+	} else {
+		fmt.Println(err)
+	}
 }
