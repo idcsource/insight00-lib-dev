@@ -31,7 +31,7 @@ func NewNodeSmcs(name, center string, tcp *nst.TcpClient, outoperate NodeOperato
 		runtimeid:  random.GetRand(40),
 		operate:    NODE_OPERATE_FUNCTION,
 		outoperate: reflect.ValueOf(outoperate),
-		nodesend: NodeSend{
+		nodesend: &NodeSend{
 			CenterName: center,
 			Name:       name,
 			Status:     NODE_STATUS_NO_CONFIG,
@@ -119,29 +119,18 @@ func (ns *NodeSmcs) sendNodeSend() (err error) {
 	return
 }
 
-// 更改状态
-func (ns *NodeSmcs) ChangeStatus(status uint8) {
-	ns.nodesend.Status = status
-}
-
-// 更改工作设置
-func (ns *NodeSmcs) ChangeWorkSet(workset uint8) {
-	ns.nodesend.WorkSet = workset
-}
-
-// 追加错误日志
-func (ns *NodeSmcs) ErrLog(err ...interface{}) {
-	ns.logn.ErrLog(err...)
-}
-
-// 追加运行日志
-func (ns *NodeSmcs) RunLog(err ...interface{}) {
-	ns.logn.RunLog(err...)
-}
-
 // 更改等待间隔
 func (ns *NodeSmcs) ChangeSleepTime(t int64) {
 	ns.sleeptime = t
+}
+
+// 返回设置操作者
+func (ns *NodeSmcs) Operator() (operator *NodeConfigOperator) {
+	operator = &NodeConfigOperator{
+		nodesend: ns.nodesend,
+		logn:     ns.logn,
+	}
+	return
 }
 
 // Logerr 做日志
@@ -154,4 +143,24 @@ func (ns *NodeSmcs) logerr(err interface{}) {
 	} else {
 		fmt.Println(err)
 	}
+}
+
+// 更改状态
+func (n *NodeConfigOperator) ChangeStatus(status uint8) {
+	n.nodesend.Status = status
+}
+
+// 更改工作设置
+func (n *NodeConfigOperator) ChangeWorkSet(workset uint8) {
+	n.nodesend.WorkSet = workset
+}
+
+// 追加错误日志
+func (n *NodeConfigOperator) ErrLog(err ...interface{}) {
+	n.logn.ErrLog(err...)
+}
+
+// 追加运行日志
+func (n *NodeConfigOperator) RunLog(err ...interface{}) {
+	n.logn.RunLog(err...)
 }

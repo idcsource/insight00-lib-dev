@@ -128,12 +128,18 @@ type NodeSmcs struct {
 	operate    uint8                  // 对用NODE_OPERATE_*，来选择是outbridge还是outoperate处理
 	outbridge  *bridges.BridgeOperate // 输出通讯桥，得到配置将发送到通讯桥
 	outoperate reflect.Value          // 得到配置后将交由符合这个接口的方法
-	nodesend   NodeSend               // 发送出去的类型
+	nodesend   *NodeSend              // 发送出去的类型
 	sleeptime  int64                  // 每次请求中心的等待时间
 	closeM     chan bool              // 关闭监控信号
 	closeMt    bool                   // 是否处于关闭状态
 	logn       *ilogs.Logs            // 需要发送给Center的日志
 	logs       *ilogs.Logs            // 自己的日志
+}
+
+// 这是一个返回给调用者进行调用的类型
+type NodeConfigOperator struct {
+	nodesend *NodeSend
+	logn     *ilogs.Logs
 }
 
 // 节点的配置后处理接口
