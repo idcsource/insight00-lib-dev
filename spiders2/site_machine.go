@@ -188,6 +188,7 @@ func (s *siteMachine) crawlOne(enforce bool, url string) ([]string, bool, bool, 
 				}
 			}
 		} else {
+			tran.Rollback()
 			return nil, true, true, false, nil
 		}
 	} else {
