@@ -30,8 +30,8 @@ func NewLog(run, el, prefix string) (logs *Logs, err error) {
 	return newLog(run, el, prefix, false)
 }
 
-func NewLogForSmcs(prefix string) (logs *Logs, err error) {
-	return newLog("", "", prefix, true)
+func NewLogForSmcs(run, el, prefix string) (logs *Logs, err error) {
+	return newLog(run, el, prefix, true)
 }
 
 // 创建新的日志，forsmcs如果为true，则可以使用ReErrLog()和ReRunLog()方法返回在上次调用这两个函数时所产生的日志条目。
