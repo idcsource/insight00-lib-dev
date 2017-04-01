@@ -52,6 +52,7 @@ func (s *Spider) Start() (err error) {
 		return fmt.Errorf("spiders2[Spider]Start: The Spider have no any config.")
 	}
 	if s.work_status == WORK_STATUS_WORKING {
+		fmt.Println("工作中")
 		return
 	}
 	/* 下面是一步步开启蜘蛛的过程 */
@@ -64,6 +65,7 @@ func (s *Spider) Start() (err error) {
 	s.sites = make(map[string]*siteMachine)
 	// 遍历找出所有的站点具体的配置文件
 	inside_err_array := make([]string, 0)
+	fmt.Println("开始准备初始化机器")
 	for i := range sites_name_list {
 		// 获取站点的配置文件
 		site_config, errn := s.config.GetSection(sites_name_list[i])
@@ -80,8 +82,8 @@ func (s *Spider) Start() (err error) {
 		}
 		site_role_name := s.name + "_" + sites_name_list[i]
 		// 看有没有这个站点的角色
-		_, err = s.roles_control.ReadRole(site_role_name)
-		if err != nil {
+		_, err2 := s.roles_control.ReadRole(site_role_name)
+		if err2 != nil {
 			// 出错被理解为没有，那就新建
 			site_role := &Site{}
 			// 站点的角色名为：spidername_sitename
@@ -99,6 +101,7 @@ func (s *Spider) Start() (err error) {
 			site_name:     sites_name_list[i],
 			spider_name:   s.name,
 			config:        site_config,
+			roles_control: s.roles_control,
 			domains:       domains,
 			site_role:     site_role_name,
 			now_status:    WORK_STATUS_STOPED,
@@ -107,6 +110,7 @@ func (s *Spider) Start() (err error) {
 			logs:          s.logs,
 		}
 	}
+	fmt.Println("设置完成站点机器")
 	// 如果有无法建立的，就返回错误
 	if len(inside_err_array) != 0 {
 		errstr := strings.Join(inside_err_array, " | ")
@@ -118,11 +122,21 @@ func (s *Spider) Start() (err error) {
 	go s.runSiteFinishHandle()
 	// 开启重启站点监控
 	go s.runSiteRestartHandle()
+	fmt.Println("开启站点机器")
 	// 开启所有站点
+	inside_err_array = make([]string, 0)
 	for key := range s.sites {
-		s.sites[key].Start()
+		errn := s.sites[key].Start()
+		if errn != nil {
+			inside_err_array = append(inside_err_array, errn.Error())
+		}
 	}
-
+	if len(inside_err_array) != 0 {
+		errstr := strings.Join(inside_err_array, " | ")
+		err = fmt.Errorf(errstr)
+		return
+	}
+	fmt.Println("开启站点机器完成")
 	// 工作状态修改为WORKING
 	s.work_status = WORK_STATUS_WORKING
 	return

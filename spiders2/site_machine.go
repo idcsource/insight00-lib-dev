@@ -50,6 +50,7 @@ func (s *siteMachine) Start() (err error) {
 	}
 	// 正式开始
 	s.now_status = WORK_STATUS_WORKING
+	fmt.Println(url + "抓玩了")
 	go s.gostart(links)
 	return
 }
@@ -128,7 +129,7 @@ func (s *siteMachine) saveAndCrawl(urls []string) (bool, bool) {
 // 如果第三bool为true则强制写日志，主要是为了非HTML的情况。
 func (s *siteMachine) crawlOne(enforce bool, url string) ([]string, bool, bool, bool, error) {
 	if s.domainAllow(url) == false {
-		return nil, true, true, false, errors.New("The domain not be crawl.")
+		return nil, true, true, false, errors.New("The domain not be crawl: " + url)
 	}
 	_, err := s.roles_control.ReadRole(url)
 	if err == nil {
@@ -258,6 +259,7 @@ func (s *siteMachine) crawlOne(enforce bool, url string) ([]string, bool, bool, 
 // 这个连接的domain是不是在允许内
 func (s *siteMachine) domainAllow(url string) bool {
 	allow := false
+	fmt.Println(s.domains)
 	for _, d := range s.domains {
 		match, _ := regexp.MatchString("^(http|https|ftp)://"+d, url)
 		if match == true {
