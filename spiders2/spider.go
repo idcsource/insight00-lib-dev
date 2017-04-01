@@ -118,9 +118,10 @@ func (s *Spider) Start() (err error) {
 	go s.runSiteFinishHandle()
 	// 开启重启站点监控
 	go s.runSiteRestartHandle()
-	/*
-	 这里要先去写站点的方法
-	*/
+	// 开启所有站点
+	for key := range s.sites {
+		s.sites[key].Start()
+	}
 
 	// 工作状态修改为WORKING
 	s.work_status = WORK_STATUS_WORKING
