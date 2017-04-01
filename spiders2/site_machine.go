@@ -135,31 +135,35 @@ func (s *siteMachine) crawlOne(enforce bool, url string) ([]string, bool, bool, 
 	if err == nil {
 		// 找到了就走更新流程，开启日志
 		tran, _ := s.roles_control.Prepare(url)
+		defer func() {
+			fmt.Println("defer:", err)
+			if err != nil {
+				tran.Rollback()
+			} else {
+				tran.Commit()
+			}
+		}()
 		var thetime time.Time
 		err = tran.ReadData(url, "UpTime", &thetime)
 		if err != nil {
-			tran.Rollback()
 			return nil, true, true, false, err
 		}
 		var theUpInterval int64
 		err = tran.ReadData(url, "UpInterval", &theUpInterval)
 		if err != nil {
-			tran.Rollback()
 			return nil, true, true, false, err
 		}
 		theUpInterval = theUpInterval * 60 * 60 * 24
 		if thetime.Unix()+theUpInterval > time.Now().Unix() || enforce == true {
 			//走更新，否则放弃更新
-			resp, err2 := s.respGet(url)
-			if err2 != nil {
-				tran.Rollback()
-				return nil, true, false, false, err2
+			resp, err := s.respGet(url)
+			if err != nil {
+				return nil, true, false, false, err
 			}
 			defer resp.Body.Close()
 			if resp.StatusCode != 200 {
 				//return nil, true, errors.New("Can't access the page " + url + " the code is " + resp.Status);
 				//fmt.Println("resp的状态：", resp.Status)
-				tran.Rollback()
 				return nil, true, false, false, nil
 			}
 			matched, _ := regexp.MatchString("text/html", resp.Header.Get("Content-Type"))
@@ -170,32 +174,28 @@ func (s *siteMachine) crawlOne(enforce bool, url string) ([]string, bool, bool, 
 				link, ifop, err := s.oprateHtml(enforce, url, resp, tran)
 				fmt.Println("oprateHtml的错误：", err)
 				if err != nil {
-					tran.Rollback()
 					return link, ifop, false, false, fmt.Errorf("spider: [SiteMachine]crawlOne: %v", err)
 				} else {
-					tran.Commit()
 					return link, ifop, false, false, nil
 				}
 			} else {
 				// 处理不是HTML的情况
-				_, err3 := s.oprateMedia(url, resp, tran)
-				if err3 != nil {
-					tran.Rollback()
-					return nil, true, false, false, fmt.Errorf("spider: [SiteMachine]crawlOne: %v", err3)
+				_, err := s.oprateMedia(url, resp, tran)
+				if err != nil {
+					return nil, true, false, false, fmt.Errorf("spider: [SiteMachine]crawlOne: %v", err)
 				} else {
-					tran.Commit()
 					return nil, true, false, false, nil
 				}
 			}
 		} else {
-			tran.Rollback()
 			return nil, true, true, false, nil
 		}
 	} else {
+		err = nil
 		// 找不到就走新建流程
-		resp, err2 := s.respGet(url)
-		if err2 != nil {
-			return nil, true, false, false, err2
+		resp, err := s.respGet(url)
+		if err != nil {
+			return nil, true, false, false, err
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
@@ -213,19 +213,26 @@ func (s *siteMachine) crawlOne(enforce bool, url string) ([]string, bool, bool, 
 			}
 			therole.New(url)
 			therole.SetDataChanged()
+			// 开启事务
 			tran, _ := s.roles_control.Begin()
+			defer func() {
+				fmt.Println("defer2:", err)
+				if err != nil {
+					tran.Rollback()
+				} else {
+					tran.Commit()
+				}
+			}()
+
 			tran.StoreRole(therole)
 			link, ifop, err := s.oprateHtml(enforce, url, resp, tran)
 			if err != nil {
-				tran.Rollback()
 				return link, ifop, false, false, fmt.Errorf("spider: [SiteMachine]crawlOne: %v", err)
 			}
-			err = tran.WriteChild(s.site_name, url)
+			err = tran.WriteChild(s.site_role, url)
 			if err != nil {
-				tran.Rollback()
 				return link, ifop, false, false, fmt.Errorf("spider: [SiteMachine]crawlOne: %v", err)
 			} else {
-				tran.Commit()
 				return link, ifop, false, false, nil
 			}
 		} else {
@@ -238,18 +245,24 @@ func (s *siteMachine) crawlOne(enforce bool, url string) ([]string, bool, bool, 
 			therole.New(url)
 			therole.SetDataChanged()
 			tran, _ := s.roles_control.Begin()
+			defer func() {
+				fmt.Println("defer3:", err)
+				if err != nil {
+					tran.Rollback()
+				} else {
+					tran.Commit()
+				}
+			}()
+
 			tran.StoreRole(therole)
-			ftype, err3 := s.oprateMedia(url, resp, tran)
-			if err3 != nil {
-				tran.Rollback()
-				return nil, true, false, true, fmt.Errorf("spider: [SiteMachine]crawlOne: %v", err3)
-			}
-			err = tran.WriteFriend(s.site_name, url, ftype)
+			ftype, err := s.oprateMedia(url, resp, tran)
 			if err != nil {
-				tran.Rollback()
+				return nil, true, false, true, fmt.Errorf("spider: [SiteMachine]crawlOne: %v", err)
+			}
+			err = tran.WriteFriend(s.site_role, url, ftype)
+			if err != nil {
 				return nil, true, false, true, fmt.Errorf("spider: [SiteMachine]crawlOne: %v", err)
 			} else {
-				tran.Commit()
 				return nil, true, false, true, nil
 			}
 		}
@@ -293,7 +306,7 @@ func (s *siteMachine) respGet(url string) (resp *http.Response, err error) {
 }
 
 // 处理html，enforce为是否强制处理，返回值[]string为搜集到的链接，bool如果为true则说明这个没有更新不用理会，error则是错误
-func (s *siteMachine) oprateHtml(enforce bool, url string, resp *http.Response, thetran *drule.Transaction) ([]string, bool, error) {
+func (s *siteMachine) oprateHtml(enforce bool, url string, resp *http.Response, tran *drule.Transaction) ([]string, bool, error) {
 	htmlbodyb, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
@@ -307,12 +320,12 @@ func (s *siteMachine) oprateHtml(enforce bool, url string, resp *http.Response, 
 	htmltrim := s.trimHtml(htmlbody)
 	htmltrim_sha1 := random.GetSha1Sum(htmltrim)
 	var old_signature string
-	err = s.roles_control.ReadData(url, "Signature", &old_signature)
+	err = tran.ReadData(url, "Signature", &old_signature)
 	if err != nil {
 		return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 	}
 	var old_UpInterval int64
-	err = s.roles_control.ReadData(url, "UpInterval", &old_UpInterval)
+	err = tran.ReadData(url, "UpInterval", &old_UpInterval)
 	if err != nil {
 		return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 	}
@@ -322,11 +335,11 @@ func (s *siteMachine) oprateHtml(enforce bool, url string, resp *http.Response, 
 		if new_UpInterval >= 100 {
 			new_UpInterval = 100
 		}
-		err = s.roles_control.WriteData(url, "UpInterval", new_UpInterval)
+		err = tran.WriteData(url, "UpInterval", new_UpInterval)
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "UpTime", time.Now())
+		err = tran.WriteData(url, "UpTime", time.Now())
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
@@ -338,54 +351,54 @@ func (s *siteMachine) oprateHtml(enforce bool, url string, resp *http.Response, 
 		if new_UpInterval < 1 {
 			new_UpInterval = 1
 		}
-		err = s.roles_control.WriteData(url, "Url", url)
+		err = tran.WriteData(url, "Url", url)
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "UpInterval", new_UpInterval)
+		err = tran.WriteData(url, "UpInterval", new_UpInterval)
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "UpTime", time.Now())
+		err = tran.WriteData(url, "UpTime", time.Now())
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "Signature", htmltrim_sha1)
+		err = tran.WriteData(url, "Signature", htmltrim_sha1)
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "BodyContent", htmltrim)
+		err = tran.WriteData(url, "BodyContent", htmltrim)
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "AllContent", htmlbody)
+		err = tran.WriteData(url, "AllContent", htmlbody)
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "Domain", resp.Request.URL.Host)
+		err = tran.WriteData(url, "Domain", resp.Request.URL.Host)
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "Spider", s.spider_name)
+		err = tran.WriteData(url, "Spider", s.spider_name)
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "HeaderTitle", s.findTitle(htmlbody))
+		err = tran.WriteData(url, "HeaderTitle", s.findTitle(htmlbody))
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
-		err = s.roles_control.WriteData(url, "KeyWord", s.findKeyword(htmlbody))
+		err = tran.WriteData(url, "KeyWord", s.findKeyword(htmlbody))
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
 
 		var old_IndexStatus uint8
-		err = s.roles_control.ReadData(url, "IndexStatus", &old_IndexStatus)
+		err = tran.ReadData(url, "IndexStatus", &old_IndexStatus)
 		if err != nil {
 			return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 		}
 		if old_IndexStatus == INDEX_STATUS_OK || old_IndexStatus == INDEX_STATUS_RESTORE {
-			err = s.roles_control.WriteData(url, "IndexStatus", INDEX_STATUS_UP)
+			err = tran.WriteData(url, "IndexStatus", INDEX_STATUS_UP)
 			if err != nil {
 				return nil, true, fmt.Errorf("spider: [SiteMachine]oprateHtml: %v", err)
 			}
@@ -420,29 +433,29 @@ func (s *siteMachine) oprateMedia(url string, resp *http.Response, tran *drule.T
 	default:
 		ftype = MEDIA_TYPE_OTHER
 	}
-	err = s.roles_control.WriteData(url, "Url", url)
+	err = tran.WriteData(url, "Url", url)
 	if err != nil {
 		return
 	}
-	err = s.roles_control.WriteData(url, "MediaType", ftype)
+	err = tran.WriteData(url, "MediaType", ftype)
 	if err != nil {
 		return
 	}
-	err = s.roles_control.WriteData(url, "Domain", resp.Request.URL.Host)
+	err = tran.WriteData(url, "Domain", resp.Request.URL.Host)
 	if err != nil {
 		return
 	}
-	err = s.roles_control.WriteData(url, "Spider", s.spider_name)
+	err = tran.WriteData(url, "Spider", s.spider_name)
 	if err != nil {
 		return
 	}
 	filename := s.getFileName(resp.Request.URL.Path)
-	err = s.roles_control.WriteData(url, "MediaName", filename)
+	err = tran.WriteData(url, "MediaName", filename)
 	if err != nil {
 		return
 	}
 	if filesize < 0 || filesize > max_size {
-		err = s.roles_control.WriteData(url, "DataSaved", false)
+		err = tran.WriteData(url, "DataSaved", false)
 		if err != nil {
 			return
 		}
@@ -450,26 +463,26 @@ func (s *siteMachine) oprateMedia(url string, resp *http.Response, tran *drule.T
 	}
 	bodyb, err2 := ioutil.ReadAll(resp.Body)
 	if err2 != nil {
-		err = s.roles_control.WriteData(url, "DataSaved", false)
+		err = tran.WriteData(url, "DataSaved", false)
 		if err != nil {
 			return
 		}
 		return ftype, fmt.Errorf("spider: [SiteMachine]oprateMedia: %v", err2)
 	}
-	err = s.roles_control.WriteData(url, "DataSaved", true)
+	err = tran.WriteData(url, "DataSaved", true)
 	if err != nil {
 		return
 	}
-	err = s.roles_control.WriteData(url, "DataBody", bodyb)
+	err = tran.WriteData(url, "DataBody", bodyb)
 	if err != nil {
 		return
 	}
 	sha1 := random.GetSha1SumBytes(bodyb)
-	err = s.roles_control.WriteData(url, "Signature", sha1)
+	err = tran.WriteData(url, "Signature", sha1)
 	if err != nil {
 		return
 	}
-	err = s.roles_control.WriteData(url, "UpTime", time.Now())
+	err = tran.WriteData(url, "UpTime", time.Now())
 	if err != nil {
 		return
 	}
