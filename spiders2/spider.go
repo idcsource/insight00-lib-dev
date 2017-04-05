@@ -27,6 +27,7 @@ func NewSpider(name string, rc *drule.TRule, logs *ilogs.Logs) (spider *Spider) 
 		logs:          logs,
 		work_status:   WORK_STATUS_NO,
 		spider_signal: make(chan siteStatusSignal),
+		finishedlist:  make(map[string]finishedSite),
 	}
 	return spider
 }
@@ -146,11 +147,17 @@ func (s *Spider) Start() (err error) {
 func (s *Spider) runSiteFinishHandle() {
 	for {
 		finished_sig := <-s.spider_signal
+		// 如果不在工作就略过去
+		if s.work_status != WORK_STATUS_WORKING {
+			continue
+		}
 		finishedSite := finishedSite{
 			finished_time: time.Now(),
 			next_start:    24,
 		}
+
 		s.finishedlist[finished_sig.sitename] = finishedSite
+
 	}
 }
 
@@ -158,6 +165,10 @@ func (s *Spider) runSiteFinishHandle() {
 func (s *Spider) runSiteRestartHandle() {
 	for {
 		time.Sleep(time.Hour)
+		// 如果不在工作就略过去
+		if s.work_status != WORK_STATUS_WORKING {
+			continue
+		}
 		for sitename, finish := range s.finishedlist {
 			thetime := finish.next_start * 60 * 60
 			if finish.finished_time.Unix()+thetime > time.Now().Unix() {
@@ -174,6 +185,10 @@ func (s *Spider) Stop() (err error) {
 	if s.work_status == WORK_STATUS_STOPED {
 		return
 	}
+	// 置于STOP状态
+	s.work_status = WORK_STATUS_STOPED
+	// 清空等待重启列表
+	s.finishedlist = make(map[string]finishedSite)
 	// 创建发送信号
 	signal := siteStatusSignal{
 		operate: INTERCOM_OPERATE_STOP,
@@ -182,6 +197,5 @@ func (s *Spider) Stop() (err error) {
 	for key := range s.sites {
 		s.sites[key].status_signal <- signal
 	}
-	s.work_status = WORK_STATUS_STOPED
 	return
 }
