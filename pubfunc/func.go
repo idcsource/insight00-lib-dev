@@ -8,32 +8,32 @@
 // Insight 0+0各包共同使用的辅助函数
 package pubfunc
 
-import(
-	"regexp"
+import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 // 文件是否存在
-func FileExist (filename string) bool {
+func FileExist(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil || os.IsExist(err)
 }
 
 // 返回执行文件的绝对路径
 func GetCurrPath() string {
-    file, _ := exec.LookPath(os.Args[0]);
-    path, _ := filepath.Abs(file);
-    index := strings.LastIndex(path, string(os.PathSeparator));
-    ret := path[:index];
-    return ret;
+	file, _ := exec.LookPath(os.Args[0])
+	path, _ := filepath.Abs(file)
+	index := strings.LastIndex(path, string(os.PathSeparator))
+	ret := path[:index]
+	return ret
 }
 
 // 判断目录名，如果不是“/”结尾就加上“/”
-func DirMustEnd (dir string) string {
-	matched , _ := regexp.MatchString("/$", dir)
+func DirMustEnd(dir string) string {
+	matched, _ := regexp.MatchString("/$", dir)
 	if matched == false {
 		dir = dir + "/"
 	}
@@ -41,29 +41,49 @@ func DirMustEnd (dir string) string {
 }
 
 // 处理给出的路径地址，如果为相对路径就加上绝对路径
-func LocalPath (path string) string {
-	matched, _ := regexp.MatchString("^/", path);
+func LocalPath(path string) string {
+	matched, _ := regexp.MatchString("^/", path)
 	if matched == false {
-		local := DirMustEnd(GetCurrPath());
-		path = local + path;
+		local := DirMustEnd(GetCurrPath())
+		path = local + path
 	}
-	return DirMustEnd(path);
+	return DirMustEnd(path)
 }
 
 // 处理给出的文件地址，如果为相对路径就加上绝对路径
-func LocalFile (path string) string {
-	matched, _ := regexp.MatchString("^/", path);
+func LocalFile(path string) string {
+	matched, _ := regexp.MatchString("^/", path)
 	if matched == false {
-		local := DirMustEnd(GetCurrPath());
-		path = local + path;
+		local := DirMustEnd(GetCurrPath())
+		path = local + path
 	}
-	return path;
+	return path
 }
+
 // 路径必须以斜线开始
-func PathMustBegin(path string) (string){
-	matched , _ := regexp.MatchString("^/", path)
+func PathMustBegin(path string) string {
+	matched, _ := regexp.MatchString("^/", path)
 	if matched == false {
 		path = "/" + path
 	}
 	return path
+}
+
+//将Url用斜线/拆分
+// :id=dfad/:type=dafa/
+func SplitUrl(url string) (urla []string, parameter map[string]string) {
+	parameter = make(map[string]string)
+	urlRequest := strings.Split(url, "/")
+	matchP, _ := regexp.Compile("^:([A-Za-z0-9_-]+)=(.*)")
+	for _, v := range urlRequest {
+		if len(v) != 0 {
+			if matchP.MatchString(v) {
+				pa := matchP.FindStringSubmatch(v)
+				parameter[pa[1]] = pa[2]
+			} else {
+				urla = append(urla, v)
+			}
+		}
+	}
+	return
 }
