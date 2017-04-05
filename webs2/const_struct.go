@@ -52,7 +52,6 @@ type Router struct {
 	not_found    reflect.Value             // 404路由
 	router_ok    bool                      // 其实就是看是否已经设定了NodeTree的根节点
 	static_route map[string]*regexp.Regexp // 静态路由
-	log          *ilogs.Logs               // 日志
 }
 
 // 节点树基本数据类型
@@ -64,7 +63,6 @@ type NodeTree struct {
 	node_type   int                  // 类型，首页、普通页、入口Door，NODE_IS_*
 	floor       reflect.Value        // 控制器的反射值
 	children    map[string]*NodeTree // 下层的信息，map的键为Mark
-	log         *ilogs.Logs
 }
 
 // 运行时数据结构
@@ -74,6 +72,7 @@ type Runtime struct {
 	RealNode     string            //当前节点的树名，如/node1/node2，如果没有使用节点则此处为空
 	MyConfig     *cpool.Block      //当前节点的配置文件，从ConfigTree中获取，如当前节点没有配置文件，则去寻找父节点，直到载入站点的配置文件
 	UrlRequest   map[string]string //Url请求的整理，风格为:id=1/:type=notype
+	Log          *ilogs.Logs       // 日志
 }
 
 // FloorInterface 此为控制器接口的定义

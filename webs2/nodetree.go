@@ -11,11 +11,10 @@ import (
 	"reflect"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
 )
 
 // 创建根节点，内部调用使用，不需要直接新建
-func AddRootNode(f FloorInterface, config *cpool.Block, log *ilogs.Logs) (root *NodeTree) {
+func AddRootNode(f FloorInterface, config *cpool.Block) (root *NodeTree) {
 	root = &NodeTree{
 		name:        "Index",
 		mark:        "",
@@ -24,7 +23,6 @@ func AddRootNode(f FloorInterface, config *cpool.Block, log *ilogs.Logs) (root *
 		node_type:   NODE_IS_ROOT,
 		children:    make(map[string]*NodeTree),
 		floor:       reflect.ValueOf(f),
-		log:         log,
 	}
 	return
 }
@@ -40,7 +38,6 @@ func (nt *NodeTree) AddNode(name, mark string, f FloorInterface, config *cpool.B
 		node_type:   NODE_IS_NOMAL,
 		children:    make(map[string]*NodeTree),
 		floor:       reflect.ValueOf(f),
-		log:         nt.log,
 	}
 	nt.children[mark] = child
 	return
@@ -57,7 +54,6 @@ func (nt *NodeTree) AddDoor(name, mark string, f FloorDoorInterface, config *cpo
 		node_type:   NODE_IS_DOOR,
 		floor:       reflect.ValueOf(f),
 		children:    make(map[string]*NodeTree),
-		log:         nt.log,
 	}
 	nt.children[mark] = child
 	return
@@ -88,8 +84,37 @@ func (nt *NodeTree) AddEmpty(name, mark string) (child *NodeTree) {
 		node_type:   NODE_IS_EMPTY,
 		floor:       reflect.ValueOf(&EmptyFloor{}),
 		children:    make(map[string]*NodeTree),
-		log:         nt.log,
 	}
 	nt.children[mark] = child
+	return
+}
+
+// （此方法不需要手动调用）找到现在需要去运行的Floor，如果找到了则返回的NodeTree为找到的NodeTree，如果找不到，则返回的是能找到的最后一个的NodeTree
+func (nt *NodeTree) getRunFloor(rt Runtime) (nnt *NodeTree, rtn Runtime, nothing bool) {
+	nothing = false
+	var ntok bool
+	nnt, ntok = nt.children[rt.NowRoutePath[0]]
+	if ntok == false {
+		// 如果找不到，就启动nothing，最终也就是走404
+		nothing = true
+		rtn = rt
+		nnt = nt
+		//rtn.ConfigTree[nnt.Mark] = nnt.Config;
+		rtn.MyConfig = nnt.config
+	} else {
+		rt.NowRoutePath = rt.NowRoutePath[1:]      //先将总的请求减去一个
+		rt.RealNode = rt.RealNode + "/" + nnt.mark //将RealNode修改掉
+		nothing = false
+		if nnt.if_children == false || len(rt.NowRoutePath) == 0 {
+			//如果新的节点没有子节点存在，或者NowRoutePath已经为空，则不再继续下面的操作
+			rtn = rt
+			//rtn.ConfigTree[nnt.Mark] = nnt.Config;
+			rtn.MyConfig = nnt.config
+			return
+		} else {
+			nnt, rtn, nothing = nnt.getRunFloor(rt)
+			return
+		}
+	}
 	return
 }

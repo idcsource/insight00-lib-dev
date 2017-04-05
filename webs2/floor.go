@@ -10,6 +10,8 @@ package webs2
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 )
 
 // 函数负责对控制器进行初始化。
@@ -44,6 +46,15 @@ type StaticFileFloor struct {
 
 func (f *StaticFileFloor) ExecHTTP() {
 
+	thefile := strings.Join(f.Rt.NowRoutePath, "/")
+	thefile = f.B.static + thefile
+
+	_, err := os.Stat(thefile)
+	if err != nil {
+		f.B.toNotFoundHttp(f.W, f.R, f.Rt)
+	} else {
+		http.ServeFile(f.W, f.R, thefile)
+	}
 }
 
 // 空节点的处理手段
@@ -52,4 +63,5 @@ type EmptyFloor struct {
 }
 
 func (f *EmptyFloor) ExecHTTP() {
+	f.B.toNotFoundHttp(f.W, f.R, f.Rt)
 }

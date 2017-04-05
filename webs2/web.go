@@ -140,6 +140,24 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 		}
 		return
 	}
+
+	// 如果为0,则处理首页，直接取出NodeTree的根节点
+	if len(urla) == 0 {
+		rt.RealNode = ""
+		runfloor = web.router.node_tree.floor
+	} else {
+		runfloor, rt = web.router.getRunFloor(rt)
+	}
+
+	//开始执行
+	in := make([]reflect.Value, 4)
+	in[0] = reflect.ValueOf(httpw)
+	in[1] = reflect.ValueOf(httpr)
+	in[2] = reflect.ValueOf(web)
+	in[3] = reflect.ValueOf(rt)
+	runfloor.MethodByName("InitHTTP").Call(in)
+	runfloor.MethodByName("ExecHTTP").Call(nil)
+	return
 }
 
 // 去执行NotFound，不要直接调用这个方法

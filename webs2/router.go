@@ -22,14 +22,13 @@ func newRouter(log *ilogs.Logs) (router *Router) {
 		router_ok:    false,
 		static_route: make(map[string]*regexp.Regexp),
 		not_found:    reflect.ValueOf(&NotFoundFloor{}),
-		log:          log,
 	}
 	return
 }
 
 // 创建路由，行为是增加根节点
 func (router *Router) buildRouter(f FloorInterface, config *cpool.Block) (root *NodeTree) {
-	root = AddRootNode(f, config, router.log)
+	root = AddRootNode(f, config)
 	router.node_tree = root
 	router.router_ok = true
 	return
@@ -61,6 +60,41 @@ func (r *Router) getStatic(mark string) (path string, have bool) {
 				}
 				return
 			}
+		}
+	}
+	return
+}
+
+// 找到现在需要去运行的Floor
+func (r *Router) getRunFloor(rt Runtime) (runfloor reflect.Value, rtn Runtime) {
+	var np *NodeTree
+	var nothing bool
+	runfloor = r.not_found
+	np, rtn, nothing = r.node_tree.getRunFloor(rt)
+	// 如果最终返回的是一个Door
+	if np.node_type == NODE_IS_DOOR {
+		floorlistv := np.floor.MethodByName("FloorList").Call(nil)
+		floorlist := floorlistv[0].Interface().(FloorDoor)
+		var fname string
+		if len(rtn.NowRoutePath) > 0 {
+			fname = rtn.NowRoutePath[0]
+		} else {
+			fname = "/"
+		}
+		dfloor, fok := floorlist[fname]
+		if fok == false {
+			runfloor = r.not_found
+		} else {
+			runfloor = reflect.ValueOf(dfloor)
+			if len(rtn.NowRoutePath) > 0 {
+				rtn.NowRoutePath = rtn.NowRoutePath[1:]
+			}
+		}
+	} else {
+		if nothing == true {
+			runfloor = r.not_found
+		} else {
+			runfloor = np.floor
 		}
 	}
 	return
