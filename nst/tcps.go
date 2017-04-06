@@ -18,9 +18,10 @@ import (
 // 这是一个使用Tcp协议的服务器端监听组件。
 // 根据设置接收tcp套接字传送来的信息并转交给注册的接收者。
 type TcpServer struct {
-	role reflect.Value // 将收到的数据返回给谁处理
-	logs *ilogs.Logs   // 运行日志
-	port string        // 监听的端口
+	role   reflect.Value    // 将收到的数据返回给谁处理
+	logs   *ilogs.Logs      // 运行日志
+	port   string           // 监听的端口
+	listen *net.TCPListener // 监听
 }
 
 // 新建一个Tcp的监听。注册一个符合ConnExecer接口的执行者负责真正的处理接口。
@@ -42,15 +43,20 @@ func NewTcpServer(role ConnExecer, port string, logs *ilogs.Logs) (ts *TcpServer
 		ts.logerr(fmt.Errorf("StartServer: ipAdrr: %v", err))
 		return nil, err
 	}
-
-	go ts.startServer(listens)
+	ts.listen = listens
+	go ts.startServer()
 	return ts, nil
 }
 
+// 关闭TCPServer
+func (ts *TcpServer) Close() (err error) {
+	return ts.listen.Close()
+}
+
 // 启动服务器，在NewTcpServer中直接执行
-func (ts *TcpServer) startServer(listens *net.TCPListener) {
+func (ts *TcpServer) startServer() {
 	for {
-		Connecter, err := listens.AcceptTCP()
+		Connecter, err := ts.listen.AcceptTCP()
 		if err != nil {
 			ts.logerr(fmt.Errorf("StartServer: AcceptTCP: %v", err))
 			continue
