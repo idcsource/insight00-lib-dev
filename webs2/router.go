@@ -54,7 +54,7 @@ func (r *Router) getStatic(mark string) (path string, have bool) {
 				nameA := v.FindStringSubmatch(mark)
 				if len(nameA) > 1 {
 					name := nameA[1]
-					path = pubfunc.LocalFile("") + pubfunc.DirMustEnd(k) + name
+					path = pubfunc.DirMustEnd(k) + name
 					have = true
 				}
 				return

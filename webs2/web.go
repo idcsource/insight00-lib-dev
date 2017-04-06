@@ -44,6 +44,16 @@ func NewWeb(config *cpool.Section, db *idb.DB, log *ilogs.Logs) (web *Web) {
 	return
 }
 
+// 获取本地路径
+func (web *Web) GetLocalPath() (path string) {
+	return web.local
+}
+
+// 获取静态文件路径
+func (web *Web) GetStaticPath() (path string) {
+	return web.static
+}
+
 // 注册扩展
 func (web *Web) RegExt(name string, ext interface{}) {
 	web.ext[name] = ext
@@ -92,7 +102,7 @@ func (web *Web) InitRouter(f FloorInterface, config *cpool.Block) (root *NodeTre
 	return web.router.buildRouter(f, config)
 }
 
-// 创建静态地址,path必须是相对于静态地址的地址
+// 创建静态地址,path必须是相对于静态地址(static)的地址
 func (web *Web) AddStatic(url, path string) {
 	path = web.static + path
 	path = pubfunc.DirMustEnd(path)
