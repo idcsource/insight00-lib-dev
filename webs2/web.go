@@ -13,6 +13,7 @@ import (
 	"os"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
+	"github.com/idcsource/Insight-0-0-lib/drule"
 	"github.com/idcsource/Insight-0-0-lib/idb"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/pubfunc"
@@ -46,6 +47,44 @@ func NewWeb(config *cpool.Section, db *idb.DB, log *ilogs.Logs) (web *Web) {
 // 注册扩展
 func (web *Web) RegExt(name string, ext interface{}) {
 	web.ext[name] = ext
+}
+
+// 获取扩展
+func (web *Web) GetExt(name string) (ext interface{}, err error) {
+	_, find := web.ext[name]
+	if find == false {
+		err = fmt.Errorf("webs2[Web]GetExt: The Extend %v not registered.", name)
+		return
+	}
+	return web.ext[name], nil
+}
+
+// 注册DRule
+func (web *Web) RegDRule(d *drule.Operator) {
+	web.drule = d
+}
+
+// 注册TRule
+func (web *Web) RegTRule(t *drule.TRule) {
+	web.trule = t
+}
+
+// 获得DRule，如果没有注册则返回错误
+func (web *Web) GetDRule() (d *drule.Operator, err error) {
+	if web.drule == nil {
+		err = fmt.Errorf("webs2[Web]GetDRule: The DRule Operator not registered.")
+		return
+	}
+	return web.drule, nil
+}
+
+// 获得TRule，如果没有注册则返回错误
+func (web *Web) GetTRule() (d *drule.TRule, err error) {
+	if web.trule == nil {
+		err = fmt.Errorf("webs2[Web]GetDRule: The TRule Operator not registered.")
+		return
+	}
+	return web.trule, nil
 }
 
 // 创建路由，设置根节点，并返回根结点，之后所有的对节点的添加操作均是*NodeTree提供的方法

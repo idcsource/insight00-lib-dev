@@ -13,6 +13,7 @@ import (
 	"regexp"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
+	"github.com/idcsource/Insight-0-0-lib/drule"
 	"github.com/idcsource/Insight-0-0-lib/idb"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 )
@@ -38,6 +39,8 @@ type Web struct {
 	static      string                 // 静态资源路径
 	config      *cpool.Section         // 自身的配置文件
 	database    *idb.DB                // 主数据库连接
+	drule       *drule.Operator        // 对DRule分布式存储的支持（也就是operator分布式控制器）
+	trule       *drule.TRule           // 对TRule事务存储的支持
 	multiDB     map[string]*idb.DB     // 扩展多数据库准备
 	ext         map[string]interface{} // Extension扩展数据（功能）
 	router      *Router                // 路由器
