@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"reflect"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/idb"
@@ -63,7 +62,7 @@ func (web *Web) AddStatic(url, path string) {
 
 // 修改默认的404处理
 func (web *Web) SetNotFound(f FloorInterface) {
-	web.router.not_found = reflect.ValueOf(f)
+	web.router.not_found = f
 }
 
 func (web *Web) Start() (err error) {
@@ -123,7 +122,7 @@ func (web *Web) Start() (err error) {
 //HTTP的路由，提供给"net/http"包使用
 func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 	//要运行的Floor
-	var runfloor reflect.Value
+	var runfloor FloorInterface
 	//将获得的URL用斜线拆分成[]string
 	urla, parameter := pubfunc.SplitUrl(httpr.URL.Path)
 	//准备基本的RunTime
@@ -150,25 +149,15 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 	}
 
 	//开始执行
-	in := make([]reflect.Value, 4)
-	in[0] = reflect.ValueOf(httpw)
-	in[1] = reflect.ValueOf(httpr)
-	in[2] = reflect.ValueOf(web)
-	in[3] = reflect.ValueOf(rt)
-	runfloor.MethodByName("InitHTTP").Call(in)
-	runfloor.MethodByName("ExecHTTP").Call(nil)
+	runfloor.InitHTTP(httpw, httpr, web, rt)
+	runfloor.ExecHTTP()
 	return
 }
 
 // 去执行NotFound，不要直接调用这个方法
 func (web *Web) toNotFoundHttp(w http.ResponseWriter, r *http.Request, rt Runtime) {
 	runfloor := web.router.not_found
-	in := make([]reflect.Value, 4)
-	in[0] = reflect.ValueOf(w)
-	in[1] = reflect.ValueOf(r)
-	in[2] = reflect.ValueOf(web)
-	in[3] = reflect.ValueOf(rt)
-	runfloor.MethodByName("InitHTTP").Call(in)
-	runfloor.MethodByName("ExecHTTP").Call(nil)
+	runfloor.InitHTTP(w, r, web, rt)
+	runfloor.ExecHTTP()
 	return
 }

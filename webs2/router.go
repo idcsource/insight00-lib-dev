@@ -8,7 +8,6 @@
 package webs2
 
 import (
-	"reflect"
 	"regexp"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
@@ -21,7 +20,7 @@ func newRouter(log *ilogs.Logs) (router *Router) {
 	router = &Router{
 		router_ok:    false,
 		static_route: make(map[string]*regexp.Regexp),
-		not_found:    reflect.ValueOf(&NotFoundFloor{}),
+		not_found:    &NotFoundFloor{},
 	}
 	return
 }
@@ -66,15 +65,14 @@ func (r *Router) getStatic(mark string) (path string, have bool) {
 }
 
 // 找到现在需要去运行的Floor
-func (r *Router) getRunFloor(rt Runtime) (runfloor reflect.Value, rtn Runtime) {
+func (r *Router) getRunFloor(rt Runtime) (runfloor FloorInterface, rtn Runtime) {
 	var np *NodeTree
 	var nothing bool
 	runfloor = r.not_found
 	np, rtn, nothing = r.node_tree.getRunFloor(rt)
 	// 如果最终返回的是一个Door
 	if np.node_type == NODE_IS_DOOR {
-		floorlistv := np.floor.MethodByName("FloorList").Call(nil)
-		floorlist := floorlistv[0].Interface().(FloorDoor)
+		floorlist := np.door.FloorList()
 		var fname string
 		if len(rtn.NowRoutePath) > 0 {
 			fname = rtn.NowRoutePath[0]
@@ -85,7 +83,7 @@ func (r *Router) getRunFloor(rt Runtime) (runfloor reflect.Value, rtn Runtime) {
 		if fok == false {
 			runfloor = r.not_found
 		} else {
-			runfloor = reflect.ValueOf(dfloor)
+			runfloor = dfloor
 			if len(rtn.NowRoutePath) > 0 {
 				rtn.NowRoutePath = rtn.NowRoutePath[1:]
 			}

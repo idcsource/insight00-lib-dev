@@ -10,7 +10,6 @@ package webs2
 
 import (
 	"net/http"
-	"reflect"
 	"regexp"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
@@ -49,7 +48,7 @@ type Web struct {
 // 路由器基本类型
 type Router struct {
 	node_tree    *NodeTree                 // 节点树
-	not_found    reflect.Value             // 404路由
+	not_found    FloorInterface            // 404路由
 	router_ok    bool                      // 其实就是看是否已经设定了NodeTree的根节点
 	static_route map[string]*regexp.Regexp // 静态路由
 }
@@ -61,7 +60,8 @@ type NodeTree struct {
 	config      *cpool.Block         // 节点配置文件
 	if_children bool                 // 是否有下层
 	node_type   int                  // 类型，首页、普通页、入口Door，NODE_IS_*
-	floor       reflect.Value        // 控制器的反射值
+	floor       FloorInterface       // 控制器
+	door        FloorDoorInterface   // 门入口
 	children    map[string]*NodeTree // 下层的信息，map的键为Mark
 }
 

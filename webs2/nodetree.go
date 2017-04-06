@@ -8,8 +8,6 @@
 package webs2
 
 import (
-	"reflect"
-
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 )
 
@@ -22,7 +20,7 @@ func AddRootNode(f FloorInterface, config *cpool.Block) (root *NodeTree) {
 		if_children: false,
 		node_type:   NODE_IS_ROOT,
 		children:    make(map[string]*NodeTree),
-		floor:       reflect.ValueOf(f),
+		floor:       f,
 	}
 	return
 }
@@ -37,7 +35,7 @@ func (nt *NodeTree) AddNode(name, mark string, f FloorInterface, config *cpool.B
 		if_children: false,
 		node_type:   NODE_IS_NOMAL,
 		children:    make(map[string]*NodeTree),
-		floor:       reflect.ValueOf(f),
+		floor:       f,
 	}
 	nt.children[mark] = child
 	return
@@ -52,7 +50,7 @@ func (nt *NodeTree) AddDoor(name, mark string, f FloorDoorInterface, config *cpo
 		config:      config,
 		if_children: false,
 		node_type:   NODE_IS_DOOR,
-		floor:       reflect.ValueOf(f),
+		door:        f,
 		children:    make(map[string]*NodeTree),
 	}
 	nt.children[mark] = child
@@ -67,9 +65,9 @@ func (nt *NodeTree) AddStatic(mark, path string) {
 		mark:        mark,
 		if_children: false,
 		node_type:   NODE_IS_STATIC,
-		floor: reflect.ValueOf(&StaticFileFloor{
+		floor: &StaticFileFloor{
 			path: path,
-		}),
+		},
 	}
 	nt.children[mark] = child
 }
@@ -82,7 +80,7 @@ func (nt *NodeTree) AddEmpty(name, mark string) (child *NodeTree) {
 		mark:        mark,
 		if_children: false,
 		node_type:   NODE_IS_EMPTY,
-		floor:       reflect.ValueOf(&EmptyFloor{}),
+		floor:       &EmptyFloor{},
 		children:    make(map[string]*NodeTree),
 	}
 	nt.children[mark] = child
