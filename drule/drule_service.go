@@ -23,6 +23,13 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		d.logerr(fmt.Errorf("Get the Prefix Stat err : %v", err))
 		return err
 	}
+	// 查看是否关闭
+	if d.closed == true {
+		// 发送错误信息
+		d.serverDataReceipt(conn_exec, DATA_DRULE_CLOSED, nil, fmt.Errorf("The service is closed."))
+		conn_exec.SendClose()
+		return
+	}
 	// 解码前导
 	prefix_stat := Net_PrefixStat{}
 	err = nst.BytesGobStruct(prefix_stat_b, &prefix_stat)

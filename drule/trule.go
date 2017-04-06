@@ -35,6 +35,11 @@ func NewTRule(local_store *hardstore.HardStore) (t *TRule, err error) {
 	return
 }
 
+// 获取当前事务数
+func (t *TRule) TransactionCount() (count int) {
+	return t.count_transaction
+}
+
 // 处理事务的信号
 func (t *TRule) tranSignalHandle() {
 	for {
@@ -133,6 +138,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	tran.be_delete = true
 	t.transaction[signal.tran_id] = nil
 	delete(t.transaction, signal.tran_id)
+	t.count_transaction--
 }
 
 // 处理rollback信号
@@ -207,12 +213,14 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 	t.transaction[signal.tran_id] = nil
 	tran.be_delete = true
 	delete(t.transaction, signal.tran_id)
+	t.count_transaction--
 }
 
 // 创建事务
 func (t *TRule) Begin() (tran *Transaction, err error) {
 	t.tran_lock.Lock()
 	defer t.tran_lock.Unlock()
+	t.count_transaction++
 	unid := random.GetRand(40)
 	tran = &Transaction{
 		unid:               unid,

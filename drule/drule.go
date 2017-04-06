@@ -10,6 +10,7 @@ package drule
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
@@ -25,6 +26,7 @@ func NewDRule(config *cpool.Block, logs *ilogs.Logs) (d *DRule, err error) {
 	d = &DRule{
 		config: config,
 		logs:   logs,
+		closed: false,
 	}
 	// 查找运行模式
 	var mode string
@@ -47,6 +49,22 @@ func NewDRule(config *cpool.Block, logs *ilogs.Logs) (d *DRule, err error) {
 	if err != nil {
 		err = fmt.Errorf("drule[DRule]NewDRule: %v", err)
 	}
+	return
+}
+
+// 关闭DRule
+func (d *DRule) Close() (err error) {
+	d.closed = true
+	/* 是不是要检查一下事务是否都结束呢 */
+	for i := 0; i < 5; i++ {
+		if d.trule.TransactionCount() != 0 {
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
+	}
+	d.listen.Close()
+	d.closeSlavePool()
 	return
 }
 

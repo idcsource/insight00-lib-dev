@@ -63,6 +63,8 @@ const (
 	DATA_RETURN_IS_FALSE
 	// 事务找不到
 	DATA_TRAN_NOT_EXIST
+	// 已经关闭
+	DATA_DRULE_CLOSED
 )
 
 // 操作方式列表

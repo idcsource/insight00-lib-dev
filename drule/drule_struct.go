@@ -22,6 +22,8 @@ type DRule struct {
 	trule *TRule
 	// 自己的名字
 	selfname string
+	// 已经关闭
+	closed bool
 
 	// 分布式服务模式，DMODE_*
 	dmode uint8
