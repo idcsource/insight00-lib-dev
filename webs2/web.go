@@ -104,8 +104,7 @@ func (web *Web) InitRouter(f FloorInterface, config *cpool.Block) (root *NodeTre
 
 // 创建静态地址,path必须是相对于静态地址(static)的地址
 func (web *Web) AddStatic(url, path string) {
-	path = web.static + path
-	path = pubfunc.DirMustEnd(path)
+	path = pubfunc.AbsolutePath(path, web.static)
 	web.router.addStatic(url, path)
 }
 
