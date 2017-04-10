@@ -69,6 +69,28 @@ func PathMustBegin(path string) string {
 	return path
 }
 
+// 生成绝对路径，如果给定的path不是绝对路径（以/开头），则用给定的abs补充并返回绝对路径（以/结尾）,否则直接返回path（并以/结尾）
+func AbsolutePath(path, abs string) (absolute string) {
+	matched, _ := regexp.MatchString("^/", path)
+	if matched == false {
+		abs = DirMustEnd(abs)
+		path = abs + path
+	}
+	absolute = DirMustEnd(path)
+	return
+}
+
+// 生成绝对文件路径，如果给定的path不是绝对路径（以/开头），则用给定的abs补充并返回绝对文件地址，否则直接返回file
+func AbsoluteFile(file, abs string) (absolute string) {
+	matched, _ := regexp.MatchString("^/", file)
+	if matched == false {
+		abs = DirMustEnd(abs)
+		file = abs + file
+	}
+	absolute = file
+	return
+}
+
 //将Url用斜线/拆分
 // :id=dfad/:type=dafa/
 func SplitUrl(url string) (urla []string, parameter map[string]string) {
