@@ -65,3 +65,13 @@ type EmptyFloor struct {
 func (f *EmptyFloor) ExecHTTP() {
 	f.B.toNotFoundHttp(f.W, f.R, f.Rt)
 }
+
+// 自动跳转到地址的节点处理手段
+type MoveToFloor struct {
+	Floor
+	Url string
+}
+
+func (f *MoveToFloor) ExecHTTP() {
+	http.Redirect(f.W, f.R, f.Url, 303)
+}

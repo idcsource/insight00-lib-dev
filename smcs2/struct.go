@@ -125,6 +125,5 @@ type NodeSmcs struct {
 
 // 为Gob注册角色类型
 func RegInterfaceForGob() {
-	gob.Register(&roles.Role{})
 	gob.Register(&NodeConfig{})
 }

@@ -9,6 +9,7 @@
 package roles
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"reflect"
@@ -678,4 +679,9 @@ func (r *Role) GetContextStatus(contextname string, upordown uint8, id string, b
 		return errors.New("The upordown must CONTEXT_UP or CONTEXT_DOWN.")
 	}
 	return nil
+}
+
+// 为Gob注册角色类型
+func RegInterfaceForGob() {
+	gob.Register(&Role{})
 }
