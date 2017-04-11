@@ -43,6 +43,7 @@ type Web struct {
 	trule       *drule.TRule           // 对TRule事务存储的支持
 	multiDB     map[string]*idb.DB     // 扩展多数据库准备
 	ext         map[string]interface{} // Extension扩展数据（功能）
+	execpoint   map[string]ExecPointer // 执行点
 	router      *Router                // 路由器
 	log         *ilogs.Logs            // 运行日志
 	max_routine chan bool              // 最大并发
@@ -97,4 +98,9 @@ type FloorDoor map[string]FloorInterface
 
 type FloorDoorInterface interface {
 	FloorList() FloorDoor
+}
+
+// 执行点的接口定义
+type ExecPointer interface {
+	ExecPoint(w http.ResponseWriter, r *http.Request, b *Web, rt Runtime) (err error)
 }

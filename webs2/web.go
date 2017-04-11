@@ -25,12 +25,13 @@ func NewWeb(config *cpool.Section, db *idb.DB, log *ilogs.Logs) (web *Web) {
 		log, _ = ilogs.NewLog("", "", "Web")
 	}
 	web = &Web{
-		local:    pubfunc.LocalPath(""),
-		config:   config,
-		database: db,
-		ext:      make(map[string]interface{}),
-		log:      log,
-		router:   newRouter(log),
+		local:     pubfunc.LocalPath(""),
+		config:    config,
+		database:  db,
+		ext:       make(map[string]interface{}),
+		execpoint: make(map[string]ExecPointer),
+		log:       log,
+		router:    newRouter(log),
 	}
 	// 检查静态资源地址是不是有
 	static, err := web.config.GetConfig("static")
@@ -67,6 +68,20 @@ func (web *Web) GetExt(name string) (ext interface{}, err error) {
 		return
 	}
 	return web.ext[name], nil
+}
+
+// 注册执行点
+func (web *Web) RegExecPoint(name string, point ExecPointer) {
+	web.execpoint[name] = point
+}
+
+// 执行执行点
+func (web *Web) ExecPoint(name string, w http.ResponseWriter, r *http.Request, b *Web, rt Runtime) (err error) {
+	_, find := web.execpoint[name]
+	if find == false {
+		return fmt.Errorf("Can not found the Exec Point.")
+	}
+	return web.execpoint[name].ExecPoint(w, r, b, rt)
 }
 
 // 注册DRule
