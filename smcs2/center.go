@@ -10,6 +10,7 @@ package smcs2
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule"
@@ -263,6 +264,17 @@ func (c *CenterSmcs) EmptyNodeRunLog(nodename string) (err error) {
 	return
 }
 
+// 获取节点状态，返回的是上次记录的时间到目前的间隔
+func (c *CenterSmcs) GetNodeRunStatus(node_id string) (leave int64, err error) {
+	node, find := c.node[node_id]
+	if find == false {
+		err = fmt.Errorf("smcs2[CenterSmcs]GetNodeRunStatus: Can not find the node.")
+		return
+	}
+	leave = time.Now().Unix() - node.nodetime.Unix()
+	return
+}
+
 // 返回节点树
 func (c *CenterSmcs) GetNodeTree() (nodetree NodeTree, err error) {
 	nodetree, err = c.getNodeTree(c.root_id)
@@ -289,10 +301,20 @@ func (c *CenterSmcs) getNodeTree(node_id string) (nodetree NodeTree, err error) 
 		if err != nil {
 			return
 		}
+		lifetime, err := c.GetNodeRunStatus(node_id)
+		var alive bool
+		if err != nil {
+			alive = false
+		} else if lifetime <= 60 {
+			alive = true
+		} else {
+			alive = false
+		}
 		nodetree = NodeTree{
 			Name:     name,
 			Id:       node_id,
 			RoleType: roletype,
+			Alive:    alive,
 			Tree:     make(map[string]NodeTree),
 		}
 	} else {
@@ -346,9 +368,12 @@ func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
 	// 在c.node里找到，找不到就新建
 	_, find := c.node[node_id]
 	if find == false {
-		c.node[node_id] = &sendAndReceive{}
+		c.node[node_id] = &sendAndReceive{
+			cansend: false,
+		}
 	}
 	c.node[node_id].nodeSend = node_send
+	c.node[node_id].nodetime = time.Now()
 	// 开启事务
 	tran, _ := c.store.Begin()
 	// 更新错误日志和运行日志

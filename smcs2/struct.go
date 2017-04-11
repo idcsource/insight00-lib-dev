@@ -14,6 +14,7 @@ package smcs2
 
 import (
 	"encoding/gob"
+	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule"
@@ -59,6 +60,7 @@ type NodeTree struct {
 	Name     string              // 显示名
 	Id       string              // 角色id
 	RoleType uint8               // 角色类型，是分组还是具体的，ROLE_TYPE_*
+	Alive    bool                // 是否活着，60秒内有反映
 	Tree     map[string]NodeTree // 节点树
 }
 
@@ -98,7 +100,9 @@ type CenterSend struct {
 // 一个节点对应的发送与接收信息
 type sendAndReceive struct {
 	centerSend CenterSend // 中心发送的信息
+	cansend    bool       // 是否要发送
 	nodeSend   NodeSend   // 节点发送的信息
+	nodetime   time.Time  // node发来的时间
 }
 
 // 中央的蔓延节点数据类型，也就是中央的服务器
