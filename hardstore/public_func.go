@@ -21,12 +21,12 @@ func DecodeRole(roleb, relab, verb []byte) (role roles.Roleer, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("hardstore[HardStore]DecodeRole: %v", err)
 	}
-	var r_ralation roleRelation
+	var r_ralation RoleRelation
 	err = nst.BytesGobStruct(relab, &r_ralation)
 	if err != nil {
 		return nil, fmt.Errorf("hardstore[HardStore]DecodeRole: %v", err)
 	}
-	var r_version roleVersion
+	var r_version RoleVersion
 	err = nst.BytesGobStruct(verb, &r_version)
 	if err != nil {
 		return nil, fmt.Errorf("hardstore[HardStore]DecodeRole: %v", err)
@@ -47,7 +47,7 @@ func EncodeRole(role roles.Roleer) (roleb, relab, verb []byte, err error) {
 		return nil, nil, nil, fmt.Errorf("hardstore[HardStore]EncodeRole: %v", err)
 	}
 
-	r_ralation := roleRelation{
+	r_ralation := RoleRelation{
 		Father:   role.GetFather(),
 		Children: role.GetChildren(),
 		Friends:  role.GetFriends(),
@@ -57,7 +57,7 @@ func EncodeRole(role roles.Roleer) (roleb, relab, verb []byte, err error) {
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("hardstore[HardStore]EncodeRole: %v", err)
 	}
-	r_version := roleVersion{
+	r_version := RoleVersion{
 		Version: role.Version(),
 	}
 	verb, err = nst.StructGobBytes(r_version)
