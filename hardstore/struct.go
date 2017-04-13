@@ -42,6 +42,8 @@ type RoleRelation struct {
 type RoleDataNormal struct {
 	Time map[string]time.Time
 
+	Byte map[string][]byte
+
 	String map[string]string
 
 	Bool map[string]bool

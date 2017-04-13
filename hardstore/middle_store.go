@@ -56,6 +56,8 @@ func EncodeRoleToMiddle(role roles.Roleer) (mid RoleMiddleData, err error) {
 		switch field_t.Type.String() {
 		case "time.Time":
 			mid.Normal.Time[field_name] = field_v.Interface().(time.Time)
+		case "[]byte":
+			mid.Normal.Byte[field_name] = field_v.Interface().([]byte)
 		case "string":
 			mid.Normal.String[field_name] = field_v.Interface().(string)
 		case "bool":
@@ -173,6 +175,8 @@ func DecodeMiddleToRole(mid RoleMiddleData, role roles.Roleer) (err error) {
 		switch field_t.Type.String() {
 		case "time.Time":
 			value, find = mid.Normal.Time[field_name]
+		case "[]byte":
+			value, find = mid.Normal.Byte[field_name]
 		case "string":
 			value, find = mid.Normal.String[field_name]
 		case "bool":
@@ -260,6 +264,8 @@ func DecodeMiddleToRole(mid RoleMiddleData, role roles.Roleer) (err error) {
 func initMidData() (n RoleDataNormal, s RoleDataSlice, sm RoleDataStringMap) {
 	n = RoleDataNormal{
 		Time: make(map[string]time.Time),
+
+		Byte: make(map[string][]byte),
 
 		String: make(map[string]string),
 

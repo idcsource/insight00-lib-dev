@@ -755,6 +755,8 @@ func (h *HardStore) WriteDataByMiddle(id, name string, datas interface{}) (err e
 		switch data_type_name {
 		case "time.Time":
 			data.Time[name] = data_v.Interface().(time.Time)
+		case "[]byte":
+			data.Byte[name] = data_v.Interface().([]byte)
 		case "string":
 			data.String[name] = data_v.Interface().(string)
 		case "bool":
@@ -929,6 +931,8 @@ func (h *HardStore) ReadDataByMiddle(id, name string, datas interface{}) (err er
 		switch data_type_name {
 		case "time.Time":
 			value, find = data.Time[name]
+		case "[]byte":
+			value, find = data.Byte[name]
 		case "string":
 			value, find = data.String[name]
 		case "bool":
