@@ -14,6 +14,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // 事务统治者
@@ -74,9 +75,9 @@ type tranService struct {
 // 角色缓存
 type roleCache struct {
 	// 当前角色
-	role hardstore.RoleMiddleData
+	role *roles.RoleMiddleData
 	// 角色的本尊
-	role_store hardstore.RoleMiddleData
+	role_store *roles.RoleMiddleData
 	// 被删除
 	be_delete uint8
 	// 占用的事务id

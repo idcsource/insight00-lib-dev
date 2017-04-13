@@ -158,7 +158,7 @@ func (h *HardStore) ReadRole(id string) (roles.Roleer, error) {
 }
 
 // 读取一个Middle格式
-func (h *HardStore) ReadMiddle(id string) (mid RoleMiddleData, err error) {
+func (h *HardStore) ReadMiddleData(id string) (mid *roles.RoleMiddleData, err error) {
 	hashid := random.GetSha1Sum(id)
 	path := h.findRoleFilePath(hashid)
 	f_name := path + hashid
@@ -174,7 +174,7 @@ func (h *HardStore) ReadMiddle(id string) (mid RoleMiddleData, err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_version := RoleVersion{}
+	f_version := roles.RoleVersion{}
 	err = nst.BytesGobStruct(f_version_b, &f_version)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -186,7 +186,7 @@ func (h *HardStore) ReadMiddle(id string) (mid RoleMiddleData, err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_relation := RoleRelation{}
+	f_relation := roles.RoleRelation{}
 	err = nst.BytesGobStruct(f_relation_b, &f_relation)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -198,7 +198,7 @@ func (h *HardStore) ReadMiddle(id string) (mid RoleMiddleData, err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_data_normal := RoleDataNormal{}
+	f_data_normal := roles.RoleDataNormal{}
 	err = nst.BytesGobStruct(f_data_normal_b, &f_data_normal)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -210,7 +210,7 @@ func (h *HardStore) ReadMiddle(id string) (mid RoleMiddleData, err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_data_slice := RoleDataSlice{}
+	f_data_slice := roles.RoleDataSlice{}
 	err = nst.BytesGobStruct(f_data_slice_b, &f_data_slice)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -222,7 +222,7 @@ func (h *HardStore) ReadMiddle(id string) (mid RoleMiddleData, err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_data_stringmap := RoleDataStringMap{}
+	f_data_stringmap := roles.RoleDataStringMap{}
 	err = nst.BytesGobStruct(f_data_stringmap_b, &f_data_stringmap)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -230,7 +230,7 @@ func (h *HardStore) ReadMiddle(id string) (mid RoleMiddleData, err error) {
 	}
 
 	// 合成中间数据
-	mid = RoleMiddleData{
+	mid = &roles.RoleMiddleData{
 		Version:   f_version,
 		Relation:  f_relation,
 		Normal:    f_data_normal,
@@ -258,7 +258,7 @@ func (h *HardStore) ReadRoleByMiddle(id string, role roles.Roleer) (err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_version := RoleVersion{}
+	f_version := roles.RoleVersion{}
 	err = nst.BytesGobStruct(f_version_b, &f_version)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -270,7 +270,7 @@ func (h *HardStore) ReadRoleByMiddle(id string, role roles.Roleer) (err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_relation := RoleRelation{}
+	f_relation := roles.RoleRelation{}
 	err = nst.BytesGobStruct(f_relation_b, &f_relation)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -282,7 +282,7 @@ func (h *HardStore) ReadRoleByMiddle(id string, role roles.Roleer) (err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_data_normal := RoleDataNormal{}
+	f_data_normal := roles.RoleDataNormal{}
 	err = nst.BytesGobStruct(f_data_normal_b, &f_data_normal)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -294,7 +294,7 @@ func (h *HardStore) ReadRoleByMiddle(id string, role roles.Roleer) (err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_data_slice := RoleDataSlice{}
+	f_data_slice := roles.RoleDataSlice{}
 	err = nst.BytesGobStruct(f_data_slice_b, &f_data_slice)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -306,7 +306,7 @@ func (h *HardStore) ReadRoleByMiddle(id string, role roles.Roleer) (err error) {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 		return
 	}
-	f_data_stringmap := RoleDataStringMap{}
+	f_data_stringmap := roles.RoleDataStringMap{}
 	err = nst.BytesGobStruct(f_data_stringmap_b, &f_data_stringmap)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
@@ -314,7 +314,7 @@ func (h *HardStore) ReadRoleByMiddle(id string, role roles.Roleer) (err error) {
 	}
 
 	// 合成中间数据
-	mid := RoleMiddleData{
+	mid := &roles.RoleMiddleData{
 		Version:   f_version,
 		Relation:  f_relation,
 		Normal:    f_data_normal,
@@ -322,7 +322,7 @@ func (h *HardStore) ReadRoleByMiddle(id string, role roles.Roleer) (err error) {
 		StringMap: f_data_stringmap,
 	}
 	// 解码
-	err = h.DecodeMiddleToRole(mid, role)
+	err = roles.DecodeMiddleToRole(mid, role)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]ReadRoleByMiddle: %v " + id)
 	}
@@ -334,8 +334,8 @@ func (h *HardStore) DecodeRole(roleb, relab, verb []byte) (role roles.Roleer, er
 	return DecodeRole(roleb, relab, verb)
 }
 
-func (h *HardStore) DecodeMiddleToRole(mid RoleMiddleData, role roles.Roleer) (err error) {
-	return DecodeMiddleToRole(mid, role)
+func (h *HardStore) DecodeMiddleToRole(mid *roles.RoleMiddleData, role roles.Roleer) (err error) {
+	return roles.DecodeMiddleToRole(mid, role)
 }
 
 // 存储角色，直接从[]byte结构
@@ -421,7 +421,7 @@ func (h *HardStore) StoreRoleByMiddle(role roles.Roleer) (err error) {
 	f_data_name := f_name + h.data_name
 
 	// 编码成为中间格式
-	mid, err := h.EncodeRoleToMiddle(role)
+	mid, err := roles.EncodeRoleToMiddle(role)
 	if err != nil {
 		err = fmt.Errorf("hardstore[HardStore]StoreRoleByMiddle: %v", err)
 		return
@@ -581,8 +581,8 @@ func (h *HardStore) EncodeRole(role roles.Roleer) (roleb, relab, verb []byte, er
 	return EncodeRole(role)
 }
 
-func (h *HardStore) EncodeRoleToMiddle(role roles.Roleer) (mid RoleMiddleData, err error) {
-	return EncodeRoleToMiddle(role)
+func (h *HardStore) EncodeRoleToMiddle(role roles.Roleer) (mid *roles.RoleMiddleData, err error) {
+	return roles.EncodeRoleToMiddle(role)
 }
 
 // 删除掉名为name的角色

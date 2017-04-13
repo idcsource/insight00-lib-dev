@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/hardstore"
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // 读取角色，lockmode为TRAN_LOCK_MODE_*
@@ -25,15 +25,15 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 
 	if find == false {
 		// 找不到就从硬盘上读取角色
-		role, err := t.local_store.ReadMiddle(id)
+		mid, err := t.local_store.ReadMiddleData(id)
 		if err != nil {
 			t.lock.Unlock()
 			return nil, err
 		}
 		// 将tran_id定为自己
 		rolec = &roleCache{
-			role:       role,
-			role_store: role,
+			role:       mid,
+			role_store: mid,
 			be_delete:  TRAN_ROLE_BE_DELETE_NO,
 			tran_time:  time.Now(),
 			wait_line:  make([]*tranAskGetRole, 0),
@@ -84,7 +84,7 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 }
 
 // 加入（写入）一个角色
-func (t *tranService) addRole(tran_id string, mid hardstore.RoleMiddleData) (rolec *roleCache, err error) {
+func (t *tranService) addRole(tran_id string, mid *roles.RoleMiddleData) (rolec *roleCache, err error) {
 	t.lock.Lock()
 	// 先看能找到吗
 	id := mid.Version.Id

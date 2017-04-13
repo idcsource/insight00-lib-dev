@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
@@ -32,14 +31,14 @@ func (t *Transaction) ExistRole(id string) (have bool) {
 // 角色会缓存并配置成写锁被本事务占用，如果在事务周期中不执行StoreRole保存，那么对这个角色的修改也不会被保存，信息将丢失。
 func (t *Transaction) ReadRole(id string, role roles.Roleer) (err error) {
 	if t.be_delete == true {
-		return nil, fmt.Errorf("drule[Transaction]ReadRole: This transaction has been deleted.")
+		return fmt.Errorf("drule[Transaction]ReadRole: This transaction has been deleted.")
 	}
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transacion]ReadRole: %v", err)
 		return
 	}
-	err = hardstore.DecodeMiddleToRole(rolec.role, role)
+	err = roles.DecodeMiddleToRole(rolec.role, role)
 	return
 }
 
@@ -69,10 +68,14 @@ func (t *Transaction) StoreRole(role roles.Roleer) (err error) {
 	var find bool
 	rolec, find := t.tran_cache[roleid]
 	if find == true {
-		rolec.role = role
+		mid, err := roles.EncodeRoleToMiddle(role)
+		if err != nil {
+			return fmt.Errorf("drule[Transaction]StoreRole: %v", err)
+		}
+		rolec.role = mid
 		rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
 	} else {
-		mid, err = hardstore.EncodeRoleToMiddle(role)
+		mid, err := roles.EncodeRoleToMiddle(role)
 		if err != nil {
 			return fmt.Errorf("drule[Transaction]StoreRole: %v", err)
 		}
@@ -91,7 +94,7 @@ func (t *Transaction) storeRoleByte(b []byte) (err error) {
 	}
 	t.lock.RLock()
 	defer t.lock.RUnlock()
-	rolemid := hardstore.RoleMiddleData{}
+	rolemid := &roles.RoleMiddleData{}
 	err = nst.BytesGobStruct(b, rolemid)
 	if err != nil {
 		return fmt.Errorf("drule[Transaction]storeRoleByte: %v", err)
@@ -545,7 +548,6 @@ func (t *Transaction) WriteData(id, name string, data interface{}) (err error) {
 		return err
 	}
 	rv.Set(dv)
-	rolec.role.SetDataChanged()
 	return
 }
 
@@ -577,7 +579,6 @@ func (t *Transaction) writeDataFromByte(id, name string, data []byte) (err error
 	if err != nil {
 		return err
 	}
-	rolec.role.SetDataChanged()
 	return
 }
 
