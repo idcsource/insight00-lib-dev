@@ -801,7 +801,7 @@ func (h *HardStore) WriteDataByMiddle(id, name string, datas interface{}) (err e
 	return
 }
 
-// 中间类型的存储数据
+// 中间类型的获取数据
 func (h *HardStore) ReadDataByMiddle(id, name string, datas interface{}) (err error) {
 	hashid := random.GetSha1Sum(id)
 	path := h.findRoleFilePath(hashid)

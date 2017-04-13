@@ -10,10 +10,27 @@ package hardstore
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
+
+func EncodeNotDataToMiddle(role roles.Roleer) (mid RoleMiddleData) {
+	mid = RoleMiddleData{}
+
+	// 这里是生成relation
+	mid.Relation = RoleRelation{
+		Father:   role.GetFather(),
+		Children: role.GetChildren(),
+		Friends:  role.GetFriends(),
+		Contexts: role.GetContexts(),
+	}
+
+	// 这里是开始准备生成数据
+	mid.Normal, mid.Slice, mid.StringMap = initMidData()
+	return
+}
 
 // 编码角色，将角色编码为中期存储格式
 func EncodeRoleToMiddle(role roles.Roleer) (mid RoleMiddleData, err error) {
@@ -326,5 +343,255 @@ func initMidData() (n RoleDataNormal, s RoleDataSlice, sm RoleDataStringMap) {
 		Complex128: make(map[string]map[string]complex128),
 	}
 
+	return
+}
+
+// 往中间类型设置数据
+func SetDataToMiddle(name string, mid RoleMiddleData, datas interface{}) (mid_n RoleMiddleData, err error) {
+	// 拦截恐慌
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: %v", e)
+		}
+	}()
+
+	// 获取data的数据类型
+	data_v := reflect.ValueOf(datas)
+	data_t := reflect.TypeOf(datas)
+	data_type_name := data_t.String()
+	// 查看找哪个文件
+	if m, _ := regexp.MatchString(`^map\[string\]`, data_type_name); m == true {
+		data := mid.StringMap
+		switch data_type_name {
+		case "map[string]string":
+			data.String[name] = data_v.Interface().(map[string]string)
+		case "map[string]bool":
+			data.Bool[name] = data_v.Interface().(map[string]bool)
+		case "map[string]uint8":
+			data.Uint8[name] = data_v.Interface().(map[string]uint8)
+		case "map[string]uint":
+			data.Uint[name] = data_v.Interface().(map[string]uint)
+		case "map[string]uint64":
+			data.Uint64[name] = data_v.Interface().(map[string]uint64)
+		case "map[string]int8":
+			data.Int8[name] = data_v.Interface().(map[string]int8)
+		case "map[string]int":
+			data.Int[name] = data_v.Interface().(map[string]int)
+		case "map[string]int64":
+			data.Int64[name] = data_v.Interface().(map[string]int64)
+		case "map[string]float32":
+			data.Float32[name] = data_v.Interface().(map[string]float32)
+		case "map[string]float64":
+			data.Float64[name] = data_v.Interface().(map[string]float64)
+		case "map[string]complex64":
+			data.Complex64[name] = data_v.Interface().(map[string]complex64)
+		case "map[string]complex128":
+			data.Complex128[name] = data_v.Interface().(map[string]complex128)
+		default:
+			err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: Unsupported data type %v", data_type_name)
+			return
+		}
+		// 再编码保存进去
+		mid.StringMap = data
+	} else if m, _ := regexp.MatchString(`^\[\]`, data_type_name); m == true {
+		data := mid.Slice
+		switch data_type_name {
+		case "[]string":
+			data.String[name] = data_v.Interface().([]string)
+		case "[]bool":
+			data.Bool[name] = data_v.Interface().([]bool)
+		case "[]uint8":
+			data.Uint8[name] = data_v.Interface().([]uint8)
+		case "[]uint":
+			data.Uint[name] = data_v.Interface().([]uint)
+		case "[]uint64":
+			data.Uint64[name] = data_v.Interface().([]uint64)
+		case "[]int8":
+			data.Int8[name] = data_v.Interface().([]int8)
+		case "[]int":
+			data.Int[name] = data_v.Interface().([]int)
+		case "[]int64":
+			data.Int64[name] = data_v.Interface().([]int64)
+		case "[]float32":
+			data.Float32[name] = data_v.Interface().([]float32)
+		case "[]float64":
+			data.Float64[name] = data_v.Interface().([]float64)
+		case "[]complex64":
+			data.Complex64[name] = data_v.Interface().([]complex64)
+		case "[]complex128":
+			data.Complex128[name] = data_v.Interface().([]complex128)
+		default:
+			err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: Unsupported data type %v", data_type_name)
+			return
+		}
+		// 再编码保存进去
+		mid.Slice = data
+	} else {
+		data := mid.Normal
+		switch data_type_name {
+		case "time.Time":
+			data.Time[name] = data_v.Interface().(time.Time)
+		case "[]byte":
+			data.Byte[name] = data_v.Interface().([]byte)
+		case "string":
+			data.String[name] = data_v.Interface().(string)
+		case "bool":
+			data.Bool[name] = data_v.Interface().(bool)
+		case "uint8":
+			data.Uint8[name] = data_v.Interface().(uint8)
+		case "uint":
+			data.Uint[name] = data_v.Interface().(uint)
+		case "uint64":
+			data.Uint64[name] = data_v.Interface().(uint64)
+		case "int8":
+			data.Int8[name] = data_v.Interface().(int8)
+		case "int":
+			data.Int[name] = data_v.Interface().(int)
+		case "int64":
+			data.Int64[name] = data_v.Interface().(int64)
+		case "float32":
+			data.Float32[name] = data_v.Interface().(float32)
+		case "float64":
+			data.Float64[name] = data_v.Interface().(float64)
+		case "complex64":
+			data.Complex64[name] = data_v.Interface().(complex64)
+		case "complex128":
+			data.Complex128[name] = data_v.Interface().(complex128)
+		default:
+			err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: Unsupported data type %v", data_type_name)
+			return
+		}
+		// 再编码保存进去
+		mid.Normal = data
+	}
+	mid_n = mid
+	return
+}
+
+// 中间类型的获取数据
+func GetDataFromMiddle(name string, mid RoleMiddleData, datas interface{}) (err error) {
+	// 拦截恐慌
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: %v", e)
+		}
+	}()
+
+	// 获取data的数据类型
+	data_v := reflect.Indirect(reflect.ValueOf(datas))
+	data_t := data_v.Type()
+	data_type_name := data_t.String()
+	var find bool
+	var value interface{}
+	// 查看找哪个文件
+	if m, _ := regexp.MatchString(`^map\[string\]`, data_type_name); m == true {
+		data := mid.StringMap
+		if err != nil {
+			err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: %v", err)
+			return err
+		}
+		switch data_type_name {
+		case "map[string]string":
+			value, find = data.String[name]
+		case "map[string]bool":
+			value, find = data.Bool[name]
+		case "map[string]uint8":
+			value, find = data.Uint8[name]
+		case "map[string]uint":
+			value, find = data.Uint[name]
+		case "map[string]uint64":
+			value, find = data.Uint64[name]
+		case "map[string]int8":
+			value, find = data.Int8[name]
+		case "map[string]int":
+			value, find = data.Int[name]
+		case "map[string]int64":
+			value, find = data.Int64[name]
+		case "map[string]float32":
+			value, find = data.Float32[name]
+		case "map[string]float64":
+			value, find = data.Float64[name]
+		case "map[string]complex64":
+			value, find = data.Complex64[name]
+		case "map[string]complex128":
+			value, find = data.Complex128[name]
+		default:
+			err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: Unsupported data type %v", data_type_name)
+			return err
+		}
+	} else if m, _ := regexp.MatchString(`^\[\]`, data_type_name); m == true {
+		data := mid.Slice
+		switch data_type_name {
+		case "[]string":
+			value, find = data.String[name]
+		case "[]bool":
+			value, find = data.Bool[name]
+		case "[]uint8":
+			value, find = data.Uint8[name]
+		case "[]uint":
+			value, find = data.Uint[name]
+		case "[]uint64":
+			value, find = data.Uint64[name]
+		case "[]int8":
+			value, find = data.Int8[name]
+		case "[]int":
+			value, find = data.Int[name]
+		case "[]int64":
+			value, find = data.Int64[name]
+		case "[]float32":
+			value, find = data.Float32[name]
+		case "[]float64":
+			value, find = data.Float64[name]
+		case "[]complex64":
+			value, find = data.Complex64[name]
+		case "[]complex128":
+			value, find = data.Complex128[name]
+		default:
+			err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: Unsupported data type %v", data_type_name)
+			return err
+		}
+	} else {
+		data := mid.Normal
+		switch data_type_name {
+		case "time.Time":
+			value, find = data.Time[name]
+		case "[]byte":
+			value, find = data.Byte[name]
+		case "string":
+			value, find = data.String[name]
+		case "bool":
+			value, find = data.Bool[name]
+		case "uint8":
+			value, find = data.Uint8[name]
+		case "uint":
+			value, find = data.Uint[name]
+		case "uint64":
+			value, find = data.Uint64[name]
+		case "int8":
+			value, find = data.Int8[name]
+		case "int":
+			value, find = data.Int[name]
+		case "int64":
+			value, find = data.Int64[name]
+		case "float32":
+			value, find = data.Float32[name]
+		case "float64":
+			value, find = data.Float64[name]
+		case "complex64":
+			value, find = data.Complex64[name]
+		case "complex128":
+			value, find = data.Complex128[name]
+		default:
+			err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: Unsupported data type %v", data_type_name)
+			return err
+		}
+	}
+	if find == false {
+		err = fmt.Errorf("hardstore[RoleMiddleData]WriteDataByMiddle: Can not find the field %v", name)
+		return
+	}
+
+	value_v := reflect.ValueOf(value)
+	data_v.Set(value_v)
 	return
 }
