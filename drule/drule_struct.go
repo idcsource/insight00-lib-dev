@@ -93,6 +93,8 @@ type Net_SlaveReceipt_Data struct {
 type Net_RoleSendAndReceive struct {
 	// 角色的ID
 	RoleID string
+	// 是否存在
+	IfHave bool
 	// 角色的身体
 	RoleBody []byte
 	// 角色的关系

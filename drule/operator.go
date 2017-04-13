@@ -335,9 +335,11 @@ func (o *Operator) sendReadAndDecodeData(roleid string, operate int, senddata []
 		return
 	}
 	// 解码装入
-	err = nst.BytesGobStruct(slave_receipt.Data, returndata)
-	if err != nil {
-		return
+	if returndata != nil {
+		err = nst.BytesGobStruct(slave_receipt.Data, returndata)
+		if err != nil {
+			return
+		}
 	}
 	return
 }

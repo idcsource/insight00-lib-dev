@@ -78,6 +78,8 @@ const (
 	OPERATE_READ_ROLE
 	// 写入一个角色
 	OPERATE_WRITE_ROLE
+	// 存在一个角色
+	OPERATE_EXIST_ROLE
 
 	// 创建一个新角色
 	OPERATE_NEW_ROLE

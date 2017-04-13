@@ -89,20 +89,20 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			// 如果没有等待队列
 			// 将这个角色保存或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
-				t.local_store.StoreRole(rolec.role)
+				t.local_store.StoreRoleByMiddle(rolec.role)
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
-				t.local_store.DeleteRole(rolec.role.ReturnId())
+				t.local_store.DeleteRole(rolec.role.Version.Id)
 			}
 			// 将这个角色从缓存中移除
 			t.tran_service.role_cache[roleid] = nil
 			delete(t.tran_service.role_cache, roleid)
 		} else {
-			fmt.Println("Tran log, 不写入 ", rolec.role.ReturnId())
+			fmt.Println("Tran log, 不写入 ", rolec.role.Version.Id)
 			// 替换本尊或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
-				rolec.role_store.body, rolec.role_store.rela, rolec.role_store.vers, _ = hardstore.EncodeRole(rolec.role)
+				rolec.role_store = rolec.role
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
-				t.local_store.DeleteRole(rolec.role.ReturnId())
+				t.local_store.DeleteRole(rolec.role.Version.Id)
 				rolec.role = nil
 				rolec.be_delete = TRAN_ROLE_BE_DELETE_COMMIT
 			}
@@ -177,7 +177,7 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 			// 如果有排队的
 			// 用本尊替换实体
 			if rolec.be_delete != TRAN_ROLE_BE_DELETE_COMMIT {
-				rolec.role, _ = hardstore.DecodeRole(rolec.role_store.body, rolec.role_store.rela, rolec.role_store.vers)
+				rolec.role = rolec.role_store
 			}
 			// 重置删除标记
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
@@ -308,20 +308,34 @@ func (t *TRule) getTransactionForDRule(unid string) (tran *Transaction, err erro
 	return
 }
 
+// 是否存在这个角色
+func (t *TRule) ExistRole(id string) (have bool) {
+	have = t.local_store.RoleExist(id)
+	return
+}
+
 /* 下面是rolesio.RolesInOutManager接口的实现 */
 
 // 往永久存储写入一个角色，直接调用底层HardStore存储（也就是说，直接使用这个是不安全的）
 func (t *TRule) StoreRole(role roles.Roleer) (err error) {
-	err = t.local_store.StoreRole(role)
+	err = t.local_store.StoreRoleByMiddle(role)
 	if err != nil {
 		err = fmt.Errorf("drule[TRule]StoreRole: %v", err)
 	}
 	return
 }
 
+func (t *TRule) storeRoleByte(b []byte) (err error) {
+	err = t.local_store.StoreRoleByMiddleByte(b)
+	if err != nil {
+		err = fmt.Errorf("drule[TRule]storeRoleByte: %v", err)
+	}
+	return
+}
+
 // 从永久存储读出一个角色，直接调用底层HardStore存储（也就是说，直接使用这个是不安全的）
-func (t *TRule) ReadRole(id string) (role roles.Roleer, err error) {
-	role, err = t.local_store.ReadRole(id)
+func (t *TRule) ReadRole(id string, role roles.Roleer) (err error) {
+	err = t.local_store.ReadRoleByMiddle(id, role)
 	if err != nil {
 		err = fmt.Errorf("drule[TRule]ReadRole: %v", err)
 	}

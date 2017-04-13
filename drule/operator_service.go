@@ -16,8 +16,27 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
+// 是否存在一个角色
+func (o *Operator) RoleExist(id string) (have bool, err error) {
+	role_sr := Net_RoleSendAndReceive{}
+	role_sr.RoleID = id
+
+	role_sr_b, err := nst.StructGobBytes(role_sr)
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]RoleExist: %v", err)
+		return
+	}
+	_, err = o.sendReadAndDecodeData(id, OPERATE_EXIST_ROLE, role_sr_b, &role_sr)
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]RoleExist: %v", err)
+		return
+	}
+	have = role_sr.IfHave
+	return
+}
+
 // 读取一个角色
-func (o *Operator) ReadRole(id string) (role roles.Roleer, err error) {
+func (o *Operator) ReadRole(id string, role roles.Roleer) (err error) {
 	// 去执行
 	role_sr := Net_RoleSendAndReceive{}
 	role_sr.RoleID = id
@@ -33,7 +52,13 @@ func (o *Operator) ReadRole(id string) (role roles.Roleer, err error) {
 		return
 	}
 	// 还原角色
-	role, err = hardstore.DecodeRole(role_sr.RoleBody, role_sr.RoleRela, role_sr.RoleVer)
+	mid := hardstore.RoleMiddleData{}
+	err = nst.BytesGobStruct(role_sr.RoleBody, &mid)
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]ReadRole: %v", err)
+		return
+	}
+	err = hardstore.DecodeMiddleToRole(mid, role)
 	return
 }
 
@@ -43,7 +68,12 @@ func (o *Operator) StoreRole(role roles.Roleer) (err error) {
 	roleid := role.ReturnId()
 	// 编码角色
 	role_sr := Net_RoleSendAndReceive{}
-	role_sr.RoleBody, role_sr.RoleRela, role_sr.RoleVer, err = hardstore.EncodeRole(role)
+	mid, err := hardstore.EncodeRoleToMiddle(role)
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]StoreRole: %v", err)
+		return
+	}
+	role_sr.RoleBody, err = nst.StructGobBytes(mid)
 	if err != nil {
 		err = fmt.Errorf("drule[Operator]StoreRole: %v", err)
 		return

@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
@@ -20,10 +21,16 @@ import (
  以下内容与roleio.RolesInOutManager接口一致（除了ToStore()）
 */
 
+// 是否存在这个角色
+func (t *Transaction) ExistRole(id string) (have bool) {
+	have = t.tran_service.local_store.RoleExist(id)
+	return
+}
+
 // 读取一个角色
 //
 // 角色会缓存并配置成写锁被本事务占用，如果在事务周期中不执行StoreRole保存，那么对这个角色的修改也不会被保存，信息将丢失。
-func (t *Transaction) ReadRole(id string) (role roles.Roleer, err error) {
+func (t *Transaction) ReadRole(id string, role roles.Roleer) (err error) {
 	if t.be_delete == true {
 		return nil, fmt.Errorf("drule[Transaction]ReadRole: This transaction has been deleted.")
 	}
@@ -32,7 +39,21 @@ func (t *Transaction) ReadRole(id string) (role roles.Roleer, err error) {
 		err = fmt.Errorf("drule[Transacion]ReadRole: %v", err)
 		return
 	}
-	return rolec.role, nil
+	err = hardstore.DecodeMiddleToRole(rolec.role, role)
+	return
+}
+
+func (t *Transaction) readRoleByte(id string) (b []byte, err error) {
+	if t.be_delete == true {
+		return nil, fmt.Errorf("drule[Transaction]readRoleByte: This transaction has been deleted.")
+	}
+	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
+	if err != nil {
+		err = fmt.Errorf("drule[Transacion]readRoleByte: %v", err)
+		return
+	}
+	b, err = nst.StructGobBytes(rolec.role)
+	return
 }
 
 // 写入一个角色
@@ -51,7 +72,38 @@ func (t *Transaction) StoreRole(role roles.Roleer) (err error) {
 		rolec.role = role
 		rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
 	} else {
-		rolec, err = t.tran_service.addRole(t.unid, role)
+		mid, err = hardstore.EncodeRoleToMiddle(role)
+		if err != nil {
+			return fmt.Errorf("drule[Transaction]StoreRole: %v", err)
+		}
+		rolec, err = t.tran_service.addRole(t.unid, mid)
+		if err != nil {
+			return fmt.Errorf("drule[Transaction]StoreRole: %v", err)
+		}
+		t.tran_cache[roleid] = rolec
+	}
+	return nil
+}
+
+func (t *Transaction) storeRoleByte(b []byte) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("drule[Transaction]StoreRole: This transaction has been deleted.")
+	}
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	rolemid := hardstore.RoleMiddleData{}
+	err = nst.BytesGobStruct(b, rolemid)
+	if err != nil {
+		return fmt.Errorf("drule[Transaction]storeRoleByte: %v", err)
+	}
+	roleid := rolemid.Version.Id
+	var find bool
+	rolec, find := t.tran_cache[roleid]
+	if find == true {
+		rolec.role = rolemid
+		rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
+	} else {
+		rolec, err = t.tran_service.addRole(t.unid, rolemid)
 		if err != nil {
 			return fmt.Errorf("drule[Transaction]StoreRole: %v", err)
 		}
@@ -85,7 +137,7 @@ func (t *Transaction) WriteFather(id, father string) (err error) {
 	}
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
-	rolec.role.SetFather(father)
+	rolec.role.Relation.Father = father
 	return
 }
 

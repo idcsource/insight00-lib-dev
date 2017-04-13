@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/Insight-0-0-lib/hardstore"
 )
 
 // 读取角色，lockmode为TRAN_LOCK_MODE_*
@@ -25,13 +25,7 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 
 	if find == false {
 		// 找不到就从硬盘上读取角色
-		role, err := t.local_store.ReadRole(id)
-		if err != nil {
-			t.lock.Unlock()
-			return nil, err
-		}
-		role_store := roleStore{}
-		role_store.body, role_store.rela, role_store.vers, err = t.local_store.EncodeRole(role)
+		role, err := t.local_store.ReadMiddle(id)
 		if err != nil {
 			t.lock.Unlock()
 			return nil, err
@@ -39,7 +33,7 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 		// 将tran_id定为自己
 		rolec = &roleCache{
 			role:       role,
-			role_store: role_store,
+			role_store: role,
 			be_delete:  TRAN_ROLE_BE_DELETE_NO,
 			tran_time:  time.Now(),
 			wait_line:  make([]*tranAskGetRole, 0),
@@ -90,24 +84,22 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 }
 
 // 加入（写入）一个角色
-func (t *tranService) addRole(tran_id string, role roles.Roleer) (rolec *roleCache, err error) {
+func (t *tranService) addRole(tran_id string, mid hardstore.RoleMiddleData) (rolec *roleCache, err error) {
 	t.lock.Lock()
 	// 先看能找到吗
-	id := role.ReturnId()
+	id := mid.Version.Id
 	var find bool
 	rolec, find = t.role_cache[id]
 
 	if find == false {
 		// 找不到
-		role_store := roleStore{}
-		role_store.body, role_store.rela, role_store.vers, err = t.local_store.EncodeRole(role)
 		if err != nil {
 			t.lock.RUnlock()
 			return nil, err
 		}
 		rolec = &roleCache{
-			role:       role,
-			role_store: role_store,
+			role:       mid,
+			role_store: mid,
 			be_delete:  TRAN_ROLE_BE_DELETE_NO,
 			tran_time:  time.Now(),
 			wait_line:  make([]*tranAskGetRole, 0),
@@ -134,12 +126,10 @@ func (t *tranService) addRole(tran_id string, role roles.Roleer) (rolec *roleCac
 		<-wait.approved
 		fmt.Println("Tran log ", tran_id, "等到了", id)
 		// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以就把角色的主体改了吧
-		rolec.role = role
+		rolec.role = mid
 		// 如果被确认删除了还就很麻烦的
 		if rolec.be_delete != TRAN_ROLE_BE_DELETE_NO {
-			role_store := roleStore{}
-			role_store.body, role_store.rela, role_store.vers, err = t.local_store.EncodeRole(role)
-			rolec.role_store = role_store
+			rolec.role_store = role
 			rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
 		}
 		return rolec, nil

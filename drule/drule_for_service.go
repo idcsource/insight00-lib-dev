@@ -47,6 +47,35 @@ func (d *DRule) writeFatherNoTran(byte_slice_data []byte) (err error) {
 	return
 }
 
+// 为readSometing的是否存在角色（事务版）
+func (d *DRule) existRoleTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_sr := Net_RoleSendAndReceive{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_sr)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_sr.IfHave = tran.ExistRole(role_sr.RoleID)
+	return_data, err = nst.StructGobBytes(role_sr)
+	return
+}
+
+// 为readSometing的是否存在角色（非事务版）
+func (d *DRule) existRoleNoTran(byte_slice_data []byte) (return_data []byte, err error) {
+	// 解码
+	role_sr := Net_RoleSendAndReceive{}
+	err = nst.BytesGobStruct(byte_slice_data, &role_sr)
+	if err != nil {
+		return
+	}
+	// 执行
+	role_sr.IfHave = d.trule.ExistRole(role_sr.RoleID)
+	// 编码发送
+	return_data, err = nst.StructGobBytes(role_sr)
+	return
+}
+
 // 为readSometing的读取角色（事务版）
 func (d *DRule) readRoleTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
 	// 解码
@@ -61,7 +90,11 @@ func (d *DRule) readRoleTran(tran *Transaction, byte_slice_data []byte) (return_
 		return
 	}
 	// 编码角色
-	role_sr.RoleBody, role_sr.RoleRela, role_sr.RoleVer, err = hardstore.EncodeRole(role)
+	mid, err := hardstore.EncodeRoleToMiddle(role)
+	if err != nil {
+		return
+	}
+	role_sr.RoleBody, err = nst.StructGobBytes(mid)
 	if err != nil {
 		return
 	}
@@ -84,7 +117,11 @@ func (d *DRule) readRoleNoTran(byte_slice_data []byte) (return_data []byte, err 
 		return
 	}
 	// 编码角色
-	role_sr.RoleBody, role_sr.RoleRela, role_sr.RoleVer, err = hardstore.EncodeRole(role)
+	mid, err := hardstore.EncodeRoleToMiddle(role)
+	if err != nil {
+		return
+	}
+	role_sr.RoleBody, err = nst.StructGobBytes(mid)
 	if err != nil {
 		return
 	}
@@ -102,12 +139,11 @@ func (d *DRule) storeRoleTran(tran *Transaction, byte_slice_data []byte) (err er
 		return
 	}
 	// 执行
-	// 还原角色
-	role, err := hardstore.DecodeRole(role_sr.RoleBody, role_sr.RoleRela, role_sr.RoleVer)
+	role_b := role_sr.RoleBody
 	if err != nil {
 		return err
 	}
-	err = tran.StoreRole(role)
+	err = tran.storeRoleByte(role_b)
 	return
 }
 

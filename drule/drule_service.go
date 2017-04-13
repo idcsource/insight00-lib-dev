@@ -74,6 +74,10 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		// 读取角色
 		err = d.readSomeThing(prefix_stat, conn_exec)
 		operate_string = "OPERATE_READ_ROLE"
+	case OPERATE_EXIST_ROLE:
+		// 是否存在
+		err = d.readSomeThing(prefix_stat, conn_exec)
+		operate_string = "OPERATE_EXIST_ROLE"
 	case OPERATE_WRITE_ROLE:
 		// 保存角色
 		err = d.writeSomeThing(prefix_stat, conn_exec)
@@ -444,6 +448,9 @@ func (d *DRule) readSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExe
 			}
 			// 遍历请求
 			switch prefix_stat.Operate {
+			case OPERATE_EXIST_ROLE:
+				// 是否存在
+				return_data, err = d.existRoleTran(tran, byte_slice_data)
 			case OPERATE_READ_ROLE:
 				// 读取角色
 				return_data, err = d.readRoleTran(tran, byte_slice_data)
@@ -486,6 +493,9 @@ func (d *DRule) readSomeThing(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExe
 		} else {
 			// 不在事务中，遍历请求
 			switch prefix_stat.Operate {
+			case OPERATE_EXIST_ROLE:
+				// 是否存在
+				return_data, err = d.existRoleNoTran(byte_slice_data)
 			case OPERATE_READ_ROLE:
 				// 读取角色
 				return_data, err = d.readRoleNoTran(byte_slice_data)
