@@ -11,11 +11,13 @@ import (
 	"time"
 )
 
+// 角色的版本，包含版本号和Id
 type RoleVersion struct {
 	Version int
 	Id      string
 }
 
+// 角色的关系，包含了父、子、朋友、上下文
 type RoleRelation struct {
 	Father   string             // 父角色（拓扑结构层面）
 	Children []string           // 虚拟的子角色群，只保存键名
@@ -23,6 +25,7 @@ type RoleRelation struct {
 	Contexts map[string]Context // 上下文
 }
 
+// 角色的数据点类型（普通）
 type RoleDataNormal struct {
 	Time map[string]time.Time
 
@@ -47,6 +50,7 @@ type RoleDataNormal struct {
 	Complex128 map[string]complex128
 }
 
+// 角色的数据点类型（Map）
 type RoleDataStringMap struct {
 	String map[string]map[string]string
 
@@ -67,6 +71,7 @@ type RoleDataStringMap struct {
 	Complex128 map[string]map[string]complex128
 }
 
+// 角色的数据点类型（切片）
 type RoleDataSlice struct {
 	String map[string][]string
 
@@ -87,6 +92,7 @@ type RoleDataSlice struct {
 	Complex128 map[string][]complex128
 }
 
+// 角色的中期存储类型
 type RoleMiddleData struct {
 	Version   RoleVersion
 	Relation  RoleRelation

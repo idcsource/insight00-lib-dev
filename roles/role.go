@@ -5,7 +5,6 @@
 // Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
-// 角色（Role）概念封装的数据存储与数据关系
 package roles
 
 import (

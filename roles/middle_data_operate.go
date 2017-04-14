@@ -5,7 +5,6 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
-// 角色（Role）概念封装的数据存储与数据关系
 package roles
 
 import (
@@ -23,7 +22,7 @@ func (r *RoleMiddleData) ReturnVersion() (version int) {
 	return r.Version.Version
 }
 
-// 设置自己的版本（通常这个是在存储（如HardStore）来处理的时候才需要甬道）
+// 设置自己的版本（通常这个是在存储（如HardStore）来处理的时候才需要）
 func (r *RoleMiddleData) SetVersion(version int) {
 	r.Version.Version = version
 }
@@ -33,6 +32,7 @@ func (r *RoleMiddleData) ReturnId() string {
 	return r.Version.Id
 }
 
+// 设置角色自身的ID
 func (r *RoleMiddleData) SetId(id string) {
 	r.Version.Id = id
 }
@@ -535,6 +535,7 @@ func (r *RoleMiddleData) GetContextStatus(contextname string, upordown uint8, id
 	return nil
 }
 
+// 获取数据并返回到一个空接口
 func (r *RoleMiddleData) GetDataToInterface(name, typename string) (data interface{}, err error) {
 	var find bool
 	switch typename {
@@ -868,140 +869,8 @@ func (r *RoleMiddleData) SetData(name string, datas interface{}) (err error) {
 	return
 }
 
-// 获取类型
-func (r *RoleMiddleData) GetDataType(typename string) (data interface{}, err error) {
-	switch typename {
-	case "time.Time":
-		d := time.Now()
-		return d, nil
-	case "[]byte":
-		return make([]byte, 0), nil
-	case "string":
-		d := ""
-		return d, nil
-	case "bool":
-		return true, nil
-	case "uint8":
-		var d uint8 = 0
-		return d, nil
-	case "uint":
-		var d uint = 0
-		return d, nil
-	case "uint64":
-		var d uint64 = 0
-		return d, nil
-	case "int8":
-		var d int8 = 0
-		return d, nil
-	case "int":
-		var d int = 0
-		return d, nil
-	case "int64":
-		var d int64 = 0
-		return d, nil
-	case "float32":
-		var d float32 = 0.1
-		return d, nil
-	case "float64":
-		var d float64 = 0.1
-		return d, nil
-	case "complex64":
-		var d complex64 = complex(0, 0)
-		return d, nil
-	case "complex128":
-		var d complex128 = complex(0, 0)
-		return d, nil
-
-	case "[]string":
-		d := make([]string, 0)
-		return d, nil
-	case "[]bool":
-		d := make([]bool, 0)
-		return d, nil
-	case "[]uint8":
-		d := make([]uint8, 0)
-		return d, nil
-	case "[]uint":
-		d := make([]uint, 0)
-		return d, nil
-	case "[]uint64":
-		d := make([]uint64, 0)
-		return d, nil
-	case "[]int8":
-		d := make([]int8, 0)
-		return d, nil
-	case "[]int":
-		d := make([]int, 0)
-		return d, nil
-	case "[]int64":
-		d := make([]int64, 0)
-		return d, nil
-	case "[]float32":
-		d := make([]float32, 0)
-		return d, nil
-	case "[]float64":
-		d := make([]float64, 0)
-		return d, nil
-	case "[]complex64":
-		d := make([]complex64, 0)
-		return d, nil
-	case "[]complex128":
-		d := make([]complex128, 0)
-		return d, nil
-
-	case "map[string]string":
-		d := make(map[string]string)
-		return d, nil
-	case "map[string]bool":
-		d := make(map[string]bool)
-		return d, nil
-	case "map[string]uint8":
-		d := make(map[string]uint8)
-		return d, nil
-	case "map[string]uint":
-		d := make(map[string]uint)
-		return d, nil
-	case "map[string]uint64":
-		d := make(map[string]uint64)
-		return d, nil
-	case "map[string]int8":
-		d := make(map[string]int8)
-		return d, nil
-	case "map[string]int":
-		d := make(map[string]int)
-		return d, nil
-	case "map[string]int64":
-		d := make(map[string]int64)
-		return d, nil
-	case "map[string]float32":
-		d := make(map[string]float32)
-		return d, nil
-	case "map[string]float64":
-		d := make(map[string]float64)
-		return d, nil
-	case "map[string]complex64":
-		d := make(map[string]complex64)
-		return d, nil
-	case "map[string]complex128":
-		d := make(map[string]complex128)
-		return d, nil
-
-	default:
-		err = fmt.Errorf("roles[RoleMiddleData]SetDataFromNoType: Can't find the data.")
-		return
-	}
-
-	return
-}
-
-// 获取类型
+// 从[]byte设置数据点数据
 func (r *RoleMiddleData) SetDataFromByte(name, typename string, data_b []byte) (err error) {
-	// 拦截恐慌
-	defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("roles[RoleMiddleData]SetDataFromByte: %v", e)
-		}
-	}()
 
 	b_buf := bytes.NewBuffer(data_b) //将[]byte放入bytes的buffer中
 	b_go := gob.NewDecoder(b_buf)    //将buffer放入gob的decoder中
