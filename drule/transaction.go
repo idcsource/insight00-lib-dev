@@ -9,7 +9,6 @@ package drule
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/idcsource/Insight-0-0-lib/nst"
@@ -38,7 +37,22 @@ func (t *Transaction) ReadRole(id string, role roles.Roleer) (err error) {
 		err = fmt.Errorf("drule[Transacion]ReadRole: %v", err)
 		return
 	}
-	err = roles.DecodeMiddleToRole(rolec.role, role)
+	err = roles.DecodeMiddleToRole(*rolec.role, role)
+	return
+}
+
+// 从永久存储读出角色的MiddleData格式
+func (t *Transaction) readRoleMiddle(id string) (mid roles.RoleMiddleData, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]readRoleMiddle: This transaction has been deleted.")
+		return
+	}
+	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
+	if err != nil {
+		err = fmt.Errorf("drule[Transacion]readRoleByte: %v", err)
+		return
+	}
+	mid = *rolec.role
 	return
 }
 
@@ -72,7 +86,7 @@ func (t *Transaction) StoreRole(role roles.Roleer) (err error) {
 		if err != nil {
 			return fmt.Errorf("drule[Transaction]StoreRole: %v", err)
 		}
-		rolec.role = mid
+		rolec.role = &mid
 		rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
 	} else {
 		mid, err := roles.EncodeRoleToMiddle(role)
@@ -94,8 +108,8 @@ func (t *Transaction) storeRoleByte(b []byte) (err error) {
 	}
 	t.lock.RLock()
 	defer t.lock.RUnlock()
-	rolemid := &roles.RoleMiddleData{}
-	err = nst.BytesGobStruct(b, rolemid)
+	rolemid := roles.RoleMiddleData{}
+	err = nst.BytesGobStruct(b, &rolemid)
 	if err != nil {
 		return fmt.Errorf("drule[Transaction]storeRoleByte: %v", err)
 	}
@@ -103,7 +117,7 @@ func (t *Transaction) storeRoleByte(b []byte) (err error) {
 	var find bool
 	rolec, find := t.tran_cache[roleid]
 	if find == true {
-		rolec.role = rolemid
+		rolec.role = &rolemid
 		rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
 	} else {
 		rolec, err = t.tran_service.addRole(t.unid, rolemid)
@@ -528,58 +542,74 @@ func (t *Transaction) WriteData(id, name string, data interface{}) (err error) {
 		err = fmt.Errorf("drule[Transaction]WriteData: %v", err)
 		return
 	}
-	defer func() {
-		// 拦截反射的恐慌
-		if e := recover(); e != nil {
-			err = fmt.Errorf("drule[Transaction]WriteData: %v", e)
-		}
-	}()
-	// 开始反射的那些乱七八遭
-	rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(name)
-	rv_type := rv.Type()
-	dv := reflect.Indirect(reflect.ValueOf(data))
-	dv_type := dv.Type()
-	if rv_type != dv_type {
-		err = fmt.Errorf("drule[Transaction]WriteData: The data type %v not assignable to type %v.", dv_type, rv_type)
-		return err
+	err = rolec.role.SetData(name, data)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]WriteData: %v", err)
 	}
-	if rv.CanSet() != true {
-		err = fmt.Errorf("drule[Transaction]WriteData: The data type %v not be set.", dv_type)
-		return err
-	}
-	rv.Set(dv)
 	return
 }
 
 // 从Byte写入Data，这是一个内部的函数
-func (t *Transaction) writeDataFromByte(id, name string, data []byte) (err error) {
-	if t.be_delete == true {
-		err = fmt.Errorf("drule[Transaction]WriteData: This transaction has been deleted.")
-		return
-	}
-	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
-	if err != nil {
-		err = fmt.Errorf("drule[Transaction]WriteData: %v", err)
-		return
-	}
+func (t *Transaction) writeDataFromByte(id, name, typename string, data_b []byte) (err error) {
 	defer func() {
 		// 拦截反射的恐慌
 		if e := recover(); e != nil {
 			err = fmt.Errorf("drule[Transaction]WriteData: %v", e)
 		}
 	}()
-	// 开始反射的那些乱七八遭
-	rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(name)
-	rv_type := rv.Type()
-	if rv.CanSet() != true {
-		err = fmt.Errorf("The data type %v not be set.", rv_type)
-		return err
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]writeDataFromByte: This transaction has been deleted.")
+		return
 	}
-	err = nst.BytesGobReflect(data, rv)
+	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
-		return err
+		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
+		return
+	}
+	err = rolec.role.SetDataFromByte(name, typename, data_b)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
 	}
 	return
+	/*
+		data, err := rolec.role.GetDataType(typename)
+		if err != nil {
+			err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
+			return
+		}
+		data_v := reflect.ValueOf(reflect.ValueOf(data))
+		fmt.Println(data_v.Type())
+		fmt.Println("可设置吗", data_v.CanSet())
+		err = nst.BytesGobReflect(data_b, data_v)
+		if err != nil {
+			err = fmt.Errorf("drule[Transaction]writeDataFromByte_2: %v", err)
+			return
+		}
+		err = rolec.role.SetData(name, data)
+		if err != nil {
+			err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
+		}
+		/*
+		return
+		/*
+			defer func() {
+				// 拦截反射的恐慌
+				if e := recover(); e != nil {
+					err = fmt.Errorf("drule[Transaction]WriteData: %v", e)
+				}
+			}()
+			// 开始反射的那些乱七八遭
+			rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(name)
+			rv_type := rv.Type()
+			if rv.CanSet() != true {
+				err = fmt.Errorf("The data type %v not be set.", rv_type)
+				return err
+			}
+			err = nst.BytesGobReflect(data, rv)
+			if err != nil {
+				return err
+			}
+	*/
 }
 
 // 从角色中找到name的数据名并返回其数据
@@ -593,26 +623,10 @@ func (t *Transaction) ReadData(id, name string, data interface{}) (err error) {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
 		return
 	}
-	defer func() {
-		// 拦截反射的恐慌
-		if e := recover(); e != nil {
-			err = fmt.Errorf("drule[Transaction]ReadData: %v", e)
-		}
-	}()
-	// 开始反射的那些乱七八遭
-	rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(name)
-	rv_type := rv.Type()
-	dv := reflect.Indirect(reflect.ValueOf(data))
-	dv_type := dv.Type()
-	if rv_type != dv_type {
-		err = fmt.Errorf("drule[Transaction]WriteData: The data type %v not assignable to type %v.", dv_type, rv_type)
-		return err
+	err = rolec.role.GetData(name, data)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
 	}
-	if rv.CanSet() != true {
-		err = fmt.Errorf("drule[Transaction]WriteData: The data type %v not be set.", dv_type)
-		return err
-	}
-	dv.Set(rv)
 	return
 }
 
@@ -626,14 +640,22 @@ func (t *Transaction) readDataToByte(role_data *Net_RoleData_Data) (err error) {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
 		return
 	}
-	defer func() {
-		// 拦截反射的恐慌
-		if e := recover(); e != nil {
-			err = fmt.Errorf("drule[Transaction]ReadData: %v", e)
-		}
-	}()
-	rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(role_data.Name)
-	role_data.Data, err = nst.StructGobBytes(rv.Interface())
+	data, err := rolec.role.GetDataToInterface(role_data.Name, role_data.Type)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
+		return
+	}
+	role_data.Data, err = nst.StructGobBytes(data)
+	/*
+		defer func() {
+			// 拦截反射的恐慌
+			if e := recover(); e != nil {
+				err = fmt.Errorf("drule[Transaction]ReadData: %v", e)
+			}
+		}()
+		rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(role_data.Name)
+		role_data.Data, err = nst.StructGobBytes(rv.Interface())
+	*/
 	return
 }
 

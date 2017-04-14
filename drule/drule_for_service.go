@@ -10,7 +10,6 @@ package drule
 import (
 	"fmt"
 
-	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
@@ -85,12 +84,7 @@ func (d *DRule) readRoleTran(tran *Transaction, byte_slice_data []byte) (return_
 		return
 	}
 	// 执行
-	role, err := tran.ReadRole(role_sr.RoleID)
-	if err != nil {
-		return
-	}
-	// 编码角色
-	mid, err := hardstore.EncodeRoleToMiddle(role)
+	mid, err := tran.readRoleMiddle(role_sr.RoleID)
 	if err != nil {
 		return
 	}
@@ -112,12 +106,7 @@ func (d *DRule) readRoleNoTran(byte_slice_data []byte) (return_data []byte, err 
 		return
 	}
 	// 执行
-	role, err := d.trule.ReadRole(role_sr.RoleID)
-	if err != nil {
-		return
-	}
-	// 编码角色
-	mid, err := hardstore.EncodeRoleToMiddle(role)
+	mid, err := d.trule.readRoleMiddle(role_sr.RoleID)
 	if err != nil {
 		return
 	}
@@ -140,9 +129,6 @@ func (d *DRule) storeRoleTran(tran *Transaction, byte_slice_data []byte) (err er
 	}
 	// 执行
 	role_b := role_sr.RoleBody
-	if err != nil {
-		return err
-	}
 	err = tran.storeRoleByte(role_b)
 	return
 }
@@ -156,12 +142,8 @@ func (d *DRule) storeRoleNoTran(byte_slice_data []byte) (err error) {
 		return
 	}
 	// 执行
-	// 还原角色
-	role, err := hardstore.DecodeRole(role_sr.RoleBody, role_sr.RoleRela, role_sr.RoleVer)
-	if err != nil {
-		return err
-	}
-	err = d.trule.StoreRole(role)
+	role_b := role_sr.RoleBody
+	err = d.trule.storeRoleByte(role_b)
 	return
 }
 
@@ -856,7 +838,7 @@ func (d *DRule) writeDataTran(tran *Transaction, byte_slice_data []byte) (err er
 		return
 	}
 	// 执行
-	err = tran.writeDataFromByte(role_data.Id, role_data.Name, role_data.Data)
+	err = tran.writeDataFromByte(role_data.Id, role_data.Name, role_data.Type, role_data.Data)
 	return
 }
 
@@ -869,7 +851,7 @@ func (d *DRule) writeDataNoTran(byte_slice_data []byte) (err error) {
 		return
 	}
 	// 执行
-	err = d.trule.writeDataFromByte(role_data.Id, role_data.Name, role_data.Data)
+	err = d.trule.writeDataFromByte(role_data.Id, role_data.Name, role_data.Type, role_data.Data)
 	return
 }
 

@@ -197,6 +197,8 @@ type Net_RoleData_Data struct {
 	Id string
 	// 数据点的名字
 	Name string
+	// 数据类型
+	Type string
 	// 数据的字节流
 	Data []byte
 }

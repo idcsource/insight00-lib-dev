@@ -89,7 +89,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			// 如果没有等待队列
 			// 将这个角色保存或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
-				t.local_store.StoreRoleByMiddle(rolec.role)
+				t.local_store.StoreRoleFromMiddle(rolec.role)
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
 				t.local_store.DeleteRole(rolec.role.Version.Id)
 			}
@@ -100,7 +100,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			fmt.Println("Tran log, 不写入 ", rolec.role.Version.Id)
 			// 替换本尊或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
-				rolec.role_store = rolec.role
+				rolec.role_store = *rolec.role
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
 				t.local_store.DeleteRole(rolec.role.Version.Id)
 				rolec.role = nil
@@ -177,7 +177,8 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 			// 如果有排队的
 			// 用本尊替换实体
 			if rolec.be_delete != TRAN_ROLE_BE_DELETE_COMMIT {
-				rolec.role = rolec.role_store
+				midn := rolec.role_store
+				rolec.role = &midn
 			}
 			// 重置删除标记
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
@@ -339,6 +340,12 @@ func (t *TRule) ReadRole(id string, role roles.Roleer) (err error) {
 	if err != nil {
 		err = fmt.Errorf("drule[TRule]ReadRole: %v", err)
 	}
+	return
+}
+
+// 从永久存储读出角色的MiddleData格式
+func (t *TRule) readRoleMiddle(id string) (mid roles.RoleMiddleData, err error) {
+	mid, err = t.local_store.ReadMiddleData(id)
 	return
 }
 
@@ -715,9 +722,9 @@ func (t *TRule) WriteData(id, name string, data interface{}) (err error) {
 	return
 }
 
-func (t *TRule) writeDataFromByte(id, name string, data []byte) (err error) {
+func (t *TRule) writeDataFromByte(id, name, typename string, data []byte) (err error) {
 	tran, _ := t.Begin()
-	err = tran.writeDataFromByte(id, name, data)
+	err = tran.writeDataFromByte(id, name, typename, data)
 	if err != nil {
 		tran.Rollback()
 		return

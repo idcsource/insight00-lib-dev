@@ -28,8 +28,8 @@ func NewCenterSmcs(name string, store *drule.TRule) (center *CenterSmcs, err err
 	root_id := name + "_" + ROLE_ROOT
 	center.root_id = root_id
 	// 查看是否存在这个root
-	root, err := center.store.ReadRole(root_id)
-	if err != nil {
+	have := center.store.ExistRole(root_id)
+	if have == false {
 		newroot := &roles.Role{}
 		newroot.New(root_id)
 		err = center.store.StoreRole(newroot)
@@ -38,7 +38,9 @@ func NewCenterSmcs(name string, store *drule.TRule) (center *CenterSmcs, err err
 		}
 		center.root = newroot
 	} else {
-		center.root = root
+		newroot := &roles.Role{}
+		err = center.store.ReadRole(root_id, newroot)
+		center.root = newroot
 	}
 	return center, nil
 }
@@ -360,8 +362,8 @@ func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
 	}
 	// 开始找寻有没有这个节点
 	node_id := c.name + "_" + node_send.Name
-	_, err = c.store.ReadRole(node_id)
-	if err != nil {
+	have := c.store.ExistRole(node_id)
+	if have == false {
 		c.sendError(ce, "Can't found the Node set: "+node_send.Name)
 		return
 	}

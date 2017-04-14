@@ -32,7 +32,7 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 		}
 		// 将tran_id定为自己
 		rolec = &roleCache{
-			role:       mid,
+			role:       &mid,
 			role_store: mid,
 			be_delete:  TRAN_ROLE_BE_DELETE_NO,
 			tran_time:  time.Now(),
@@ -84,7 +84,7 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 }
 
 // 加入（写入）一个角色
-func (t *tranService) addRole(tran_id string, mid *roles.RoleMiddleData) (rolec *roleCache, err error) {
+func (t *tranService) addRole(tran_id string, mid roles.RoleMiddleData) (rolec *roleCache, err error) {
 	t.lock.Lock()
 	// 先看能找到吗
 	id := mid.Version.Id
@@ -98,7 +98,7 @@ func (t *tranService) addRole(tran_id string, mid *roles.RoleMiddleData) (rolec 
 			return nil, err
 		}
 		rolec = &roleCache{
-			role:       mid,
+			role:       &mid,
 			role_store: mid,
 			be_delete:  TRAN_ROLE_BE_DELETE_NO,
 			tran_time:  time.Now(),
@@ -126,10 +126,10 @@ func (t *tranService) addRole(tran_id string, mid *roles.RoleMiddleData) (rolec 
 		<-wait.approved
 		fmt.Println("Tran log ", tran_id, "等到了", id)
 		// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以就把角色的主体改了吧
-		rolec.role = mid
+		rolec.role = &mid
 		// 如果被确认删除了还就很麻烦的
 		if rolec.be_delete != TRAN_ROLE_BE_DELETE_NO {
-			rolec.role_store = role
+			rolec.role_store = mid
 			rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
 		}
 		return rolec, nil

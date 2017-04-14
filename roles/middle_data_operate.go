@@ -9,6 +9,8 @@
 package roles
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"reflect"
@@ -533,6 +535,99 @@ func (r *RoleMiddleData) GetContextStatus(contextname string, upordown uint8, id
 	return nil
 }
 
+func (r *RoleMiddleData) GetDataToInterface(name, typename string) (data interface{}, err error) {
+	var find bool
+	switch typename {
+	case "time.Time":
+		data, find = r.Normal.Time[name]
+	case "[]byte":
+		data, find = r.Normal.Byte[name]
+	case "string":
+		data, find = r.Normal.String[name]
+	case "bool":
+		data, find = r.Normal.Bool[name]
+	case "uint8":
+		data, find = r.Normal.Uint8[name]
+	case "uint":
+		data, find = r.Normal.Uint[name]
+	case "uint64":
+		data, find = r.Normal.Uint64[name]
+	case "int8":
+		data, find = r.Normal.Int8[name]
+	case "int":
+		data, find = r.Normal.Int[name]
+	case "int64":
+		data, find = r.Normal.Int64[name]
+	case "float32":
+		data, find = r.Normal.Float32[name]
+	case "float64":
+		data, find = r.Normal.Float64[name]
+	case "complex64":
+		data, find = r.Normal.Complex64[name]
+	case "complex128":
+		data, find = r.Normal.Complex128[name]
+
+	case "[]string":
+		data, find = r.Slice.String[name]
+	case "[]bool":
+		data, find = r.Slice.Bool[name]
+	case "[]uint8":
+		data, find = r.Slice.Uint8[name]
+	case "[]uint":
+		data, find = r.Slice.Uint[name]
+	case "[]uint64":
+		data, find = r.Slice.Uint64[name]
+	case "[]int8":
+		data, find = r.Slice.Int8[name]
+	case "[]int":
+		data, find = r.Slice.Int[name]
+	case "[]int64":
+		data, find = r.Slice.Int64[name]
+	case "[]float32":
+		data, find = r.Slice.Float32[name]
+	case "[]float64":
+		data, find = r.Slice.Float64[name]
+	case "[]complex64":
+		data, find = r.Slice.Complex64[name]
+	case "[]complex128":
+		data, find = r.Slice.Complex128[name]
+
+	case "map[string]string":
+		data, find = r.StringMap.String[name]
+	case "map[string]bool":
+		data, find = r.StringMap.Bool[name]
+	case "map[string]uint8":
+		data, find = r.StringMap.Uint8[name]
+	case "map[string]uint":
+		data, find = r.StringMap.Uint[name]
+	case "map[string]uint64":
+		data, find = r.StringMap.Uint64[name]
+	case "map[string]int8":
+		data, find = r.StringMap.Int8[name]
+	case "map[string]int":
+		data, find = r.StringMap.Int[name]
+	case "map[string]int64":
+		data, find = r.StringMap.Int64[name]
+	case "map[string]float32":
+		data, find = r.StringMap.Float32[name]
+	case "map[string]float64":
+		data, find = r.StringMap.Float64[name]
+	case "map[string]complex64":
+		data, find = r.StringMap.Complex64[name]
+	case "map[string]complex128":
+		data, find = r.StringMap.Complex128[name]
+
+	default:
+		err = fmt.Errorf("roles[RoleMiddleData]GetDataToInterface: Can't find the data.")
+		return
+	}
+	if find == false {
+		err = fmt.Errorf("roles[RoleMiddleData]GetDataToInterface: Can't find the data.")
+		return
+	}
+	return
+}
+
 // 中间类型的获取数据
 func (r *RoleMiddleData) GetData(name string, datas interface{}) (err error) {
 	// 拦截恐慌
@@ -769,6 +864,308 @@ func (r *RoleMiddleData) SetData(name string, datas interface{}) (err error) {
 			err = fmt.Errorf("roles[RoleMiddleData]SetData: Unsupported data type %v", data_type_name)
 			return
 		}
+	}
+	return
+}
+
+// 获取类型
+func (r *RoleMiddleData) GetDataType(typename string) (data interface{}, err error) {
+	switch typename {
+	case "time.Time":
+		d := time.Now()
+		return d, nil
+	case "[]byte":
+		return make([]byte, 0), nil
+	case "string":
+		d := ""
+		return d, nil
+	case "bool":
+		return true, nil
+	case "uint8":
+		var d uint8 = 0
+		return d, nil
+	case "uint":
+		var d uint = 0
+		return d, nil
+	case "uint64":
+		var d uint64 = 0
+		return d, nil
+	case "int8":
+		var d int8 = 0
+		return d, nil
+	case "int":
+		var d int = 0
+		return d, nil
+	case "int64":
+		var d int64 = 0
+		return d, nil
+	case "float32":
+		var d float32 = 0.1
+		return d, nil
+	case "float64":
+		var d float64 = 0.1
+		return d, nil
+	case "complex64":
+		var d complex64 = complex(0, 0)
+		return d, nil
+	case "complex128":
+		var d complex128 = complex(0, 0)
+		return d, nil
+
+	case "[]string":
+		d := make([]string, 0)
+		return d, nil
+	case "[]bool":
+		d := make([]bool, 0)
+		return d, nil
+	case "[]uint8":
+		d := make([]uint8, 0)
+		return d, nil
+	case "[]uint":
+		d := make([]uint, 0)
+		return d, nil
+	case "[]uint64":
+		d := make([]uint64, 0)
+		return d, nil
+	case "[]int8":
+		d := make([]int8, 0)
+		return d, nil
+	case "[]int":
+		d := make([]int, 0)
+		return d, nil
+	case "[]int64":
+		d := make([]int64, 0)
+		return d, nil
+	case "[]float32":
+		d := make([]float32, 0)
+		return d, nil
+	case "[]float64":
+		d := make([]float64, 0)
+		return d, nil
+	case "[]complex64":
+		d := make([]complex64, 0)
+		return d, nil
+	case "[]complex128":
+		d := make([]complex128, 0)
+		return d, nil
+
+	case "map[string]string":
+		d := make(map[string]string)
+		return d, nil
+	case "map[string]bool":
+		d := make(map[string]bool)
+		return d, nil
+	case "map[string]uint8":
+		d := make(map[string]uint8)
+		return d, nil
+	case "map[string]uint":
+		d := make(map[string]uint)
+		return d, nil
+	case "map[string]uint64":
+		d := make(map[string]uint64)
+		return d, nil
+	case "map[string]int8":
+		d := make(map[string]int8)
+		return d, nil
+	case "map[string]int":
+		d := make(map[string]int)
+		return d, nil
+	case "map[string]int64":
+		d := make(map[string]int64)
+		return d, nil
+	case "map[string]float32":
+		d := make(map[string]float32)
+		return d, nil
+	case "map[string]float64":
+		d := make(map[string]float64)
+		return d, nil
+	case "map[string]complex64":
+		d := make(map[string]complex64)
+		return d, nil
+	case "map[string]complex128":
+		d := make(map[string]complex128)
+		return d, nil
+
+	default:
+		err = fmt.Errorf("roles[RoleMiddleData]SetDataFromNoType: Can't find the data.")
+		return
+	}
+
+	return
+}
+
+// 获取类型
+func (r *RoleMiddleData) SetDataFromByte(name, typename string, data_b []byte) (err error) {
+	// 拦截恐慌
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("roles[RoleMiddleData]SetDataFromByte: %v", e)
+		}
+	}()
+
+	b_buf := bytes.NewBuffer(data_b) //将[]byte放入bytes的buffer中
+	b_go := gob.NewDecoder(b_buf)    //将buffer放入gob的decoder中
+	switch typename {
+	case "time.Time":
+		d := time.Now()
+		err = b_go.Decode(&d)
+		r.Normal.Time[name] = d
+	case "[]byte":
+		d := make([]byte, 0)
+		err = b_go.Decode(&d)
+		r.Normal.Byte[name] = d
+	case "string":
+		d := ""
+		err = b_go.Decode(&d)
+		r.Normal.String[name] = d
+	case "bool":
+		d := true
+		err = b_go.Decode(&d)
+		r.Normal.Bool[name] = d
+	case "uint8":
+		var d uint8 = 0
+		err = b_go.Decode(&d)
+		r.Normal.Uint8[name] = d
+	case "uint":
+		var d uint = 0
+		err = b_go.Decode(&d)
+		r.Normal.Uint[name] = d
+	case "uint64":
+		var d uint64 = 0
+		err = b_go.Decode(&d)
+		r.Normal.Uint64[name] = d
+	case "int8":
+		var d int8 = 0
+		err = b_go.Decode(&d)
+		r.Normal.Int8[name] = d
+	case "int":
+		var d int = 0
+		err = b_go.Decode(&d)
+		r.Normal.Int[name] = d
+	case "int64":
+		var d int64 = 0
+		err = b_go.Decode(&d)
+		r.Normal.Int64[name] = d
+	case "float32":
+		var d float32 = 0.0
+		err = b_go.Decode(&d)
+		r.Normal.Float32[name] = d
+	case "float64":
+		var d float64 = 0.0
+		err = b_go.Decode(&d)
+		r.Normal.Float64[name] = d
+	case "complex64":
+		var d complex64 = complex(0, 0)
+		err = b_go.Decode(&d)
+		r.Normal.Complex64[name] = d
+	case "complex128":
+		var d complex128 = complex(0, 0)
+		err = b_go.Decode(&d)
+		r.Normal.Complex128[name] = d
+
+	case "[]string":
+		d := make([]string, 0)
+		err = b_go.Decode(&d)
+		r.Slice.String[name] = d
+	case "[]bool":
+		d := make([]bool, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Bool[name] = d
+	case "[]uint8":
+		d := make([]uint8, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Uint8[name] = d
+	case "[]uint":
+		d := make([]uint, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Uint[name] = d
+	case "[]uint64":
+		d := make([]uint64, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Uint64[name] = d
+	case "[]int8":
+		d := make([]int8, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Int8[name] = d
+	case "[]int":
+		d := make([]int, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Int[name] = d
+	case "[]int64":
+		d := make([]int64, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Int64[name] = d
+	case "[]float32":
+		d := make([]float32, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Float32[name] = d
+	case "[]float64":
+		d := make([]float64, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Float64[name] = d
+	case "[]complex64":
+		d := make([]complex64, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Complex64[name] = d
+	case "[]complex128":
+		d := make([]complex128, 0)
+		err = b_go.Decode(&d)
+		r.Slice.Complex128[name] = d
+
+	case "map[string]string":
+		d := make(map[string]string)
+		err = b_go.Decode(&d)
+		r.StringMap.String[name] = d
+	case "map[string]bool":
+		d := make(map[string]bool)
+		err = b_go.Decode(&d)
+		r.StringMap.Bool[name] = d
+	case "map[string]uint8":
+		d := make(map[string]uint8)
+		err = b_go.Decode(&d)
+		r.StringMap.Uint8[name] = d
+	case "map[string]uint":
+		d := make(map[string]uint)
+		err = b_go.Decode(&d)
+		r.StringMap.Uint[name] = d
+	case "map[string]uint64":
+		d := make(map[string]uint64)
+		err = b_go.Decode(&d)
+		r.StringMap.Uint64[name] = d
+	case "map[string]int8":
+		d := make(map[string]int8)
+		err = b_go.Decode(&d)
+		r.StringMap.Int8[name] = d
+	case "map[string]int":
+		d := make(map[string]int)
+		err = b_go.Decode(&d)
+		r.StringMap.Int[name] = d
+	case "map[string]int64":
+		d := make(map[string]int64)
+		err = b_go.Decode(&d)
+		r.StringMap.Int64[name] = d
+	case "map[string]float32":
+		d := make(map[string]float32)
+		err = b_go.Decode(&d)
+		r.StringMap.Float32[name] = d
+	case "map[string]float64":
+		d := make(map[string]float64)
+		err = b_go.Decode(&d)
+		r.StringMap.Float64[name] = d
+	case "map[string]complex64":
+		d := make(map[string]complex64)
+		err = b_go.Decode(&d)
+		r.StringMap.Complex64[name] = d
+	case "map[string]complex128":
+		d := make(map[string]complex128)
+		err = b_go.Decode(&d)
+		r.StringMap.Complex128[name] = d
+
+	default:
+		err = fmt.Errorf("Can't find the data.")
+	}
+	if err != nil {
+		err = fmt.Errorf("roles[RoleMiddleData]SetDataFromByte: %v", err)
 	}
 	return
 }

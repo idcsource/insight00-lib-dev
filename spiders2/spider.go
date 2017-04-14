@@ -83,8 +83,8 @@ func (s *Spider) Start() (err error) {
 		}
 		site_role_name := s.name + "_" + sites_name_list[i]
 		// 看有没有这个站点的角色
-		_, err2 := s.roles_control.ReadRole(site_role_name)
-		if err2 != nil {
+		have := s.roles_control.ExistRole(site_role_name)
+		if have == false {
 			// 出错被理解为没有，那就新建
 			site_role := &Site{}
 			// 站点的角色名为：spidername_sitename

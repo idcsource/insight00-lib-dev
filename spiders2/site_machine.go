@@ -131,8 +131,9 @@ func (s *siteMachine) crawlOne(enforce bool, url string) ([]string, bool, bool, 
 	if s.domainAllow(url) == false {
 		return nil, true, true, false, errors.New("The domain not be crawl: " + url)
 	}
-	_, err := s.roles_control.ReadRole(url)
-	if err == nil {
+	var err error
+	have := s.roles_control.ExistRole(url)
+	if have == false {
 		// 找到了就走更新流程，开启日志
 		tran, _ := s.roles_control.Prepare(url)
 		defer func() {

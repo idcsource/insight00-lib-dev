@@ -77,7 +77,7 @@ type roleCache struct {
 	// 当前角色
 	role *roles.RoleMiddleData
 	// 角色的本尊
-	role_store *roles.RoleMiddleData
+	role_store roles.RoleMiddleData
 	// 被删除
 	be_delete uint8
 	// 占用的事务id

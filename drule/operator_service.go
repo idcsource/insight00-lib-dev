@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
@@ -52,13 +51,13 @@ func (o *Operator) ReadRole(id string, role roles.Roleer) (err error) {
 		return
 	}
 	// 还原角色
-	mid := hardstore.RoleMiddleData{}
+	mid := roles.RoleMiddleData{}
 	err = nst.BytesGobStruct(role_sr.RoleBody, &mid)
 	if err != nil {
 		err = fmt.Errorf("drule[Operator]ReadRole: %v", err)
 		return
 	}
-	err = hardstore.DecodeMiddleToRole(mid, role)
+	err = roles.DecodeMiddleToRole(mid, role)
 	return
 }
 
@@ -68,7 +67,7 @@ func (o *Operator) StoreRole(role roles.Roleer) (err error) {
 	roleid := role.ReturnId()
 	// 编码角色
 	role_sr := Net_RoleSendAndReceive{}
-	mid, err := hardstore.EncodeRoleToMiddle(role)
+	mid, err := roles.EncodeRoleToMiddle(role)
 	if err != nil {
 		err = fmt.Errorf("drule[Operator]StoreRole: %v", err)
 		return
@@ -750,6 +749,15 @@ func (o *Operator) ReadContextStatus(id, contextname string, upordown uint8, bin
 
 // 写一个数据
 func (o *Operator) WriteData(id, name string, data interface{}) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("drule[Operator]ReadData: %v", err)
+		}
+	}()
+
+	data_reflect := reflect.Indirect(reflect.ValueOf(data))
+	typename := data_reflect.Type().String()
+
 	data_b, err := nst.StructGobBytes(data)
 	if err != nil {
 		err = fmt.Errorf("drule[Operator]WriteData: %v", err)
@@ -758,6 +766,7 @@ func (o *Operator) WriteData(id, name string, data interface{}) (err error) {
 	role_data := Net_RoleData_Data{
 		Id:   id,
 		Name: name,
+		Type: typename,
 		Data: data_b,
 	}
 	role_data_b, err := nst.StructGobBytes(role_data)
@@ -774,10 +783,21 @@ func (o *Operator) WriteData(id, name string, data interface{}) (err error) {
 
 // 读取一个数据
 func (o *Operator) ReadData(id, name string, data interface{}) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("drule[Operator]ReadData: %v", err)
+		}
+	}()
+
+	data_reflect := reflect.Indirect(reflect.ValueOf(data))
+	typename := data_reflect.Type().String()
+
 	role_data := Net_RoleData_Data{
 		Id:   id,
 		Name: name,
+		Type: typename,
 	}
+
 	role_data_b, err := nst.StructGobBytes(role_data)
 	if err != nil {
 		err = fmt.Errorf("drule[Operator]ReadData: %v", err)
@@ -788,12 +808,7 @@ func (o *Operator) ReadData(id, name string, data interface{}) (err error) {
 		err = fmt.Errorf("drule[Operator]ReadData: %v", err)
 		return
 	}
-	defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("drule[Operator]ReadData: %v", err)
-		}
-	}()
-	data_reflect := reflect.Indirect(reflect.ValueOf(data))
+
 	err = nst.BytesGobReflect(role_data.Data, data_reflect)
 	if err != nil {
 		err = fmt.Errorf("drule[Operator]ReadData: %v", err)

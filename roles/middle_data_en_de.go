@@ -14,7 +14,7 @@ import (
 )
 
 // 编码角色，将角色编码为中期存储格式
-func EncodeRoleToMiddle(role Roleer) (mid *RoleMiddleData, err error) {
+func EncodeRoleToMiddle(role Roleer) (mid RoleMiddleData, err error) {
 	// 拦截恐慌
 	defer func() {
 		if e := recover(); e != nil {
@@ -22,7 +22,7 @@ func EncodeRoleToMiddle(role Roleer) (mid *RoleMiddleData, err error) {
 		}
 	}()
 
-	mid = &RoleMiddleData{}
+	mid = RoleMiddleData{}
 
 	// 这里是生成relation
 	mid.Relation = RoleRelation{
@@ -140,7 +140,7 @@ func EncodeRoleToMiddle(role Roleer) (mid *RoleMiddleData, err error) {
 }
 
 // 解码角色，从中间编码转为角色
-func DecodeMiddleToRole(mid *RoleMiddleData, role Roleer) (err error) {
+func DecodeMiddleToRole(mid RoleMiddleData, role Roleer) (err error) {
 	// 拦截恐慌
 	defer func() {
 		if e := recover(); e != nil {
