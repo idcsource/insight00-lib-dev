@@ -45,6 +45,9 @@ func EncodeRoleToMiddle(role Roleer) (mid RoleMiddleData, err error) {
 
 	role_v := reflect.ValueOf(role).Elem()
 	role_t := role_v.Type()
+	if role_t.String() == "roles.Role" || role_t.String() == "*roles.Role" {
+		return
+	}
 	field_num := role_v.NumField()
 	for i := 0; i < field_num; i++ {
 		field_v := role_v.Field(i)
@@ -83,6 +86,9 @@ func DecodeMiddleToRole(mid RoleMiddleData, role Roleer) (err error) {
 	// 处理数据
 	role_v := reflect.ValueOf(role).Elem()
 	role_t := role_v.Type()
+	if role_t.String() == "roles.Role" || role_t.String() == "*roles.Role" {
+		return
+	}
 	field_num := role_v.NumField()
 	for i := 0; i < field_num; i++ {
 		field_v := role_v.Field(i)

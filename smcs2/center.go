@@ -15,6 +15,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule"
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // 新建一个中央蔓延点，这里的name也将作为配置节点的名称前缀
@@ -29,7 +30,7 @@ func NewCenterSmcs(name string, store *drule.TRule) (center *CenterSmcs, err err
 	// 查看是否存在这个root
 	have := center.store.ExistRole(root_id)
 	if have == false {
-		newroot := &NodeConfig{}
+		newroot := &roles.Role{}
 		newroot.New(root_id)
 		err = center.store.StoreRole(newroot)
 		if err != nil {
@@ -37,7 +38,7 @@ func NewCenterSmcs(name string, store *drule.TRule) (center *CenterSmcs, err err
 		}
 		center.root = newroot
 	} else {
-		newroot := &NodeConfig{}
+		newroot := &roles.Role{}
 		err = center.store.ReadRole(root_id, newroot)
 		center.root = newroot
 	}
