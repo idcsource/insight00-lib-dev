@@ -551,7 +551,20 @@ func (t *Transaction) WriteData(id, name string, data interface{}) (err error) {
 
 // 从Byte写入Data，这是一个内部的函数
 func (t *Transaction) writeDataFromByte(id, name, typename string, data_b []byte) (err error) {
-	defer func() {
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]writeDataFromByte: This transaction has been deleted.")
+		return
+	}
+	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
+		return
+	}
+	err = rolec.role.SetDataFromByte(name, typename, data_b)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
+	}
+	/*defer func() {
 		// 拦截反射的恐慌
 		if e := recover(); e != nil {
 			err = fmt.Errorf("drule[Transaction]WriteData: %v", e)
@@ -569,7 +582,7 @@ func (t *Transaction) writeDataFromByte(id, name, typename string, data_b []byte
 	err = rolec.role.SetDataFromByte(name, typename, data_b)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
-	}
+	}*/
 	return
 	/*
 		data, err := rolec.role.GetDataType(typename)
@@ -640,12 +653,13 @@ func (t *Transaction) readDataToByte(role_data *Net_RoleData_Data) (err error) {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
 		return
 	}
-	data, err := rolec.role.GetDataToInterface(role_data.Name, role_data.Type)
+	//data, err := rolec.role.GetDataToInterface(role_data.Name, role_data.Type)
+	role_data.Data, err = rolec.role.GetDataToByte(role_data.Name)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
 		return
 	}
-	role_data.Data, err = nst.StructGobBytes(data)
+	//role_data.Data, err = nst.StructGobBytes(data)
 	/*
 		defer func() {
 			// 拦截反射的恐慌
