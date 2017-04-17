@@ -22,25 +22,25 @@ const (
 
 const (
 	// 表单输入项内容
-	FIELD_FORM_TEXT         = iota // 文本
-	FIELD_FORM_TEXTAREA            // 文本域
-	FIELD_FORM_MARKDOWN            // Markdown文本
-	FIELD_FORM_EDITOR              // 编辑器
-	FIELD_FORM_MARK                // 也就是A-Za-z0-9_-
-	FIELD_FORM_PATH                // 路径
-	FIELD_FORM_LINK                // 链接：也就是http://或https://或ftp://开头
-	FIELD_FORM_EMAIL               // 邮箱
-	FIELD_FORM_FILE                // 文件
-	FIELD_FORM_TIME                // 时间
-	FIELD_FORM_DATE                // 日期
-	FIELD_FORM_INT                 // 数字
-	FIELD_FORM_FLOAT               // 浮点
-	FIELD_FORM_MONEY               // 钱
-	FIELD_FORM_PASSWORD            // 密码
-	FIELD_FORM_PASSWORD_TWO        // 密码两遍输入
-	FIELD_FORM_ENUM_STRING         // 字符串类枚举
-	FIELD_FORM_ENUM_INT            // 数字类枚举
-	FIELD_FORM_ENUM_FLOAT          // 浮点型枚举
+	FIELD_FORM_TEXT         = iota // 文本：test
+	FIELD_FORM_TEXTAREA            // 文本域：testara
+	FIELD_FORM_MARKDOWN            // Markdown文本：markdown
+	FIELD_FORM_EDITOR              // 编辑器：editor
+	FIELD_FORM_MARK                // 也就是A-Za-z0-9_-：mark
+	FIELD_FORM_PATH                // 路径：path
+	FIELD_FORM_LINK                // 链接：也就是http://或https://或ftp://开头：link
+	FIELD_FORM_EMAIL               // 邮箱：email
+	FIELD_FORM_FILE                // 文件：file
+	FIELD_FORM_TIME                // 时间：time
+	FIELD_FORM_DATE                // 日期：date
+	FIELD_FORM_INT                 // 数字:int
+	FIELD_FORM_FLOAT               // 浮点:float
+	FIELD_FORM_MONEY               // 钱:money
+	FIELD_FORM_PASSWORD            // 密码:password
+	FIELD_FORM_PASSWORD_TWO        // 密码两遍输入:passwordt
+	FIELD_FORM_ENUM_STRING         // 字符串类枚举:enums
+	FIELD_FORM_ENUM_INT            // 数字类枚举:enumi
+	FIELD_FORM_ENUM_FLOAT          // 浮点型枚举:enumf
 	FIELD_FORM_OTHER               // 未知类型
 )
 
@@ -61,18 +61,13 @@ type FieldConfig struct {
 
 type AllFieldsConfig map[string]*FieldConfig
 
-func GetFieldConfig(config *cpool.Section, fieldsMap []string) (afc AllFieldsConfig) {
+func GetFieldConfig(config *cpool.Section) (afc AllFieldsConfig) {
 	afc = make(map[string]*FieldConfig)
-
-	for _, onefield := range fieldsMap {
-		ofc := &FieldConfig{DatabaseField: onefield}
-		oc, err := config.GetConfig(onefield)
-		if err != nil {
-			ofc.UseIt = false
-		} else {
-			getOneFieldConfig(ofc, oc)
-		}
-		afc[onefield] = ofc
+	c_encode := config.EncodeSection()
+	for k, onefield := range c_encode.Configs {
+		ofc := &FieldConfig{DatabaseField: k}
+		getOneFieldConfig(ofc, onefield.Value)
+		afc[k] = ofc
 	}
 	return afc
 }
@@ -109,6 +104,8 @@ func getOneFieldConfig(field *FieldConfig, config string) {
 				field.Type = FIELD_FORM_PATH
 			case "link":
 				field.Type = FIELD_FORM_LINK
+			case "email":
+				field.Type = FIELD_FORM_EMAIL
 			case "file":
 				field.Type = FIELD_FORM_FILE
 			case "time":
@@ -166,8 +163,8 @@ type OneFormDataReturn struct {
 	Bool   bool
 }
 
-func NewFormData(config *cpool.Section, fieldsMap []string, r *http.Request) (fd *FormData) {
-	afc := GetFieldConfig(config, fieldsMap)
+func NewFormData(config *cpool.Section, r *http.Request) (fd *FormData) {
+	afc := GetFieldConfig(config)
 	fd = &FormData{FieldsConfig: afc, R: r, Ip: pubfunc.NewInputProcessor()}
 	if fd.R.PostForm == nil {
 		fd.R.ParseMultipartForm(defaultMaxMemory)
