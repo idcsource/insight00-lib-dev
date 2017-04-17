@@ -266,6 +266,20 @@ func (d *DRule) rollbackTransaction(tranid string, conn_exec *nst.ConnExec) (err
 	return nil
 }
 
+// ExecTCP的在tcp被关闭下的回滚事务
+func (d *DRule) rollbackTransactionForBeClose(tranid string, conn_exec *nst.ConnExec) (err error) {
+	// 如果是Master模式，就向slave发送回滚命令
+	if d.dmode == DMODE_MASTER {
+		d.rollbackTransactionAll(tranid)
+	}
+	// 自身回滚事务
+	tran, err := d.trule.getTransactionForDRule(tranid)
+	if err == nil {
+		tran.Rollback()
+	}
+	return nil
+}
+
 // 向某一个slave发送的回滚事务
 // --> 发送请求OPERATE_TRAN_ROLLBACK（前导）
 // <-- DATA_ALL_OK，接收回执

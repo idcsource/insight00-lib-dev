@@ -57,7 +57,8 @@ const (
 
 // 节点树的数据类型
 type NodeTree struct {
-	Name     string              // 显示名
+	Name     string              // 名称
+	Disname  string              // 显示名
 	Id       string              // 角色id
 	RoleType uint8               // 角色类型，是分组还是具体的，ROLE_TYPE_*
 	Alive    bool                // 是否活着，60秒内有反映
@@ -67,7 +68,8 @@ type NodeTree struct {
 // 节点的配置信息
 type NodeConfig struct {
 	roles.Role                    // 角色
-	Name         string           // 真实显示名称
+	Name         string           // 名称
+	Disname      string           // 显示名称
 	ConfigStatus uint8            // 配置的状态，配合CONFIG_*
 	NextWorkSet  uint8            // 下一个工作状态设置，WORK_SET_*
 	RoleType     uint8            // 角色类型，是分组还是具体的，ROLE_TYPE_*

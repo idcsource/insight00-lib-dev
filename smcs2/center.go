@@ -15,7 +15,6 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule"
 	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // 新建一个中央蔓延点，这里的name也将作为配置节点的名称前缀
@@ -30,15 +29,18 @@ func NewCenterSmcs(name string, store *drule.TRule) (center *CenterSmcs, err err
 	// 查看是否存在这个root
 	have := center.store.ExistRole(root_id)
 	if have == false {
-		newroot := &roles.Role{}
+		newroot := &NodeConfig{}
 		newroot.New(root_id)
+		newroot.Disname = "Root Point"
+		newroot.Name = ROLE_ROOT
+		newroot.RoleType = ROLE_TYPE_GROUP
 		err = center.store.StoreRole(newroot)
 		if err != nil {
 			return nil, err
 		}
 		center.root = newroot
 	} else {
-		newroot := &roles.Role{}
+		newroot := &NodeConfig{}
 		err = center.store.ReadRole(root_id, newroot)
 		center.root = newroot
 	}
@@ -68,15 +70,11 @@ func (c *CenterSmcs) AddNode(nodename, disname string, types uint8, groupname st
 	node := &NodeConfig{}
 	node.New(node_id)
 	node.Name = nodename
+	node.Disname = disname
 	node.RoleType = types
 	node.ConfigStatus = CONFIG_NO
 	node.SetFather(group_id)
 	err = tran.StoreRole(node)
-	if err != nil {
-		tran.Rollback()
-		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
-	}
-	err = tran.WriteData(node_id, "Name", disname)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
@@ -292,40 +290,38 @@ func (c *CenterSmcs) getNodeTree(node_id string) (nodetree NodeTree, err error) 
 	if err != nil {
 		return
 	}
-	if node_id != c.root_id {
-		var name string
-		err = c.store.ReadData(node_id, "Name", &name)
-		if err != nil {
-			return
-		}
-		var roletype uint8
-		err = c.store.ReadData(node_id, "RoleType", &roletype)
-		if err != nil {
-			return
-		}
-		lifetime, err := c.GetNodeRunStatus(node_id)
-		var alive bool
-		if err != nil {
-			alive = false
-		} else if lifetime <= 60 {
-			alive = true
-		} else {
-			alive = false
-		}
-		nodetree = NodeTree{
-			Name:     name,
-			Id:       node_id,
-			RoleType: roletype,
-			Alive:    alive,
-			Tree:     make(map[string]NodeTree),
-		}
+	var name string
+	err = c.store.ReadData(node_id, "Name", &name)
+	if err != nil {
+		return
+	}
+	var disname string
+	err = c.store.ReadData(node_id, "Disname", &disname)
+	if err != nil {
+		return
+	}
+	var roletype uint8
+	err = c.store.ReadData(node_id, "RoleType", &roletype)
+	if err != nil {
+		return
+	}
+	lifetime, err := c.GetNodeRunStatus(node_id)
+	var alive bool
+	if err != nil {
+		alive = false
+		err = nil
+	} else if lifetime <= 60 {
+		alive = true
 	} else {
-		nodetree = NodeTree{
-			Name:     "Root",
-			Id:       c.root_id,
-			RoleType: ROLE_TYPE_GROUP,
-			Tree:     make(map[string]NodeTree),
-		}
+		alive = false
+	}
+	nodetree = NodeTree{
+		Name:     name,
+		Disname:  disname,
+		Id:       node_id,
+		RoleType: roletype,
+		Alive:    alive,
+		Tree:     make(map[string]NodeTree),
 	}
 
 	errall := make([]string, 0)

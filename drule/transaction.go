@@ -10,6 +10,7 @@ package drule
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
@@ -32,12 +33,16 @@ func (t *Transaction) ReadRole(id string, role roles.Roleer) (err error) {
 	if t.be_delete == true {
 		return fmt.Errorf("drule[Transaction]ReadRole: This transaction has been deleted.")
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transacion]ReadRole: %v", err)
 		return
 	}
 	err = roles.DecodeMiddleToRole(*rolec.role, role)
+	if err != nil {
+		err = fmt.Errorf("drule[Transacion]ReadRole: %v", err)
+	}
 	return
 }
 
@@ -47,6 +52,7 @@ func (t *Transaction) readRoleMiddle(id string) (mid roles.RoleMiddleData, err e
 		err = fmt.Errorf("drule[Transaction]readRoleMiddle: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transacion]readRoleByte: %v", err)
@@ -60,6 +66,7 @@ func (t *Transaction) readRoleByte(id string) (b []byte, err error) {
 	if t.be_delete == true {
 		return nil, fmt.Errorf("drule[Transaction]readRoleByte: This transaction has been deleted.")
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transacion]readRoleByte: %v", err)
@@ -76,6 +83,7 @@ func (t *Transaction) StoreRole(role roles.Roleer) (err error) {
 	if t.be_delete == true {
 		return fmt.Errorf("drule[Transaction]StoreRole: This transaction has been deleted.")
 	}
+	t.tran_time = time.Now()
 	t.lock.RLock()
 	defer t.lock.RUnlock()
 	roleid := role.ReturnId()
@@ -106,6 +114,7 @@ func (t *Transaction) storeRoleByte(b []byte) (err error) {
 	if t.be_delete == true {
 		return fmt.Errorf("drule[Transaction]StoreRole: This transaction has been deleted.")
 	}
+	t.tran_time = time.Now()
 	t.lock.RLock()
 	defer t.lock.RUnlock()
 	rolemid := roles.RoleMiddleData{}
@@ -134,6 +143,7 @@ func (t *Transaction) DeleteRole(id string) (err error) {
 	if t.be_delete == true {
 		return fmt.Errorf("drule[Transaction]DeleteRole: This transaction has been deleted.")
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		return err
@@ -147,6 +157,7 @@ func (t *Transaction) WriteFather(id, father string) (err error) {
 	if t.be_delete == true {
 		return fmt.Errorf("drule[Transaction]WriteFather: This transaction has been deleted.")
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteFather:  %v", err)
@@ -163,6 +174,7 @@ func (t *Transaction) ReadFather(id string) (father string, err error) {
 	if t.be_delete == true {
 		return "", fmt.Errorf("drule[Transaction]ReadFather: This transaction has been deleted.")
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadFather: %v", err)
@@ -183,6 +195,7 @@ func (t *Transaction) ReadChildren(id string) (children []string, err error) {
 		err = fmt.Errorf("drule[Transaction]ReadChildren: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadChildren: %v", err)
@@ -198,6 +211,7 @@ func (t *Transaction) WriteChildren(id string, children []string) (err error) {
 		err = fmt.Errorf("drule[Transaction]WriteChildren: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteChildren: %v", err)
@@ -220,6 +234,7 @@ func (t *Transaction) WriteChild(id, child string) (err error) {
 	if t.be_delete == true {
 		return fmt.Errorf("drule[Transaction]WriteChild: This transaction has been deleted.")
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteChild: %v", err)
@@ -236,6 +251,7 @@ func (t *Transaction) DeleteChild(id, child string) (err error) {
 	if t.be_delete == true {
 		return fmt.Errorf("drule[Transaction]DeleteChild: This transaction has been deleted.")
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]DeleteChild: %v", err)
@@ -253,6 +269,7 @@ func (t *Transaction) ExistChild(id, child string) (have bool, err error) {
 		err = fmt.Errorf("drule[Transaction]ExistChild: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ExistChild: %v", err)
@@ -268,6 +285,7 @@ func (t *Transaction) ReadFriends(id string) (friends map[string]roles.Status, e
 		err = fmt.Errorf("drule[Transaction]ReadFriends: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadFriends: %v", err)
@@ -283,6 +301,7 @@ func (t *Transaction) WriteFriends(id string, friends map[string]roles.Status) (
 		err = fmt.Errorf("drule[Transaction]WriteFriends: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteFriends: %v", err)
@@ -312,6 +331,7 @@ func (t *Transaction) WriteFriendStatus(id, friend string, bindbit int, value in
 		err = fmt.Errorf("drule[Transaction]WriteFriendStatus: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteFriendStatus: %v", err)
@@ -330,6 +350,7 @@ func (t *Transaction) ReadFriendStatus(id, friend string, bindbit int, value int
 		err = fmt.Errorf("drule[Transaction]ReadFriendStatus: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadFriendStatus: %v", err)
@@ -348,6 +369,7 @@ func (t *Transaction) DeleteFriend(id, friend string) (err error) {
 		err = fmt.Errorf("drule[Transaction]DeleteFriend: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]DeleteFriend: %v", err)
@@ -363,6 +385,7 @@ func (t *Transaction) CreateContext(id, contextname string) (err error) {
 		err = fmt.Errorf("drule[Transaction]CreateContext: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]CreateContext: %v", err)
@@ -378,6 +401,7 @@ func (t *Transaction) DropContext(id, contextname string) (err error) {
 		err = fmt.Errorf("drule[Transaction]DropContext: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]DropContext: %v", err)
@@ -393,6 +417,7 @@ func (t *Transaction) ReadContext(id, contextname string) (context roles.Context
 		err = fmt.Errorf("drule[Transaction]ReadContext: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContext: %v", err)
@@ -408,6 +433,7 @@ func (t *Transaction) DeleteContextBind(id, contextname string, upordown uint8, 
 		err = fmt.Errorf("drule[Transaction]DeleteContextBind: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]DeleteContextBind: %v", err)
@@ -429,6 +455,7 @@ func (t *Transaction) ReadContextSameBind(id, contextname string, upordown uint8
 		err = fmt.Errorf("drule[Transaction]ReadContextSameBind: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContextSameBind: %v", err)
@@ -450,6 +477,7 @@ func (t *Transaction) ReadContextsName(id string) (names []string, err error) {
 		err = fmt.Errorf("drule[Transaction]ReadContextsName: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContextsName: %v", err)
@@ -465,6 +493,7 @@ func (t *Transaction) WriteContextStatus(id, contextname string, upordown uint8,
 		err = fmt.Errorf("drule[Transaction]WriteContextStatus: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteContextStatus: %v", err)
@@ -483,6 +512,7 @@ func (t *Transaction) ReadContextStatus(id, contextname string, upordown uint8, 
 		err = fmt.Errorf("drule[Transaction]ReadContextStatus: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContextStatus: %v", err)
@@ -501,6 +531,7 @@ func (t *Transaction) WriteContexts(id string, contexts map[string]roles.Context
 		err = fmt.Errorf("drule[Transaction]WriteContexts: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteContexts: %v", err)
@@ -516,6 +547,7 @@ func (t *Transaction) ReadContexts(id string) (contexts map[string]roles.Context
 		err = fmt.Errorf("drule[Transaction]ReadContexts: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContexts: %v", err)
@@ -537,6 +569,7 @@ func (t *Transaction) WriteData(id, name string, data interface{}) (err error) {
 		err = fmt.Errorf("drule[Transaction]WriteData: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteData: %v", err)
@@ -555,6 +588,7 @@ func (t *Transaction) writeDataFromByte(id, name, typename string, data_b []byte
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
@@ -564,65 +598,7 @@ func (t *Transaction) writeDataFromByte(id, name, typename string, data_b []byte
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
 	}
-	/*defer func() {
-		// 拦截反射的恐慌
-		if e := recover(); e != nil {
-			err = fmt.Errorf("drule[Transaction]WriteData: %v", e)
-		}
-	}()
-	if t.be_delete == true {
-		err = fmt.Errorf("drule[Transaction]writeDataFromByte: This transaction has been deleted.")
-		return
-	}
-	rolec, err := t.getrole(id, TRAN_LOCK_MODE_WRITE)
-	if err != nil {
-		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
-		return
-	}
-	err = rolec.role.SetDataFromByte(name, typename, data_b)
-	if err != nil {
-		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
-	}*/
 	return
-	/*
-		data, err := rolec.role.GetDataType(typename)
-		if err != nil {
-			err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
-			return
-		}
-		data_v := reflect.ValueOf(reflect.ValueOf(data))
-		fmt.Println(data_v.Type())
-		fmt.Println("可设置吗", data_v.CanSet())
-		err = nst.BytesGobReflect(data_b, data_v)
-		if err != nil {
-			err = fmt.Errorf("drule[Transaction]writeDataFromByte_2: %v", err)
-			return
-		}
-		err = rolec.role.SetData(name, data)
-		if err != nil {
-			err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
-		}
-		/*
-		return
-		/*
-			defer func() {
-				// 拦截反射的恐慌
-				if e := recover(); e != nil {
-					err = fmt.Errorf("drule[Transaction]WriteData: %v", e)
-				}
-			}()
-			// 开始反射的那些乱七八遭
-			rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(name)
-			rv_type := rv.Type()
-			if rv.CanSet() != true {
-				err = fmt.Errorf("The data type %v not be set.", rv_type)
-				return err
-			}
-			err = nst.BytesGobReflect(data, rv)
-			if err != nil {
-				return err
-			}
-	*/
 }
 
 // 从角色中找到name的数据名并返回其数据
@@ -631,6 +607,7 @@ func (t *Transaction) ReadData(id, name string, data interface{}) (err error) {
 		err = fmt.Errorf("drule[Transaction]ReadData: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
@@ -648,28 +625,17 @@ func (t *Transaction) readDataToByte(role_data *Net_RoleData_Data) (err error) {
 		err = fmt.Errorf("drule[Transaction]ReadData: This transaction has been deleted.")
 		return
 	}
+	t.tran_time = time.Now()
 	rolec, err := t.getrole(role_data.Id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
 		return
 	}
-	//data, err := rolec.role.GetDataToInterface(role_data.Name, role_data.Type)
 	role_data.Data, err = rolec.role.GetDataToByte(role_data.Name)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
 		return
 	}
-	//role_data.Data, err = nst.StructGobBytes(data)
-	/*
-		defer func() {
-			// 拦截反射的恐慌
-			if e := recover(); e != nil {
-				err = fmt.Errorf("drule[Transaction]ReadData: %v", e)
-			}
-		}()
-		rv := reflect.Indirect(reflect.ValueOf(rolec.role)).FieldByName(role_data.Name)
-		role_data.Data, err = nst.StructGobBytes(rv.Interface())
-	*/
 	return
 }
 
@@ -748,6 +714,7 @@ func (t *Transaction) getrole(id string, lockmode uint8) (rolec *roleCache, err 
 	var find bool
 	rolec, find = t.tran_cache[id]
 	if find == true {
+		rolec.tran_time = time.Now()
 		return
 	} else {
 		rolec, err = t.tran_service.getRole(t.unid, id, lockmode)
@@ -760,6 +727,7 @@ func (t *Transaction) getrole(id string, lockmode uint8) (rolec *roleCache, err 
 		if err == nil && lockmode == TRAN_LOCK_MODE_WRITE {
 			t.tran_cache[id] = rolec
 		}
+		rolec.tran_time = time.Now()
 		return
 	}
 }

@@ -17,6 +17,13 @@ const (
 )
 
 const (
+	// 事务超时时间，单位为秒，监测的周期为30秒一次
+	TRAN_TIME_OUT = 60
+	// 最多事务数
+	TRAN_MAX_COUNT = 1000
+)
+
+const (
 	// 事务的提交请求
 	TRAN_COMMIT_ASK_NO = iota
 	// 请求执行

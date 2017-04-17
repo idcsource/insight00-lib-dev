@@ -38,6 +38,8 @@ type TRule struct {
 	max_transaction int
 	// 当前事务数
 	count_transaction int
+	// 事务超时时间，单位秒
+	tran_timeout int64
 	// 事务列表锁
 	tran_lock *sync.RWMutex
 	// 事务的信号

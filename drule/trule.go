@@ -30,14 +30,89 @@ func NewTRule(local_store *hardstore.HardStore) (t *TRule, err error) {
 		tran_service:       trans,
 		tran_lock:          new(sync.RWMutex),
 		tran_commit_signal: make(chan *tranCommitSignal),
+		tran_timeout:       TRAN_TIME_OUT,
+		max_transaction:    TRAN_MAX_COUNT,
 	}
 	go t.tranSignalHandle()
+	go t.tranTimeOutMonitor()
 	return
 }
 
 // 获取当前事务数
 func (t *TRule) TransactionCount() (count int) {
 	return t.count_transaction
+}
+
+// 处理事务超时的监控
+func (t *TRule) tranTimeOutMonitor() {
+	for {
+		time.Sleep(30 * time.Second)
+		t.tranTimeOutMonitorToDo()
+	}
+}
+
+// 实际是监测的tserver中的角色
+func (t *TRule) tranTimeOutMonitorToDo() {
+	t.tran_service.lock.Lock()
+	t.tran_lock.Lock()
+	defer t.tran_service.lock.Unlock()
+	defer t.tran_lock.Unlock()
+
+	for _, rolec := range t.tran_service.role_cache {
+		t.tranTimeOutMonitorToOneRoleC(rolec)
+	}
+}
+
+func (t *TRule) tranTimeOutMonitorToOneRoleC(rolec *roleCache) {
+	rolec.lock.Lock()
+	defer rolec.lock.Unlock()
+	wait_count := len(rolec.wait_line)
+	if wait_count == 0 {
+		// 如果没有在排队的，超时就延长10倍
+		if rolec.tran_time.Unix()+(t.tran_timeout*10) > time.Now().Unix() {
+			// 找到这个事务
+			tran, find := t.transaction[rolec.tran_id]
+			if find == false {
+				// 如果事务已经不存在了怎么办，得强制释放
+				rolec.tran_id = ""
+			} else {
+				if tran.tran_time.Unix()+(t.tran_timeout*10) > time.Now().Unix() {
+					// 强制回滚
+					tran.Rollback()
+				}
+			}
+		}
+	} else {
+		// 有排队的
+		if rolec.tran_time.Unix()+t.tran_timeout > time.Now().Unix() {
+			// 找到这个事务
+			tran, find := t.transaction[rolec.tran_id]
+			if find == false {
+				// 如果事务已经不存在了怎么办，得强制释放占用呀
+				// 得到第一个等待的队列
+				wait_first := rolec.wait_line[0]
+				// 构造新的waitline
+				if wait_count == 1 {
+					rolec.wait_line = make([]*tranAskGetRole, 0)
+				} else {
+					new_wait_line := make([]*tranAskGetRole, 0)
+					new_wait_line = rolec.wait_line[1:]
+					rolec.wait_line = new_wait_line
+				}
+				// 修改占用标记
+				rolec.tran_id = wait_first.tran_id
+				// 修改占用时间
+				rolec.tran_time = time.Now()
+				// 发送允许的信息，接收者要自行判断是否被删除
+				wait_first.approved <- true
+			} else {
+				if tran.tran_time.Unix()+t.tran_timeout > time.Now().Unix() {
+					// 强制回滚
+					tran.Rollback()
+				}
+			}
+		}
+	}
 }
 
 // 处理事务的信号

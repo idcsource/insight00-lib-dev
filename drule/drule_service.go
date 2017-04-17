@@ -189,9 +189,13 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		return nil
 	}
 	if err != nil {
+		// 如果是被关闭了连接，就尽量回滚事务吧
+		if err.Error() == "EOF" && prefix_stat.InTransaction == true {
+			d.rollbackTransactionForBeClose(prefix_stat.TransactionId, conn_exec)
+		}
 		d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client %v's operation %v returned an error: %v", prefix_stat.ClientName, operate_string, err))
 		d.serverDataReceipt(conn_exec, DATA_RETURN_ERROR, nil, err)
-		return nil
+		return err
 	}
 	return
 }
