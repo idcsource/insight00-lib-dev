@@ -62,6 +62,7 @@ type NodeTree struct {
 	Id       string              // 角色id
 	RoleType uint8               // 角色类型，是分组还是具体的，ROLE_TYPE_*
 	Alive    bool                // 是否活着，60秒内有反映
+	Working  uint8               // 是否在工作，看NodeSend的WorkSet,WORK_SET_*
 	Tree     map[string]NodeTree // 节点树
 }
 

@@ -265,13 +265,14 @@ func (c *CenterSmcs) EmptyNodeRunLog(nodename string) (err error) {
 }
 
 // 获取节点状态，返回的是上次记录的时间到目前的间隔
-func (c *CenterSmcs) GetNodeRunStatus(node_id string) (leave int64, err error) {
+func (c *CenterSmcs) GetNodeRunStatus(node_id string) (leave int64, workstatus uint8, err error) {
 	node, find := c.node[node_id]
 	if find == false {
 		err = fmt.Errorf("smcs2[CenterSmcs]GetNodeRunStatus: Can not find the node.")
 		return
 	}
 	leave = time.Now().Unix() - node.nodetime.Unix()
+	workstatus = node.nodeSend.WorkSet
 	return
 }
 
@@ -305,7 +306,7 @@ func (c *CenterSmcs) getNodeTree(node_id string) (nodetree NodeTree, err error) 
 	if err != nil {
 		return
 	}
-	lifetime, err := c.GetNodeRunStatus(node_id)
+	lifetime, workstatus, err := c.GetNodeRunStatus(node_id)
 	var alive bool
 	if err != nil {
 		alive = false
@@ -321,6 +322,7 @@ func (c *CenterSmcs) getNodeTree(node_id string) (nodetree NodeTree, err error) 
 		Id:       node_id,
 		RoleType: roletype,
 		Alive:    alive,
+		Working:  workstatus,
 		Tree:     make(map[string]NodeTree),
 	}
 
