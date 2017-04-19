@@ -479,17 +479,16 @@ func (h *HardStore) DeleteRole(id string) (err error) {
 	hashid := random.GetSha1Sum(id)
 	path := h.findRoleFilePath(hashid)
 	f_name := path + hashid
-	f_body_name := f_name + h.body_name
 	f_ralation_name := f_name + h.relation_name
-	f_version_name := f_name + h.version_name
-	if pubfunc.FileExist(f_body_name) == true {
-		os.Remove(f_body_name)
+	f_data_name := f_name + h.data_name
+	if pubfunc.FileExist(f_name) == true {
+		os.Remove(f_name)
 	}
 	if pubfunc.FileExist(f_ralation_name) == true {
 		os.Remove(f_ralation_name)
 	}
-	if pubfunc.FileExist(f_version_name) == true {
-		os.Remove(f_version_name)
+	if pubfunc.FileExist(f_data_name) == true {
+		os.Remove(f_data_name)
 	}
 	return
 }

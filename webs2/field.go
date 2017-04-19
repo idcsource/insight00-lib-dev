@@ -172,19 +172,42 @@ func NewFormData(config *cpool.Section, r *http.Request) (fd *FormData) {
 	return
 }
 
-func (fd *FormData) GetAll() (all map[string]OneFormDataReturn, check bool, checks string) {
+func (fd *FormData) GetAll(fieldnames []string) (all map[string]OneFormDataReturn, check bool, checks string) {
 	all = make(map[string]OneFormDataReturn)
-	for key, field := range fd.FieldsConfig {
-		one := OneFormDataReturn{Int: 0, Float: 0, String: "", Bool: false}
-		if field.UseIt == false {
-			all[key] = one
-			continue
-		} else {
-			check, checks = fd.checkOne(field, &one, fd.R)
-			if check == false {
-				return
-			} else {
+	if fieldnames == nil {
+		for key, field := range fd.FieldsConfig {
+			one := OneFormDataReturn{Int: 0, Float: 0, String: "", Bool: false}
+			if field.UseIt == false {
 				all[key] = one
+				continue
+			} else {
+				check, checks = fd.checkOne(field, &one, fd.R)
+				if check == false {
+					return
+				} else {
+					all[key] = one
+				}
+			}
+		}
+	} else {
+		for _, fieldname := range fieldnames {
+			field, find := fd.FieldsConfig[fieldname]
+			if find == false {
+				check = false
+				checks = "There is no field " + fieldname + " in config."
+				return
+			}
+			one := OneFormDataReturn{Int: 0, Float: 0, String: "", Bool: false}
+			if field.UseIt == false {
+				all[fieldname] = one
+				continue
+			} else {
+				check, checks = fd.checkOne(field, &one, fd.R)
+				if check == false {
+					return
+				} else {
+					all[fieldname] = one
+				}
 			}
 		}
 	}

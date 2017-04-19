@@ -58,6 +58,11 @@ func (c *CenterSmcs) AddNode(nodename, disname string, types uint8, groupname st
 	}
 	node_id := c.name + "_" + nodename
 	tran, _ := c.store.Begin()
+	haverole := tran.ExistRole(node_id)
+	if haverole == true {
+		tran.Rollback()
+		return fmt.Errorf("smcs[CenterSmcs]AddNode: The Node " + nodename + " is exist.")
+	}
 	have, err := tran.ExistChild(group_id, node_id)
 	if err != nil {
 		tran.Rollback()
@@ -101,6 +106,17 @@ func (c *CenterSmcs) DelNode(nodename string) (err error) {
 	if len(children) != 0 {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]DelNode: The Node %v has child node.", nodename)
+	}
+	// 获取father
+	father, err := tran.ReadFather(node_id)
+	if err != nil {
+		tran.Rollback()
+		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
+	}
+	err = tran.DeleteChild(father, node_id)
+	if err != nil {
+		tran.Rollback()
+		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
 	}
 	err = tran.DeleteRole(node_id)
 	if err != nil {
