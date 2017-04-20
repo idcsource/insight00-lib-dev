@@ -17,6 +17,11 @@ import (
 
 // 是否存在一个角色
 func (o *Operator) RoleExist(id string) (have bool, err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_sr := Net_RoleSendAndReceive{}
 	role_sr.RoleID = id
 
@@ -36,6 +41,11 @@ func (o *Operator) RoleExist(id string) (have bool, err error) {
 
 // 读取一个角色
 func (o *Operator) ReadRole(id string, role roles.Roleer) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	// 去执行
 	role_sr := Net_RoleSendAndReceive{}
 	role_sr.RoleID = id
@@ -65,6 +75,12 @@ func (o *Operator) ReadRole(id string, role roles.Roleer) (err error) {
 func (o *Operator) StoreRole(role roles.Roleer) (err error) {
 	// 获取角色ID
 	roleid := role.ReturnId()
+
+	err = o.checkDMZ(roleid)
+	if err != nil {
+		return
+	}
+
 	// 编码角色
 	role_sr := Net_RoleSendAndReceive{}
 	mid, err := roles.EncodeRoleToMiddle(role)
@@ -94,6 +110,11 @@ func (o *Operator) StoreRole(role roles.Roleer) (err error) {
 
 // 删除一个角色
 func (o *Operator) DeleteRole(id string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	// 编码角色id
 	roleid_b := []byte(id)
 	err = o.sendWriteToServer(id, OPERATE_DEL_ROLE, roleid_b)
@@ -105,6 +126,11 @@ func (o *Operator) DeleteRole(id string) (err error) {
 
 // 写入一个父角色
 func (o *Operator) WriteFather(id, father string) (err error) {
+	err = o.checkDMZ(id, father)
+	if err != nil {
+		return
+	}
+
 	// 生成发送数据
 	role_father := Net_RoleFatherChange{
 		Id:     id,
@@ -126,6 +152,11 @@ func (o *Operator) WriteFather(id, father string) (err error) {
 
 // 重置父角色
 func (o *Operator) ResetFather(id string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	// 生成发送数据
 	role_father := Net_RoleFatherChange{
 		Id:     id,
@@ -147,6 +178,11 @@ func (o *Operator) ResetFather(id string) (err error) {
 
 // 读取父角色
 func (o *Operator) ReadFather(id string) (father string, err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	// 生成发送数据
 	role_father := Net_RoleFatherChange{
 		Id: id,
@@ -169,6 +205,11 @@ func (o *Operator) ReadFather(id string) (father string, err error) {
 
 // 读取全部子角色
 func (o *Operator) ReadChildren(id string) (children []string, err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	// 编码角色id
 	roleid_b := []byte(id)
 	// 发送并接收
@@ -182,6 +223,11 @@ func (o *Operator) ReadChildren(id string) (children []string, err error) {
 
 // 写入全部子角色
 func (o *Operator) WriteChildren(id string, children []string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	// 生成要发送的数据
 	role_children := Net_RoleAndChildren{
 		Id:       id,
@@ -203,6 +249,11 @@ func (o *Operator) WriteChildren(id string, children []string) (err error) {
 
 // 重置所有子角色
 func (o *Operator) ResetChildren(id string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	// 生成要发送的数据
 	role_children := Net_RoleAndChildren{
 		Id:       id,
@@ -224,6 +275,11 @@ func (o *Operator) ResetChildren(id string) (err error) {
 
 // 设置子角色
 func (o *Operator) WriteChild(id, child string) (err error) {
+	err = o.checkDMZ(id, child)
+	if err != nil {
+		return
+	}
+
 	role_child := Net_RoleAndChild{
 		Id:    id,
 		Child: child,
@@ -243,6 +299,11 @@ func (o *Operator) WriteChild(id, child string) (err error) {
 
 // 删除一个子角色
 func (o *Operator) DeleteChild(id, child string) (err error) {
+	err = o.checkDMZ(id, child)
+	if err != nil {
+		return
+	}
+
 	role_child := Net_RoleAndChild{
 		Id:    id,
 		Child: child,
@@ -262,6 +323,11 @@ func (o *Operator) DeleteChild(id, child string) (err error) {
 
 // 是否存在一个子角色
 func (o *Operator) ExistChild(id, child string) (have bool, err error) {
+	err = o.checkDMZ(id, child)
+	if err != nil {
+		return
+	}
+
 	role_child := Net_RoleAndChild{
 		Id:    id,
 		Child: child,
@@ -283,6 +349,11 @@ func (o *Operator) ExistChild(id, child string) (have bool, err error) {
 
 // 读出所有的朋友角色
 func (o *Operator) ReadFriends(id string) (friends map[string]roles.Status, err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	// 编码角色id
 	roleid_b := []byte(id)
 	// 发送并接收返回
@@ -295,6 +366,11 @@ func (o *Operator) ReadFriends(id string) (friends map[string]roles.Status, err 
 
 // 写入全部朋友关系
 func (o *Operator) WriteFriends(id string, friends map[string]roles.Status) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_friends := Net_RoleAndFriends{
 		Id:      id,
 		Friends: friends,
@@ -314,6 +390,11 @@ func (o *Operator) WriteFriends(id string, friends map[string]roles.Status) (err
 
 // 重置全部朋友关系
 func (o *Operator) ResetFriends(id string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_friends := Net_RoleAndFriends{
 		Id:      id,
 		Friends: make(map[string]roles.Status),
@@ -333,6 +414,11 @@ func (o *Operator) ResetFriends(id string) (err error) {
 
 // 创建空的上下文
 func (o *Operator) CreateContext(id, contextname string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_context := Net_RoleAndContext{
 		Id:      id,
 		Context: contextname,
@@ -352,6 +438,11 @@ func (o *Operator) CreateContext(id, contextname string) (err error) {
 
 // 删除一个上下文
 func (o *Operator) DropContext(id, contextname string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_context := Net_RoleAndContext{
 		Id:      id,
 		Context: contextname,
@@ -371,6 +462,11 @@ func (o *Operator) DropContext(id, contextname string) (err error) {
 
 // 读取一个上下文
 func (o *Operator) ReadContext(id, contextname string) (context roles.Context, have bool, err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_context := Net_RoleAndContext_Data{
 		Id:      id,
 		Context: contextname,
@@ -393,6 +489,11 @@ func (o *Operator) ReadContext(id, contextname string) (context roles.Context, h
 
 // 删除一个上下文中的绑定
 func (o *Operator) DeleteContextBind(id, contextname string, upordown uint8, bindrole string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_context := Net_RoleAndContext{
 		Id:       id,
 		Context:  contextname,
@@ -414,6 +515,11 @@ func (o *Operator) DeleteContextBind(id, contextname string, upordown uint8, bin
 
 // 返回某个上下文的同样绑定值的所有
 func (o *Operator) ReadContextSameBind(id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_context := Net_RoleAndContext_Data{
 		Id:       id,
 		Context:  contextname,
@@ -438,6 +544,11 @@ func (o *Operator) ReadContextSameBind(id, contextname string, upordown uint8, b
 
 // 返回所有上下文的名称
 func (o *Operator) ReadContextsName(id string) (names []string, err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_context := Net_RoleAndContext_Data{
 		Id: id,
 	}
@@ -458,6 +569,11 @@ func (o *Operator) ReadContextsName(id string) (names []string, err error) {
 
 // 设置所有上下文
 func (o *Operator) WriteContexts(id string, contexts map[string]roles.Context) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_contexts := Net_RoleAndContexts{
 		Id:       id,
 		Contexts: contexts,
@@ -477,6 +593,11 @@ func (o *Operator) WriteContexts(id string, contexts map[string]roles.Context) (
 
 // 重置上下文
 func (o *Operator) ResetContexts(id string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_contexts := Net_RoleAndContexts{
 		Id:       id,
 		Contexts: make(map[string]roles.Context),
@@ -496,6 +617,11 @@ func (o *Operator) ResetContexts(id string) (err error) {
 
 // 读取全部上下文
 func (o *Operator) ReadContexts(id string) (contexts map[string]roles.Context, err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_contexts := Net_RoleAndContexts{
 		Id: id,
 	}
@@ -515,6 +641,11 @@ func (o *Operator) ReadContexts(id string) (contexts map[string]roles.Context, e
 
 // 设置朋友的属性
 func (o *Operator) WriteFriendStatus(id, friend string, bindbit int, value interface{}) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("drule[Operator]WriteFriendStatus: %v", e)
@@ -568,12 +699,22 @@ func (o *Operator) WriteFriendStatus(id, friend string, bindbit int, value inter
 
 // 写一个朋友
 func (o *Operator) WriteFriend(id, friend string, bind int64) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	err = o.WriteFriendStatus(id, friend, 0, bind)
 	return
 }
 
 // 删除一个朋友
 func (o *Operator) DeleteFriend(id, friend string) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	role_friend := Net_RoleAndFriend{
 		Id:     id,
 		Friend: friend,
@@ -592,6 +733,11 @@ func (o *Operator) DeleteFriend(id, friend string) (err error) {
 
 // 读取朋友的状态
 func (o *Operator) ReadFriendStatus(id, friend string, bindbit int, value interface{}) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("drule[Operator]ReadFriendStatus: %v", e)
@@ -642,6 +788,11 @@ func (o *Operator) ReadFriendStatus(id, friend string, bindbit int, value interf
 
 // 设置一个上下文的属性
 func (o *Operator) WriteContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("drule[Operator]WriteContextStatus: %v", e)
@@ -697,6 +848,11 @@ func (o *Operator) WriteContextStatus(id, contextname string, upordown uint8, bi
 
 // 读取一个上下文的状态
 func (o *Operator) ReadContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("drule[Operator]ReadContextStatus: %v", e)
@@ -749,6 +905,11 @@ func (o *Operator) ReadContextStatus(id, contextname string, upordown uint8, bin
 
 // 写一个数据
 func (o *Operator) WriteData(id, name string, data interface{}) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("drule[Operator]ReadData: %v", err)
@@ -783,6 +944,11 @@ func (o *Operator) WriteData(id, name string, data interface{}) (err error) {
 
 // 读取一个数据
 func (o *Operator) ReadData(id, name string, data interface{}) (err error) {
+	err = o.checkDMZ(id)
+	if err != nil {
+		return
+	}
+
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("drule[Operator]ReadData: %v", err)

@@ -257,6 +257,11 @@ func (o *Operator) Prepare(roleids ...string) (operator *Operator, err error) {
 	if o.inTransaction == true {
 		return nil, fmt.Errorf("There's no function Prepare.")
 	}
+	err = o.checkDMZ(roleids...)
+	if err != nil {
+		return
+	}
+
 	tranid := random.GetRand(40)
 	// 对所有镜像开启
 	can := make([]*slaveIn, 0)
@@ -292,6 +297,12 @@ func (o *Operator) LockRoles(roleids ...string) (err error) {
 		err = fmt.Errorf("There's no function LockRoles.")
 		return
 	}
+
+	err = o.checkDMZ(roleids...)
+	if err != nil {
+		return
+	}
+
 	// 对所有镜像开启
 	can := make([]*slaveIn, 0)
 	errall := make([]string, 0)

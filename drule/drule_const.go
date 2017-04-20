@@ -7,6 +7,11 @@
 
 package drule
 
+// 内部保护区
+const (
+	INSIDE_DMZ = "_DRULE_INSIDE_DMZ_" // 内部隔离区，以这个开头的角色无法对外访问
+)
+
 // 分布式模式
 const (
 	// 没有分布式，只有自己

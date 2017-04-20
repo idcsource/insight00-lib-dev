@@ -9,6 +9,7 @@ package drule
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
@@ -18,6 +19,7 @@ import (
 )
 
 const (
+	USER_AREA                       = "users_" // 用户区域，INSIDE_DMZ和USER_AREA加起来是用户名的后缀
 	USER_ROOT_USER_NAME             = "root"   // 根用户用户名
 	USER_ROOT_USER_DEFAULT_PASSWORD = "123456" // 根用户默认密码
 	USER_ALIVE_TIME                 = 3600     // 用户的登录生存期
@@ -215,7 +217,7 @@ func (d *DRule) userAdd(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (er
 	if err != nil {
 		return err
 	}
-	userid := d.selfname + "_" + druleuser.UserName
+	userid := INSIDE_DMZ + USER_AREA + druleuser.UserName
 	// 查看是否有重复的
 	have := d.trule.ExistRole(userid)
 	if have == true {
@@ -237,4 +239,30 @@ func (d *DRule) userAdd(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (er
 	}
 	err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
 	return
+}
+
+// 检查id是否侵犯了DMZ，true则是都不侵犯
+func (d *DRule) checkDMZ(ids ...string) (err error) {
+	have := false
+	rp, _ := regexp.Compile("^" + INSIDE_DMZ)
+	for _, id := range ids {
+		have = rp.MatchString(id)
+		if have == true {
+			return fmt.Errorf("Id not allowed: %v", id)
+		}
+	}
+	return nil
+}
+
+// 检查id是否侵犯了DMZ，true则是都不侵犯
+func (o *Operator) checkDMZ(ids ...string) (err error) {
+	have := false
+	rp, _ := regexp.Compile("^" + INSIDE_DMZ)
+	for _, id := range ids {
+		have = rp.MatchString(id)
+		if have == true {
+			return fmt.Errorf("Id not allowed: %v", id)
+		}
+	}
+	return nil
 }

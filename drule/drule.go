@@ -90,7 +90,7 @@ func (d *DRule) startForOwn() (err error) {
 	// 创建登录表
 	d.loginuser = make(map[string]*loginUser)
 	// 查看有无root用户
-	root_user_id := d.selfname + "_" + USER_ROOT_USER_NAME
+	root_user_id := INSIDE_DMZ + USER_AREA + USER_ROOT_USER_NAME
 	have := d.trule.ExistRole(root_user_id)
 	if have == false {
 		// 没有就新建
