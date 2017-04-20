@@ -38,7 +38,7 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		d.logerr(fmt.Errorf("Get the Prefix Stat err : %v", err))
 		return err
 	}
-	// 检查登录=
+	// 检查登录
 	if prefix_stat.Operate == OPERATE_USER_LOGIN {
 		// 如果是要求登录就登录
 		err = d.userLogin(prefix_stat, conn_exec)
@@ -51,6 +51,11 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	} else {
 		fmt.Println("检查登录加")
 		// 真正要检查登录了
+		if len(prefix_stat.Unid) != 40 {
+			d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, fmt.Errorf("Can not login."))
+			conn_exec.SendClose()
+			return
+		}
 		log, have := d.loginuser[prefix_stat.Unid]
 		if have != true {
 			// 尝试根据提供的数据进行续期
