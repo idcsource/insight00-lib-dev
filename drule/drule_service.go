@@ -38,7 +38,7 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		d.logerr(fmt.Errorf("Get the Prefix Stat err : %v", err))
 		return err
 	}
-	// 检查登录
+	// 检查登录=
 	if prefix_stat.Operate == OPERATE_USER_LOGIN {
 		// 如果是要求登录就登录
 		err = d.userLogin(prefix_stat, conn_exec)
@@ -47,23 +47,28 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 			d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client %v's operation %v returned an error: %v", prefix_stat.ClientName, operate_string, err))
 			d.serverDataReceipt(conn_exec, DATA_RETURN_ERROR, nil, err)
 			return err
-		} else {
-			return
 		}
 	} else {
+		fmt.Println("检查登录加")
 		// 真正要检查登录了
 		log, have := d.loginuser[prefix_stat.Unid]
 		if have != true {
-			// 发送错误信息
-			d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, fmt.Errorf("%v, Please login first.", prefix_stat.ClientName))
-			return
-		} else {
-			if log.logtime.Unix()+USER_ALIVE_TIME > time.Now().Unix() {
-				// 登录超时，发送错误信息
-				d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, fmt.Errorf("%v, Please login first.", prefix_stat.ClientName))
-				// 删除这个登录信息
-				delete(d.loginuser, prefix_stat.Unid)
+			// 尝试根据提供的数据进行续期
+			err = d.userLiveGo(prefix_stat, conn_exec)
+			if err != nil {
+				d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, err)
+				conn_exec.SendClose()
 				return
+			}
+		} else {
+			if log.logtime.Unix()+USER_ALIVE_TIME < time.Now().Unix() {
+				// 登录超时，尝试续期
+				err = d.userLiveGo(prefix_stat, conn_exec)
+				if err != nil {
+					d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, err)
+					conn_exec.SendClose()
+					return
+				}
 			} else {
 				// 生存期续期
 				d.loginuser[prefix_stat.Unid].logtime = time.Now()

@@ -251,7 +251,7 @@ func (tc *TcpClient) SendAndReturn(data []byte) (returndata []byte, err error) {
 	}*/
 	err = onec.tcpc.tcp.SendStat(DATA_GOON)
 	if err != nil {
-		err = fmt.Errorf("nst: [TcpClient]Send: %v", err)
+		err = fmt.Errorf("nst: [TcpClient]SendAndReturn: %v", err)
 		return
 	}
 
@@ -350,7 +350,7 @@ func (p *ProgressData) SendAndReturn(data []byte) (returndata []byte, err error)
 	}*/
 	err = p.tcpc.tcp.SendStat(DATA_GOON)
 	if err != nil {
-		err = fmt.Errorf("nst: [TcpClient]Send: %v", err)
+		err = fmt.Errorf("nst: [ProgressData]SendAndReturn: %v", err)
 		return
 	}
 	err = p.tcpc.tcp.SendData(data)

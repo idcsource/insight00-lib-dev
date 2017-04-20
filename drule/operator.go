@@ -32,7 +32,7 @@ func NewOperator(selfname string, addr, username, password string, conn_num int,
 	oneSlaveIn := &slaveIn{
 		name:     addr,
 		username: username,
-		password: password,
+		password: random.GetSha1Sum(password),
 		tcpconn:  slave,
 	}
 	// 监测登录
@@ -54,7 +54,7 @@ func (o *Operator) AddUser(username, password, email string, authority uint8) (e
 	// 生成发送数据
 	user := Net_DRuleUser{
 		UserName:  username,
-		Password:  password,
+		Password:  random.GetSha1Sum(password),
 		Email:     email,
 		Authority: authority,
 	}

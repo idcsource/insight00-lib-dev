@@ -192,7 +192,7 @@ func (d *DRule) startForMaster() (err error) {
 		d.slavecpool[one] = &slaveIn{
 			name:     one,
 			username: username,
-			password: password,
+			password: random.GetSha1Sum(password),
 			tcpconn:  sconn,
 		}
 		// 遍历可管理角色首字母创建连接序列

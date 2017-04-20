@@ -55,14 +55,17 @@ func LoginToDRule(process *nst.ProgressData, selfname string, slaveIn *slaveIn) 
 	}
 	tolog_b, err := iendecode.StructGobBytes(tolog)
 	if err != nil {
-		return
+		return err
 	}
 	rdata, err := process.SendAndReturn(tolog_b)
 	if err != nil {
-		return
+		return err
 	}
 	receipt := Net_SlaveReceipt_Data{}
 	err = iendecode.BytesGobStruct(rdata, &receipt)
+	if err != nil {
+		return err
+	}
 	if receipt.DataStat != DATA_PLEASE {
 		return fmt.Errorf(receipt.Error)
 	}
@@ -73,16 +76,19 @@ func LoginToDRule(process *nst.ProgressData, selfname string, slaveIn *slaveIn) 
 	}
 	login_b, err := iendecode.StructGobBytes(login)
 	if err != nil {
-		return
+		return err
 	}
 	rdata, err = process.SendAndReturn(login_b)
 	err = iendecode.BytesGobStruct(rdata, &receipt)
-	if receipt.DataStat != DATA_PLEASE {
+	if err != nil {
+		return err
+	}
+	if receipt.DataStat != DATA_ALL_OK {
 		return fmt.Errorf(receipt.Error)
 	}
 	err = iendecode.BytesGobStruct(receipt.Data, &login)
 	if err != nil {
-		return
+		return err
 	}
 	if login.Unid != "" && login.Unid != "0" {
 		slaveIn.unid = login.Unid
@@ -91,7 +97,7 @@ func LoginToDRule(process *nst.ProgressData, selfname string, slaveIn *slaveIn) 
 		err = fmt.Errorf("The login is wrong.")
 		return err
 	}
-	return
+	return nil
 }
 
 // 清理登录超时
@@ -104,6 +110,34 @@ func (d *DRule) userLoginTimeOutDel() {
 			}
 		}
 	}
+}
+
+func (d *DRule) userLiveGo(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
+	// 找有无这个用户以及用户名是否正确
+	var password string
+	err = d.trule.ReadData(d.selfname+"_"+prefix_stat.UserName, "Password", &password)
+	if err != nil {
+		return err
+	} else {
+		if password != prefix_stat.Password {
+			return fmt.Errorf("password wrong.")
+		} else {
+			var authority uint8
+			err = d.trule.ReadData(d.selfname+"_"+prefix_stat.UserName, "Authority", &authority)
+			if err != nil {
+				return err
+			}
+			// 写入登录表
+			login := &loginUser{
+				username:  prefix_stat.UserName,
+				unid:      prefix_stat.Unid,
+				authority: authority,
+				logtime:   time.Now(),
+			}
+			d.loginuser[prefix_stat.Unid] = login
+		}
+	}
+	return nil
 }
 
 // 用户登录
