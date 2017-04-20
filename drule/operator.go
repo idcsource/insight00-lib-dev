@@ -17,7 +17,7 @@ import (
 )
 
 // 新建一个操作机，addr和code是默认的drule的地址（含端口号）和身份码，conn_num为连接池的个数
-func NewOperator(selfname string, addr, code string, conn_num int, logs *ilogs.Logs) (operator *Operator, err error) {
+func NewOperator(selfname string, addr, username, password string, conn_num int, logs *ilogs.Logs) (operator *Operator, err error) {
 	operator = &Operator{
 		selfname:      selfname,
 		slaves:        make([]*slaveIn, 0),
@@ -28,25 +28,68 @@ func NewOperator(selfname string, addr, code string, conn_num int, logs *ilogs.L
 	if err != nil {
 		return nil, err
 	}
+
 	oneSlaveIn := &slaveIn{
-		name:    addr,
-		code:    code,
-		tcpconn: slave,
+		name:     addr,
+		username: username,
+		password: password,
+		tcpconn:  slave,
+	}
+	// 监测登录
+	pro := slave.OpenProgress()
+	defer pro.Close()
+	err = LoginToDRule(pro, selfname, oneSlaveIn)
+	if err != nil {
+		return
 	}
 	operator.slaves = append(operator.slaves, oneSlaveIn)
 	return operator, nil
 }
 
+func (o *Operator) AddUser(username, password, email string, authority uint8) (err error) {
+	if len(o.slaves) != 1 {
+		err = fmt.Errorf("drule[Operator]AddUser: There have so many DRule Server, I can not know to do what.")
+		return
+	}
+	// 生成发送数据
+	user := Net_DRuleUser{
+		UserName:  username,
+		Password:  password,
+		Email:     email,
+		Authority: authority,
+	}
+	//编码发送的数据
+	user_b, err := nst.StructGobBytes(user)
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]AddUser: %v", err)
+		return
+	}
+	// 送出
+	err = o.sendWriteToServer("", OPERATE_USER_ADD, user_b)
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]AddUser: %v", err)
+	}
+	return
+}
+
 // 增加一个服务器到控制器，addr和code是默认的drule的地址（含端口号）和身份码，conn_num为连接池的个数
-func (o *Operator) AddServer(addr, code string, conn_num int) (err error) {
+func (o *Operator) AddServer(addr, username, password string, conn_num int) (err error) {
 	slave, err := nst.NewTcpClient(addr, conn_num, o.logs)
 	if err != nil {
 		return err
 	}
 	oneSlaveIn := &slaveIn{
-		name:    addr,
-		code:    code,
-		tcpconn: slave,
+		name:     addr,
+		username: username,
+		password: password,
+		tcpconn:  slave,
+	}
+	// 监测登录
+	pro := slave.OpenProgress()
+	defer pro.Close()
+	err = LoginToDRule(pro, o.selfname, oneSlaveIn)
+	if err != nil {
+		return
 	}
 	o.slaves = append(o.slaves, oneSlaveIn)
 	return nil
@@ -116,7 +159,7 @@ func (o *Operator) rollbackSlaveOne(tranid string, onec *slaveIn) (err error) {
 	defer cprocess.Close()
 
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, true, "", OPERATE_TRAN_ROLLBACK)
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, tranid, true, "", OPERATE_TRAN_ROLLBACK, onec)
 	if err != nil {
 		return err
 	}
@@ -132,7 +175,7 @@ func (o *Operator) startTransactionForOne(tranid string, onec *slaveIn) (err err
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, false, "", OPERATE_TRAN_BEGIN)
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, tranid, false, "", OPERATE_TRAN_BEGIN, onec)
 	if err != nil {
 		return err
 	}
@@ -199,7 +242,7 @@ func (o *Operator) commitSlaveOne(tranid string, onec *slaveIn) (err error) {
 	defer cprocess.Close()
 
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, true, "", OPERATE_TRAN_COMMIT)
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, tranid, true, "", OPERATE_TRAN_COMMIT, onec)
 	if err != nil {
 		return err
 	}
@@ -274,7 +317,7 @@ func (o *Operator) prepareTransactionForOne(tranid string, roleids []string, one
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, tranid, o.inTransaction, "", OPERATE_TRAN_PREPARE)
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, tranid, o.inTransaction, "", OPERATE_TRAN_PREPARE, onec)
 	if err != nil {
 		return err
 	}
@@ -317,7 +360,7 @@ func (o *Operator) sendReadAndDecodeData(roleid string, operate int, senddata []
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err = SendPrefixStat(cprocess, o.selfname, onec.code, o.transactionId, o.inTransaction, roleid, operate)
+	slave_receipt, err = SendPrefixStat(cprocess, o.selfname, o.transactionId, o.inTransaction, roleid, operate, onec)
 	if err != nil {
 		return
 	}
@@ -367,7 +410,7 @@ func (o *Operator) sendWriteToOneServer(roleid string, operate int, senddata []b
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, onec.code, o.transactionId, o.inTransaction, roleid, operate)
+	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, o.transactionId, o.inTransaction, roleid, operate, onec)
 	if err != nil {
 		return
 	}

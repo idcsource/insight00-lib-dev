@@ -65,6 +65,10 @@ const (
 	DATA_TRAN_NOT_EXIST
 	// 已经关闭
 	DATA_DRULE_CLOSED
+	// 用户没有登录
+	DATA_USER_NOT_LOGIN
+	// 用户重复
+	DATA_USER_EXIST
 )
 
 // 操作方式列表
@@ -193,4 +197,13 @@ const (
 	OPERATE_TRAN_ERROR
 	// 准备事务
 	OPERATE_TRAN_PREPARE
+
+	// 用户登录
+	OPERATE_USER_LOGIN
+	// 用户新建
+	OPERATE_USER_ADD
+	// 用户改密码
+	OPERATE_USER_PASSWORD
+	// 用户删除
+	OPERATE_USER_DEL
 )

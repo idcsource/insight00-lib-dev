@@ -10,6 +10,7 @@ package drule
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/random"
@@ -37,12 +38,37 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		d.logerr(fmt.Errorf("Get the Prefix Stat err : %v", err))
 		return err
 	}
-	// 检查身份验证码
-	if prefix_stat.Code != d.code {
-		// 发送错误
-		d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The service code from %v is wrong : %v .", prefix_stat.ClientName, prefix_stat.Code))
-		conn_exec.SendClose()
-		return fmt.Errorf("The service code is wrong : %v .", prefix_stat.Code)
+	// 检查登录
+	if prefix_stat.Operate == OPERATE_USER_LOGIN {
+		// 如果是要求登录就登录
+		err = d.userLogin(prefix_stat, conn_exec)
+		operate_string := "OPERATE_USER_LOGIN"
+		if err != nil {
+			d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client %v's operation %v returned an error: %v", prefix_stat.ClientName, operate_string, err))
+			d.serverDataReceipt(conn_exec, DATA_RETURN_ERROR, nil, err)
+			return err
+		} else {
+			return
+		}
+	} else {
+		// 真正要检查登录了
+		log, have := d.loginuser[prefix_stat.Unid]
+		if have != true {
+			// 发送错误信息
+			d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, fmt.Errorf("%v, Please login first.", prefix_stat.ClientName))
+			return
+		} else {
+			if log.logtime.Unix()+USER_ALIVE_TIME > time.Now().Unix() {
+				// 登录超时，发送错误信息
+				d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, fmt.Errorf("%v, Please login first.", prefix_stat.ClientName))
+				// 删除这个登录信息
+				delete(d.loginuser, prefix_stat.Unid)
+				return
+			} else {
+				// 生存期续期
+				d.loginuser[prefix_stat.Unid].logtime = time.Now()
+			}
+		}
 	}
 	// 开始遍历操作
 	var operate_string string
@@ -182,6 +208,9 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		// 读取全部的上下文
 		err = d.readSomeThing(prefix_stat, conn_exec)
 		operate_string = "OPERATE_GET_CONTEXTS"
+	case OPERATE_USER_ADD:
+		err = d.userAdd(prefix_stat, conn_exec)
+		operate_string = "OPERATE_USER_ADD"
 	default:
 		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))
 		d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client requested a nonexistent operation."))
@@ -396,7 +425,7 @@ func (d *DRule) writeSomeThingFromOneSlave(prefix_stat Net_PrefixStat, byte_slic
 	cprocess := conn.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, prefix_stat.ClientName, conn.code, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
+	slave_receipt, err := SendPrefixStat(cprocess, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate, conn)
 	if err != nil {
 		return err
 	}
@@ -566,7 +595,7 @@ func (d *DRule) readSomeThingFromSlave(prefix_stat Net_PrefixStat, byte_slice_da
 	cprocess := conn.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, prefix_stat.ClientName, conn.code, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
+	slave_receipt, err := SendPrefixStat(cprocess, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate, conn)
 	if err != nil {
 		return
 	}

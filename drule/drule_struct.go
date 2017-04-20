@@ -8,6 +8,8 @@
 package drule
 
 import (
+	"time"
+
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
@@ -38,15 +40,28 @@ type DRule struct {
 	// slave的slaveIn连接池
 	slavecpool map[string]*slaveIn
 
+	// 登录进来的用户
+	loginuser map[string]*loginUser
+
 	// 日志
 	logs *ilogs.Logs
 }
 
+// 登录进来的用户
+type loginUser struct {
+	username  string
+	unid      string
+	authority uint8
+	logtime   time.Time
+}
+
 // 一台从机的信息
 type slaveIn struct {
-	name    string
-	code    string
-	tcpconn *nst.TcpClient
+	name     string         // 机器名称
+	username string         // 用户名
+	password string         // 密码
+	unid     string         // 登录唯一码
+	tcpconn  *nst.TcpClient // tcp连接
 }
 
 /* 下面是网络传输所需要的结构 */
@@ -69,14 +84,14 @@ type Net_PrefixStat struct {
 	Operate int
 	// 客户端名称
 	ClientName string
-	// 身份验证码
-	Code string
 	// 在事务中
 	InTransaction bool
 	// 事务ID
 	TransactionId string
 	// 涉及到的角色id
 	RoleId string
+	// 登录的Unid
+	Unid string
 }
 
 // slave回执带数据体

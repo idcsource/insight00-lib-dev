@@ -16,6 +16,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/hardstore"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/random"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
@@ -81,8 +82,31 @@ func (d *DRule) startForOwn() (err error) {
 	}
 	// 创建事务统治者
 	d.trule, err = NewTRule(local_store)
-	// 查看自己的名字，没有就直接忽略
-	d.selfname, _ = d.config.GetConfig("main.selfname")
+	// 查看自己的名字
+	d.selfname, err = d.config.GetConfig("main.selfname")
+	if err != nil {
+		return err
+	}
+	// 创建登录表
+	d.loginuser = make(map[string]*loginUser)
+	// 查看有无root用户
+	root_user_id := d.selfname + "_" + USER_ROOT_USER_NAME
+	have := d.trule.ExistRole(root_user_id)
+	if have == false {
+		// 没有就新建
+		root_user := &DRuleUser{
+			UserName:  USER_ROOT_USER_NAME,
+			Password:  random.GetSha1Sum(USER_ROOT_USER_DEFAULT_PASSWORD),
+			Authority: USER_AUTHORITY_ROOT,
+		}
+		root_user.New(root_user_id)
+		err = d.trule.StoreRole(root_user)
+		if err != nil {
+			return err
+		}
+	}
+	//开启登录超时清理
+	go d.userLoginTimeOutDel()
 	return
 }
 
@@ -97,10 +121,6 @@ func (d *DRule) startForSlave() (err error) {
 		return err
 	}
 	d.listen, err = nst.NewTcpServer(d, port, d.logs)
-	if err != nil {
-		return err
-	}
-	d.code, err = d.config.GetConfig("main.code")
 	if err != nil {
 		return err
 	}
@@ -143,8 +163,14 @@ func (d *DRule) startForMaster() (err error) {
 		} else {
 			conn_num = int(conn_num64)
 		}
-		// 获取身份验证码
-		code, err := onecfg.GetConfig("code")
+		// 获取用户名
+		username, err := onecfg.GetConfig("username")
+		if err != nil {
+			d.closeSlavePool()
+			return err
+		}
+		// 获取密码
+		password, err := onecfg.GetConfig("password")
 		if err != nil {
 			d.closeSlavePool()
 			return err
@@ -164,9 +190,10 @@ func (d *DRule) startForMaster() (err error) {
 		}
 		d.slavepool[one] = sconn
 		d.slavecpool[one] = &slaveIn{
-			name:    one,
-			code:    code,
-			tcpconn: sconn,
+			name:     one,
+			username: username,
+			password: password,
+			tcpconn:  sconn,
 		}
 		// 遍历可管理角色首字母创建连接序列
 		for _, onewho := range control_whos {
