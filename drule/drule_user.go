@@ -241,6 +241,75 @@ func (d *DRule) userAdd(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (er
 	return
 }
 
+func (d *DRule) userDel(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
+	// 检查是否为超级管理员
+	if d.loginuser[prefix_stat.Unid].authority != USER_AUTHORITY_ROOT {
+		err = fmt.Errorf("The user not a root.")
+		return
+	}
+	// 发送DATA_PLEASE
+	err = d.serverDataReceipt(conn_exec, DATA_PLEASE, nil, nil)
+	if err != nil {
+		return err
+	}
+	// 获取编码的结构体数据
+	druleuser_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 还原
+	druleuser := Net_DRuleUser{}
+	err = iendecode.BytesGobStruct(druleuser_b, &druleuser)
+	if err != nil {
+		return err
+	}
+	userid := INSIDE_DMZ + USER_AREA + druleuser.UserName
+	err = d.trule.DeleteRole(userid)
+	if err != nil {
+		return err
+	}
+	err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
+	return
+}
+
+func (d *DRule) userPassword(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
+	// 发送DATA_PLEASE
+	err = d.serverDataReceipt(conn_exec, DATA_PLEASE, nil, nil)
+	if err != nil {
+		return err
+	}
+	// 获取编码的结构体数据
+	druleuser_b, err := conn_exec.GetData()
+	if err != nil {
+		return err
+	}
+	// 还原
+	druleuser := Net_DRuleUser{}
+	err = iendecode.BytesGobStruct(druleuser_b, &druleuser)
+	if err != nil {
+		return err
+	}
+	if d.loginuser[prefix_stat.Unid].username == druleuser.UserName {
+		userid := INSIDE_DMZ + USER_AREA + druleuser.UserName
+		err = d.trule.WriteData(userid, "Password", druleuser.Password)
+		if err == nil {
+			err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
+		}
+		return
+	} else if d.loginuser[prefix_stat.Unid].authority != USER_AUTHORITY_ROOT {
+		userid := INSIDE_DMZ + USER_AREA + druleuser.UserName
+		err = d.trule.WriteData(userid, "Password", druleuser.Password)
+		if err == nil {
+			err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
+		}
+		return
+	} else {
+		err = fmt.Errorf("There is no permission to change the password.")
+		return
+	}
+
+}
+
 // 检查id是否侵犯了DMZ，true则是都不侵犯
 func (d *DRule) checkDMZ(ids ...string) (err error) {
 	have := false

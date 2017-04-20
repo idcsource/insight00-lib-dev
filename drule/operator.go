@@ -46,7 +46,12 @@ func NewOperator(selfname string, addr, username, password string, conn_num int,
 	return operator, nil
 }
 
+// 添加用户
 func (o *Operator) AddUser(username, password, email string, authority uint8) (err error) {
+	if o.inTransaction == true {
+		err = fmt.Errorf("There's no function AddUser().")
+		return
+	}
 	if len(o.slaves) != 1 {
 		err = fmt.Errorf("drule[Operator]AddUser: There have so many DRule Server, I can not know to do what.")
 		return
@@ -68,6 +73,64 @@ func (o *Operator) AddUser(username, password, email string, authority uint8) (e
 	err = o.sendWriteToServer("", OPERATE_USER_ADD, user_b)
 	if err != nil {
 		err = fmt.Errorf("drule[Operator]AddUser: %v", err)
+	}
+	return
+}
+
+// 修改密码
+func (o *Operator) Password(username, password string) (err error) {
+	if o.inTransaction == true {
+		err = fmt.Errorf("There's no function Password.")
+		return
+	}
+	if len(o.slaves) != 1 {
+		err = fmt.Errorf("drule[Operator]Password: There have so many DRule Server, I can not know to do what.")
+		return
+	}
+	// 生成发送数据
+	user := Net_DRuleUser{
+		UserName: username,
+		Password: random.GetSha1Sum(password),
+	}
+	// 编码发送数据
+	user_b, err := nst.StructGobBytes(user)
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]Password: %v", err)
+		return
+	}
+	// 送出
+	err = o.sendWriteToOneServer("", OPERATE_USER_PASSWORD, user_b, o.slaves[0])
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]Password: %v", err)
+	}
+	return
+}
+
+// 删除用户
+func (o *Operator) DeleteUser(username string) (err error) {
+	if o.inTransaction == true {
+		err = fmt.Errorf("There's no function DeleteUser.")
+		return
+	}
+	if len(o.slaves) != 1 {
+		err = fmt.Errorf("drule[Operator]Password: There have so many DRule Server, I can not know to do what.")
+		return
+	}
+
+	// 生成发送数据
+	user := Net_DRuleUser{
+		UserName: username,
+	}
+	// 编码发送数据
+	user_b, err := nst.StructGobBytes(user)
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]DeleteUser: %v", err)
+		return
+	}
+	// 送出
+	err = o.sendWriteToOneServer("", OPERATE_USER_PASSWORD, user_b, o.slaves[0])
+	if err != nil {
+		err = fmt.Errorf("drule[Operator]DeleteUser: %v", err)
 	}
 	return
 }

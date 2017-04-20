@@ -221,6 +221,12 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case OPERATE_USER_ADD:
 		err = d.userAdd(prefix_stat, conn_exec)
 		operate_string = "OPERATE_USER_ADD"
+	case OPERATE_USER_DEL:
+		err = d.userDel(prefix_stat, conn_exec)
+		operate_string = "OPERATE_USER_DEL"
+	case OPERATE_USER_PASSWORD:
+		err = d.userPassword(prefix_stat, conn_exec)
+		operate_string = "OPERATE_USER_PASSWORD"
 	default:
 		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))
 		d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client requested a nonexistent operation."))
