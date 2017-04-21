@@ -22,6 +22,11 @@ func (d *DRule) writeFatherTran(tran *Transaction, byte_slice_data []byte) (err 
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(net_role_father_change.Id, net_role_father_change.Father)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.WriteFather(net_role_father_change.Id, net_role_father_change.Father)
 	if err != nil {
@@ -35,6 +40,11 @@ func (d *DRule) writeFatherNoTran(byte_slice_data []byte) (err error) {
 	// 解码
 	net_role_father_change := Net_RoleFatherChange{}
 	err = nst.BytesGobStruct(byte_slice_data, &net_role_father_change)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(net_role_father_change.Id, net_role_father_change.Father)
 	if err != nil {
 		return
 	}
@@ -54,6 +64,11 @@ func (d *DRule) existRoleTran(tran *Transaction, byte_slice_data []byte) (return
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_sr.RoleID)
+	if err != nil {
+		return
+	}
 	// 执行
 	role_sr.IfHave = tran.ExistRole(role_sr.RoleID)
 	return_data, err = nst.StructGobBytes(role_sr)
@@ -65,6 +80,11 @@ func (d *DRule) existRoleNoTran(byte_slice_data []byte) (return_data []byte, err
 	// 解码
 	role_sr := Net_RoleSendAndReceive{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_sr)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_sr.RoleID)
 	if err != nil {
 		return
 	}
@@ -80,6 +100,11 @@ func (d *DRule) readRoleTran(tran *Transaction, byte_slice_data []byte) (return_
 	// 解码
 	role_sr := Net_RoleSendAndReceive{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_sr)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_sr.RoleID)
 	if err != nil {
 		return
 	}
@@ -105,6 +130,11 @@ func (d *DRule) readRoleNoTran(byte_slice_data []byte) (return_data []byte, err 
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_sr.RoleID)
+	if err != nil {
+		return
+	}
 	// 执行
 	mid, err := d.trule.readRoleMiddle(role_sr.RoleID)
 	if err != nil {
@@ -127,6 +157,11 @@ func (d *DRule) storeRoleTran(tran *Transaction, byte_slice_data []byte) (err er
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_sr.RoleID)
+	if err != nil {
+		return
+	}
 	// 执行
 	role_b := role_sr.RoleBody
 	err = tran.storeRoleByte(role_b)
@@ -141,6 +176,11 @@ func (d *DRule) storeRoleNoTran(byte_slice_data []byte) (err error) {
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_sr.RoleID)
+	if err != nil {
+		return
+	}
 	// 执行
 	role_b := role_sr.RoleBody
 	err = d.trule.storeRoleByte(role_b)
@@ -151,6 +191,11 @@ func (d *DRule) storeRoleNoTran(byte_slice_data []byte) (err error) {
 func (d *DRule) deleteRoleTran(tran *Transaction, byte_slice_data []byte) (err error) {
 	// 解码
 	role_id := string(byte_slice_data)
+	// dmz
+	err = d.checkDMZ(role_id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.DeleteRole(role_id)
 	return
@@ -160,6 +205,11 @@ func (d *DRule) deleteRoleTran(tran *Transaction, byte_slice_data []byte) (err e
 func (d *DRule) deleteRoleNoTran(byte_slice_data []byte) (err error) {
 	// 解码
 	role_id := string(byte_slice_data)
+	// dmz
+	err = d.checkDMZ(role_id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = d.trule.DeleteRole(role_id)
 	return
@@ -170,6 +220,11 @@ func (d *DRule) readFatherTran(tran *Transaction, byte_slice_data []byte) (retur
 	// 解码
 	net_role_father_change := Net_RoleFatherChange{}
 	err = nst.BytesGobStruct(byte_slice_data, &net_role_father_change)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(net_role_father_change.Id)
 	if err != nil {
 		return
 	}
@@ -191,6 +246,11 @@ func (d *DRule) readFatherNoTran(byte_slice_data []byte) (return_data []byte, er
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(net_role_father_change.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	net_role_father_change.Father, err = d.trule.ReadFather(net_role_father_change.Id)
 	if err != nil {
@@ -205,6 +265,11 @@ func (d *DRule) readFatherNoTran(byte_slice_data []byte) (return_data []byte, er
 func (d *DRule) readChildrenTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
 	// 解码
 	roleid := string(byte_slice_data)
+	// dmz
+	err = d.checkDMZ(roleid)
+	if err != nil {
+		return
+	}
 	// 执行
 	children, err := tran.ReadChildren(roleid)
 	if err != nil {
@@ -219,6 +284,11 @@ func (d *DRule) readChildrenTran(tran *Transaction, byte_slice_data []byte) (ret
 func (d *DRule) readChildrenNoTran(byte_slice_data []byte) (return_data []byte, err error) {
 	// 解码
 	roleid := string(byte_slice_data)
+	// dmz
+	err = d.checkDMZ(roleid)
+	if err != nil {
+		return
+	}
 	// 执行
 	children, err := d.trule.ReadChildren(roleid)
 	if err != nil {
@@ -237,6 +307,11 @@ func (d *DRule) writeChildrenTran(tran *Transaction, byte_slice_data []byte) (er
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_children.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.WriteChildren(role_and_children.Id, role_and_children.Children)
 	return
@@ -247,6 +322,11 @@ func (d *DRule) writeChildrenNoTran(byte_slice_data []byte) (err error) {
 	// 解码
 	role_and_children := Net_RoleAndChildren{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_and_children)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_and_children.Id)
 	if err != nil {
 		return
 	}
@@ -263,6 +343,11 @@ func (d *DRule) writeChildTran(tran *Transaction, byte_slice_data []byte) (err e
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_child.Id, role_and_child.Child)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.WriteChild(role_and_child.Id, role_and_child.Child)
 	return
@@ -273,6 +358,11 @@ func (d *DRule) writeChildNoTran(byte_slice_data []byte) (err error) {
 	// 解码
 	role_and_child := Net_RoleAndChild{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_and_child)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_and_child.Id, role_and_child.Child)
 	if err != nil {
 		return
 	}
@@ -289,6 +379,11 @@ func (d *DRule) deleteChildTran(tran *Transaction, byte_slice_data []byte) (err 
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_child.Id, role_and_child.Child)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.DeleteChild(role_and_child.Id, role_and_child.Child)
 	return
@@ -302,6 +397,11 @@ func (d *DRule) deleteChildNoTran(byte_slice_data []byte) (err error) {
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_child.Id, role_and_child.Child)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = d.trule.DeleteChild(role_and_child.Id, role_and_child.Child)
 	return
@@ -312,6 +412,11 @@ func (d *DRule) existChildTran(tran *Transaction, byte_slice_data []byte) (retur
 	// 解码
 	role_and_child := Net_RoleAndChild{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_and_child)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_and_child.Id, role_and_child.Child)
 	if err != nil {
 		return
 	}
@@ -333,6 +438,11 @@ func (d *DRule) existChildNoTran(byte_slice_data []byte) (return_data []byte, er
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_child.Id, role_and_child.Child)
+	if err != nil {
+		return
+	}
 	// 执行
 	role_and_child.Exist, err = d.trule.ExistChild(role_and_child.Id, role_and_child.Child)
 	if err != nil {
@@ -347,6 +457,11 @@ func (d *DRule) existChildNoTran(byte_slice_data []byte) (return_data []byte, er
 func (d *DRule) readFriendsTran(tran *Transaction, byte_slice_data []byte) (return_data []byte, err error) {
 	// 解码
 	roleid := string(byte_slice_data)
+	// dmz
+	err = d.checkDMZ(roleid)
+	if err != nil {
+		return
+	}
 	// 执行
 	friends, err := tran.ReadFriends(roleid)
 	if err != nil {
@@ -361,6 +476,11 @@ func (d *DRule) readFriendsTran(tran *Transaction, byte_slice_data []byte) (retu
 func (d *DRule) readFriendsNoTran(byte_slice_data []byte) (return_data []byte, err error) {
 	// 解码
 	roleid := string(byte_slice_data)
+	// dmz
+	err = d.checkDMZ(roleid)
+	if err != nil {
+		return
+	}
 	// 执行
 	friends, err := d.trule.ReadFriends(roleid)
 	if err != nil {
@@ -379,6 +499,11 @@ func (d *DRule) writeFriendsTran(tran *Transaction, byte_slice_data []byte) (err
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_friends.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.WriteFriends(role_and_friends.Id, role_and_friends.Friends)
 	return
@@ -389,6 +514,11 @@ func (d *DRule) writeFriendsNoTran(byte_slice_data []byte) (err error) {
 	// 解码
 	role_and_friends := Net_RoleAndFriends{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_and_friends)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_and_friends.Id)
 	if err != nil {
 		return
 	}
@@ -405,6 +535,11 @@ func (d *DRule) deleteFriendTran(tran *Transaction, byte_slice_data []byte) (err
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_friend.Id, role_and_friend.Friend)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.DeleteFriend(role_and_friend.Id, role_and_friend.Friend)
 	return
@@ -415,6 +550,11 @@ func (d *DRule) deleteFriendNoTran(byte_slice_data []byte) (err error) {
 	// 解码
 	role_and_friend := Net_RoleAndFriend{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_and_friend)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_and_friend.Id, role_and_friend.Friend)
 	if err != nil {
 		return
 	}
@@ -431,6 +571,11 @@ func (d *DRule) createContextTran(tran *Transaction, byte_slice_data []byte) (er
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.CreateContext(role_and_context.Id, role_and_context.Context)
 	return
@@ -441,6 +586,11 @@ func (d *DRule) createContextNoTran(byte_slice_data []byte) (err error) {
 	// 解码
 	role_and_context := Net_RoleAndContext{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
 	if err != nil {
 		return
 	}
@@ -457,6 +607,11 @@ func (d *DRule) dropContextTran(tran *Transaction, byte_slice_data []byte) (err 
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.DropContext(role_and_context.Id, role_and_context.Context)
 	return
@@ -470,6 +625,11 @@ func (d *DRule) dropContextNoTran(byte_slice_data []byte) (err error) {
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = d.trule.DropContext(role_and_context.Id, role_and_context.Context)
 	return
@@ -480,6 +640,11 @@ func (d *DRule) readContextTran(tran *Transaction, byte_slice_data []byte) (retu
 	// 解码
 	role_and_context := Net_RoleAndContext_Data{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
 	if err != nil {
 		return
 	}
@@ -501,6 +666,11 @@ func (d *DRule) readContextNoTran(byte_slice_data []byte) (return_data []byte, e
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	role_and_context.ContextBody, role_and_context.Exist, err = d.trule.ReadContext(role_and_context.Id, role_and_context.Context)
 	if err != nil {
@@ -519,6 +689,11 @@ func (d *DRule) deleteContextBindTran(tran *Transaction, byte_slice_data []byte)
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.DeleteContextBind(role_and_context.Id, role_and_context.Context, role_and_context.UpOrDown, role_and_context.BindRole)
 	return
@@ -532,6 +707,11 @@ func (d *DRule) deleteContextBindNoTran(byte_slice_data []byte) (err error) {
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = d.trule.DeleteContextBind(role_and_context.Id, role_and_context.Context, role_and_context.UpOrDown, role_and_context.BindRole)
 	return
@@ -542,6 +722,11 @@ func (d *DRule) readContextSameBindTran(tran *Transaction, byte_slice_data []byt
 	// 解码
 	role_and_context := Net_RoleAndContext_Data{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
 	if err != nil {
 		return
 	}
@@ -563,6 +748,11 @@ func (d *DRule) readContextSameBindNoTran(byte_slice_data []byte) (return_data [
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	role_and_context.Gather, role_and_context.Exist, err = d.trule.ReadContextSameBind(role_and_context.Id, role_and_context.Context, role_and_context.UpOrDown, role_and_context.Int)
 	if err != nil {
@@ -578,6 +768,11 @@ func (d *DRule) readContextsNameTran(tran *Transaction, byte_slice_data []byte) 
 	// 解码
 	role_and_context := Net_RoleAndContext_Data{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_and_context)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
 	if err != nil {
 		return
 	}
@@ -599,6 +794,11 @@ func (d *DRule) readContextsNameNoTran(byte_slice_data []byte) (return_data []by
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_and_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	role_and_context.Gather, err = d.trule.ReadContextsName(role_and_context.Id)
 	if err != nil {
@@ -614,6 +814,11 @@ func (d *DRule) writeFriendStatusTran(tran *Transaction, byte_slice_data []byte)
 	// 解码
 	role_friend := Net_RoleAndFriend{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_friend)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_friend.Id)
 	if err != nil {
 		return
 	}
@@ -639,6 +844,11 @@ func (d *DRule) writeFriendStatusNoTran(byte_slice_data []byte) (err error) {
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_friend.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	switch role_friend.Single {
 	case roles.STATUS_VALUE_TYPE_INT:
@@ -658,6 +868,11 @@ func (d *DRule) readFriendStatusTran(tran *Transaction, byte_slice_data []byte) 
 	// 解码
 	role_friend := Net_RoleAndFriend{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_friend)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_friend.Id)
 	if err != nil {
 		return
 	}
@@ -694,6 +909,11 @@ func (d *DRule) readFriendStatusNoTran(byte_slice_data []byte) (return_data []by
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_friend.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	switch role_friend.Single {
 	case roles.STATUS_VALUE_TYPE_INT:
@@ -727,6 +947,11 @@ func (d *DRule) writeContextStatusTran(tran *Transaction, byte_slice_data []byte
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	switch role_context.Single {
 	case roles.STATUS_VALUE_TYPE_INT:
@@ -749,6 +974,11 @@ func (d *DRule) writeContextStatusNoTran(byte_slice_data []byte) (err error) {
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	switch role_context.Single {
 	case roles.STATUS_VALUE_TYPE_INT:
@@ -768,6 +998,11 @@ func (d *DRule) readContextStatusTran(tran *Transaction, byte_slice_data []byte)
 	// 解码
 	role_context := Net_RoleAndContext_Data{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_context)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_context.Id)
 	if err != nil {
 		return
 	}
@@ -804,6 +1039,11 @@ func (d *DRule) readContextStatusNoTran(byte_slice_data []byte) (return_data []b
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_context.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	switch role_context.Single {
 	case roles.STATUS_VALUE_TYPE_INT:
@@ -837,6 +1077,11 @@ func (d *DRule) writeDataTran(tran *Transaction, byte_slice_data []byte) (err er
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_data.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.writeDataFromByte(role_data.Id, role_data.Name, role_data.Type, role_data.Data)
 	return
@@ -850,6 +1095,11 @@ func (d *DRule) writeDataNoTran(byte_slice_data []byte) (err error) {
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_data.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = d.trule.writeDataFromByte(role_data.Id, role_data.Name, role_data.Type, role_data.Data)
 	return
@@ -860,6 +1110,11 @@ func (d *DRule) readDataTran(tran *Transaction, byte_slice_data []byte) (return_
 	// 解码
 	role_data := Net_RoleData_Data{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_data)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_data.Id)
 	if err != nil {
 		return
 	}
@@ -881,6 +1136,11 @@ func (d *DRule) readDataNoTran(byte_slice_data []byte) (return_data []byte, err 
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_data.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = d.trule.readDataToByte(&role_data)
 	if err != nil {
@@ -899,6 +1159,11 @@ func (d *DRule) writeContextsTran(tran *Transaction, byte_slice_data []byte) (er
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_contexts.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = tran.WriteContexts(role_contexts.Id, role_contexts.Contexts)
 	return
@@ -912,6 +1177,11 @@ func (d *DRule) writeContextsNoTran(byte_slice_data []byte) (err error) {
 	if err != nil {
 		return
 	}
+	// dmz
+	err = d.checkDMZ(role_contexts.Id)
+	if err != nil {
+		return
+	}
 	// 执行
 	err = d.trule.WriteContexts(role_contexts.Id, role_contexts.Contexts)
 	return
@@ -922,6 +1192,11 @@ func (d *DRule) readContextsTran(tran *Transaction, byte_slice_data []byte) (ret
 	// 解码
 	role_contexts := Net_RoleAndContexts{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_contexts)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_contexts.Id)
 	if err != nil {
 		return
 	}
@@ -940,6 +1215,11 @@ func (d *DRule) readContextsNoTran(byte_slice_data []byte) (return_data []byte, 
 	// 解码
 	role_contexts := Net_RoleAndContexts{}
 	err = nst.BytesGobStruct(byte_slice_data, &role_contexts)
+	if err != nil {
+		return
+	}
+	// dmz
+	err = d.checkDMZ(role_contexts.Id)
 	if err != nil {
 		return
 	}
