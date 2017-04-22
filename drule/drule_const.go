@@ -74,6 +74,8 @@ const (
 	DATA_USER_NOT_LOGIN
 	// 用户重复
 	DATA_USER_EXIST
+	// 用户不存在
+	DATA_USER_NO_EXIST
 )
 
 // 操作方式列表
@@ -205,6 +207,8 @@ const (
 
 	// 用户登录
 	OPERATE_USER_LOGIN
+	// 用户续命
+	OPERATE_USER_ADD_LIFE
 	// 用户新建
 	OPERATE_USER_ADD
 	// 用户改密码

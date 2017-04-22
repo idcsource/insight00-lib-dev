@@ -10,6 +10,7 @@ package drule
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
@@ -43,6 +44,8 @@ func NewOperator(selfname string, addr, username, password string, conn_num int,
 		return
 	}
 	operator.slaves = append(operator.slaves, oneSlaveIn)
+	// 续命
+	go operator.userAddLife()
 	return operator, nil
 }
 
@@ -222,7 +225,7 @@ func (o *Operator) rollbackSlaveOne(tranid string, onec *slaveIn) (err error) {
 	defer cprocess.Close()
 
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, tranid, true, "", OPERATE_TRAN_ROLLBACK, onec)
+	slave_receipt, err := SendPrefixStat(cprocess, onec.unid, o.selfname, tranid, true, "", OPERATE_TRAN_ROLLBACK)
 	if err != nil {
 		return err
 	}
@@ -238,7 +241,7 @@ func (o *Operator) startTransactionForOne(tranid string, onec *slaveIn) (err err
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, tranid, false, "", OPERATE_TRAN_BEGIN, onec)
+	slave_receipt, err := SendPrefixStat(cprocess, onec.unid, o.selfname, tranid, false, "", OPERATE_TRAN_BEGIN)
 	if err != nil {
 		return err
 	}
@@ -305,7 +308,7 @@ func (o *Operator) commitSlaveOne(tranid string, onec *slaveIn) (err error) {
 	defer cprocess.Close()
 
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, tranid, true, "", OPERATE_TRAN_COMMIT, onec)
+	slave_receipt, err := SendPrefixStat(cprocess, onec.unid, o.selfname, tranid, true, "", OPERATE_TRAN_COMMIT)
 	if err != nil {
 		return err
 	}
@@ -391,7 +394,7 @@ func (o *Operator) prepareTransactionForOne(tranid string, roleids []string, one
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, tranid, o.inTransaction, "", OPERATE_TRAN_PREPARE, onec)
+	slave_receipt, err := SendPrefixStat(cprocess, onec.unid, o.selfname, tranid, o.inTransaction, "", OPERATE_TRAN_PREPARE)
 	if err != nil {
 		return err
 	}
@@ -434,7 +437,7 @@ func (o *Operator) sendReadAndDecodeData(roleid string, operate int, senddata []
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err = SendPrefixStat(cprocess, o.selfname, o.transactionId, o.inTransaction, roleid, operate, onec)
+	slave_receipt, err = SendPrefixStat(cprocess, onec.unid, o.selfname, o.transactionId, o.inTransaction, roleid, operate)
 	if err != nil {
 		return
 	}
@@ -484,7 +487,7 @@ func (o *Operator) sendWriteToOneServer(roleid string, operate int, senddata []b
 	cprocess := onec.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, o.selfname, o.transactionId, o.inTransaction, roleid, operate, onec)
+	slave_receipt, err := SendPrefixStat(cprocess, onec.unid, o.selfname, o.transactionId, o.inTransaction, roleid, operate)
 	if err != nil {
 		return
 	}
@@ -502,6 +505,22 @@ func (o *Operator) sendWriteToOneServer(roleid string, operate int, senddata []b
 		return
 	}
 	return
+}
+
+func (o *Operator) userAddLife() {
+	for {
+		time.Sleep(USER_ADD_LIFE * time.Second)
+		for _, onec := range o.slaves {
+			o.userAddLifeOnec(onec)
+		}
+	}
+}
+
+func (o *Operator) userAddLifeOnec(onec *slaveIn) {
+	cprocess := onec.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	// 发送前导
+	SendPrefixStat(cprocess, onec.unid, o.selfname, o.transactionId, o.inTransaction, "", OPERATE_USER_ADD_LIFE)
 }
 
 // 查看是否在事务中，在则返回true

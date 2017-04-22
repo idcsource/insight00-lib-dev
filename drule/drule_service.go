@@ -49,7 +49,6 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 			return err
 		}
 	} else {
-		fmt.Println("检查登录加")
 		// 真正要检查登录了
 		if len(prefix_stat.Unid) != 40 {
 			d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, fmt.Errorf("Can not login."))
@@ -58,22 +57,17 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		}
 		log, have := d.loginuser[prefix_stat.Unid]
 		if have != true {
-			// 尝试根据提供的数据进行续期
-			err = d.userLiveGo(prefix_stat, conn_exec)
-			if err != nil {
-				d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, err)
-				conn_exec.SendClose()
-				return
-			}
+			// 没有找到
+			d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, fmt.Errorf("Can not login."))
+			conn_exec.SendClose()
+			return
 		} else {
 			if log.logtime.Unix()+USER_ALIVE_TIME < time.Now().Unix() {
-				// 登录超时，尝试续期
-				err = d.userLiveGo(prefix_stat, conn_exec)
-				if err != nil {
-					d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, err)
-					conn_exec.SendClose()
-					return
-				}
+				// 生存期超出
+				d.serverDataReceipt(conn_exec, DATA_USER_NOT_LOGIN, nil, fmt.Errorf("Can not login."))
+				conn_exec.SendClose()
+				delete(d.loginuser, prefix_stat.Unid)
+				return
 			} else {
 				// 生存期续期
 				d.loginuser[prefix_stat.Unid].logtime = time.Now()
@@ -219,14 +213,21 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		err = d.readSomeThing(prefix_stat, conn_exec)
 		operate_string = "OPERATE_GET_CONTEXTS"
 	case OPERATE_USER_ADD:
+		// 添加用户
 		err = d.userAdd(prefix_stat, conn_exec)
 		operate_string = "OPERATE_USER_ADD"
 	case OPERATE_USER_DEL:
+		// 删除用户
 		err = d.userDel(prefix_stat, conn_exec)
 		operate_string = "OPERATE_USER_DEL"
 	case OPERATE_USER_PASSWORD:
+		// 更改密码
 		err = d.userPassword(prefix_stat, conn_exec)
 		operate_string = "OPERATE_USER_PASSWORD"
+	case OPERATE_USER_ADD_LIFE:
+		// 续命
+		err = d.userAddLife(prefix_stat, conn_exec)
+		operate_string = "OPERATE_USER_ADD_LIFE"
 	default:
 		err = d.serverDataReceipt(conn_exec, DATA_NOT_EXPECT, nil, fmt.Errorf("The oprerate can not found."))
 		d.logerr(fmt.Errorf("drule[DRule]Runtime Error: The client requested a nonexistent operation."))
@@ -441,7 +442,7 @@ func (d *DRule) writeSomeThingFromOneSlave(prefix_stat Net_PrefixStat, byte_slic
 	cprocess := conn.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate, conn)
+	slave_receipt, err := SendPrefixStat(cprocess, conn.unid, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
 	if err != nil {
 		return err
 	}
@@ -611,7 +612,7 @@ func (d *DRule) readSomeThingFromSlave(prefix_stat Net_PrefixStat, byte_slice_da
 	cprocess := conn.tcpconn.OpenProgress()
 	defer cprocess.Close()
 	// 发送前导
-	slave_receipt, err := SendPrefixStat(cprocess, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate, conn)
+	slave_receipt, err := SendPrefixStat(cprocess, conn.unid, prefix_stat.ClientName, prefix_stat.TransactionId, prefix_stat.InTransaction, prefix_stat.RoleId, prefix_stat.Operate)
 	if err != nil {
 		return
 	}

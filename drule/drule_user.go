@@ -22,7 +22,8 @@ const (
 	USER_AREA                       = "users_" // 用户区域，INSIDE_DMZ和USER_AREA加起来是用户名的后缀
 	USER_ROOT_USER_NAME             = "root"   // 根用户用户名
 	USER_ROOT_USER_DEFAULT_PASSWORD = "123456" // 根用户默认密码
-	USER_ALIVE_TIME                 = 3600     // 用户的登录生存期
+	USER_ADD_LIFE                   = 3000     // 续命间隔时间(单位秒)，不要大于USER_ALIVE_TIME
+	USER_ALIVE_TIME                 = 3600     // 用户的登录生存期（单位秒）
 )
 
 const (
@@ -114,6 +115,7 @@ func (d *DRule) userLoginTimeOutDel() {
 	}
 }
 
+/*
 func (d *DRule) userLiveGo(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
 	// 找有无这个用户以及用户名是否正确
 	var password string
@@ -141,6 +143,7 @@ func (d *DRule) userLiveGo(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) 
 	}
 	return nil
 }
+*/
 
 // 用户登录
 func (d *DRule) userLogin(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
@@ -221,7 +224,7 @@ func (d *DRule) userAdd(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (er
 	// 查看是否有重复的
 	have := d.trule.ExistRole(userid)
 	if have == true {
-		err = d.serverDataReceipt(conn_exec, DATA_USER_EXIST, nil, nil)
+		err = d.serverDataReceipt(conn_exec, DATA_USER_EXIST, nil, fmt.Errorf("The User already exist."))
 		return
 	}
 	// 创建新用户
@@ -264,6 +267,12 @@ func (d *DRule) userDel(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (er
 		return err
 	}
 	userid := INSIDE_DMZ + USER_AREA + druleuser.UserName
+	// 查看是否存在
+	have := d.trule.ExistRole(userid)
+	if have == false {
+		err = d.serverDataReceipt(conn_exec, DATA_USER_NO_EXIST, nil, fmt.Errorf("The User not exist."))
+		return
+	}
 	err = d.trule.DeleteRole(userid)
 	if err != nil {
 		return err
@@ -289,15 +298,20 @@ func (d *DRule) userPassword(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec
 	if err != nil {
 		return err
 	}
+	userid := INSIDE_DMZ + USER_AREA + druleuser.UserName
+	// 查看是否存在
+	have := d.trule.ExistRole(userid)
+	if have == false {
+		err = d.serverDataReceipt(conn_exec, DATA_USER_NO_EXIST, nil, fmt.Errorf("The User not exist."))
+		return
+	}
 	if d.loginuser[prefix_stat.Unid].username == druleuser.UserName {
-		userid := INSIDE_DMZ + USER_AREA + druleuser.UserName
 		err = d.trule.WriteData(userid, "Password", druleuser.Password)
 		if err == nil {
 			err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
 		}
 		return
 	} else if d.loginuser[prefix_stat.Unid].authority != USER_AUTHORITY_ROOT {
-		userid := INSIDE_DMZ + USER_AREA + druleuser.UserName
 		err = d.trule.WriteData(userid, "Password", druleuser.Password)
 		if err == nil {
 			err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
@@ -308,6 +322,12 @@ func (d *DRule) userPassword(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec
 		return
 	}
 
+}
+
+// 续命，当有操作的时候，在ExecTCP()就会续命，所以这个就是一个空操作
+func (d *DRule) userAddLife(prefix_stat Net_PrefixStat, conn_exec *nst.ConnExec) (err error) {
+	err = d.serverDataReceipt(conn_exec, DATA_ALL_OK, nil, nil)
+	return
 }
 
 // 检查id是否侵犯了DMZ，true则是都不侵犯

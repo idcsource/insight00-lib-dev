@@ -92,10 +92,6 @@ type Net_PrefixStat struct {
 	RoleId string
 	// 登录的Unid
 	Unid string
-	// 用户名
-	UserName string
-	// 密码
-	Password string
 }
 
 // slave回执带数据体
