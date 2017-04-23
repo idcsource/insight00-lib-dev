@@ -53,7 +53,7 @@ func (t *TRule) TransactionCount() (count int) {
 // 处理事务超时的监控
 func (t *TRule) tranTimeOutMonitor() {
 	for {
-		time.Sleep(30 * time.Second)
+		time.Sleep(t.tran_timeout_check * time.Second)
 		t.tranTimeOutMonitorToDo()
 	}
 }

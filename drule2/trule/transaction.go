@@ -579,7 +579,7 @@ func (t *Transaction) WriteData(area, id, name string, data interface{}) (err er
 }
 
 // 从Byte写入Data，这是一个内部的函数
-func (t *Transaction) writeDataFromByte(area, id, name, typename string, data_b []byte) (err error) {
+func (t *Transaction) WriteDataFromByte(area, id, name, typename string, data_b []byte) (err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: This transaction has been deleted.")
 		return
@@ -679,19 +679,19 @@ func (t *Transaction) Rollback() (err error) {
 	return
 }
 
-// 输入将锁定的角色ID，让事务可以先尝试获得写权限（类似TRule下的Prepare()）
-func (t *Transaction) LockRole(roleids ...string) (err error) {
-	err = t.prepare(roleids)
+// 输入将锁定的角色ID，让事务可以先尝试获得写权限，可重复使用，但每次只能针对一个area中的角色
+func (t *Transaction) LockRole(area string, roleids ...string) (err error) {
+	err = t.prepare(area, roleids)
 	if err != nil {
 		return fmt.Errorf("drule[Transaction]Prepare: %v", err)
 	}
 	return
 }
 
-func (t *Transaction) prepare(roleids []string) (err error) {
+func (t *Transaction) prepare(area string, roleids []string) (err error) {
 	errall := make([]string, 0)
 	for _, oneid := range roleids {
-		_, errn := t.getrole(oneid, TRAN_LOCK_MODE_WRITE)
+		_, errn := t.getrole(area, oneid, TRAN_LOCK_MODE_WRITE)
 		if errn != nil {
 			errall = append(errall, errn.Error())
 		}
