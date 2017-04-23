@@ -8,6 +8,14 @@
 package trule
 
 const (
+	// 运行状态
+	TRULE_RUN_NO       = iota // 未指定
+	TRULE_RUN_RUNNING         // 正在运行
+	TRULE_RUN_PAUSEING        // 正在暂停
+	TRULE_RUN_PAUSED          // 已经暂停
+)
+
+const (
 	// 事务占用角色的锁模式
 	TRAN_LOCK_MODE_NO = iota
 	// 读
@@ -17,7 +25,9 @@ const (
 )
 
 const (
-	// 事务超时时间，单位为秒，监测的周期为30秒一次
+	// 事务超时监测时间，单位秒
+	TRAN_TIME_OUT_CHECK = 30
+	// 事务超时时间，单位为秒
 	TRAN_TIME_OUT = 60
 	// 最多事务数
 	TRAN_MAX_COUNT = 1000

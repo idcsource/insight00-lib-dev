@@ -40,10 +40,16 @@ type TRule struct {
 	count_transaction int
 	// 事务超时时间，单位秒
 	tran_timeout int64
+	// 事务超时监测时间
+	tran_timeout_check int64
 	// 事务列表锁
 	tran_lock *sync.RWMutex
 	// 事务的信号
 	tran_commit_signal chan *tranCommitSignal
+	// 暂停信号
+	pause_signal chan bool
+	// 工作状态，来自TRULE_RUN_*
+	work_status uint8
 }
 
 // 事务
