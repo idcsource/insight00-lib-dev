@@ -48,7 +48,13 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 		t.lock.Unlock()
 		return rolec, nil
 	} else {
-		// 如果找到了就麻烦了，首先看tran_id是否被指定
+		// 如果找到了就麻烦了
+		// 看删除
+		if rolec.be_delete != TRAN_ROLE_BE_DELETE_NO {
+			err = fmt.Errorf("The Role already be delete.")
+			return nil, err
+		}
+		//看tran_id是否被指定
 		if rolec.tran_id == "" {
 			// 没有指定就简单了
 			if lockmode == TRAN_LOCK_MODE_WRITE {
