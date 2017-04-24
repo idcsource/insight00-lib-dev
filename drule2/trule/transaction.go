@@ -16,6 +16,11 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
+// 返回事务的ID
+func (t *Transaction) TransactionID() (id string) {
+	return t.unid
+}
+
 // 是否存在这个角色
 func (t *Transaction) ExistRole(area, id string) (have bool) {
 	have = t.tran_service.local_store.RoleExist(area, id)
