@@ -127,8 +127,44 @@ func (h *HardStorage) RoleReadMiddleData(area, roleid string) (rolemid roles.Rol
 	return
 }
 
-// 存储角色的中间格式（如果存在则错误）
-func (h *HardStorage) RoleStoreMiddleData(area string, mid roles.RoleMiddleData) (err error) {
+// 增加一个角色
+func (h *HardStorage) RoleAdd(area string, role roles.Roleer) (err error) {
+	// 检查区域是否合法
+	allow := CheckAreaName(area)
+	if allow == false {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: The area name not be allow.")
+		return
+	}
+	// 检查区域是否存在
+	have_a := h.existArea(area)
+	if have_a == false {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: The area name not be exist.")
+		return
+	}
+
+	roleid := role.ReturnId()
+	// 查看是否存在这个角色
+	have_role, f_name := h.roleExist(area, roleid)
+	if have_role == true {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: The Role already exist.")
+		return
+	}
+	// 转码
+	mid, err := roles.EncodeRoleToMiddle(role)
+	if err != nil {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: %v", err)
+		return
+	}
+	// 去存
+	err = h.storeRoleMiddle(f_name, &mid)
+	if err != nil {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: %v", err)
+	}
+	return
+}
+
+// 增加一个角色角色的中间格式
+func (h *HardStorage) RoleAddMiddleData(area string, mid roles.RoleMiddleData) (err error) {
 	// 检查区域是否合法
 	allow := CheckAreaName(area)
 	if allow == false {
@@ -153,6 +189,69 @@ func (h *HardStorage) RoleStoreMiddleData(area string, mid roles.RoleMiddleData)
 	err = h.storeRoleMiddle(f_name, &mid)
 	if err != nil {
 		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: %v", err)
+	}
+	return
+}
+
+// 存储一个角色角色的中间格式（不检查是否存在）
+func (h *HardStorage) RoleStoreMiddleData(area string, mid roles.RoleMiddleData) (err error) {
+	// 检查区域是否合法
+	allow := CheckAreaName(area)
+	if allow == false {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: The area name not be allow.")
+		return
+	}
+	// 检查区域是否存在
+	have_a := h.existArea(area)
+	if have_a == false {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: The area name not be exist.")
+		return
+	}
+
+	roleid := mid.Version.Id
+	// 获取文件名
+	_, f_name := h.roleExist(area, roleid)
+	// 去存
+	err = h.storeRoleMiddle(f_name, &mid)
+	if err != nil {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: %v", err)
+	}
+	return
+}
+
+func (h *HardStorage) RoleUpdate(area string, role roles.Roleer) (err error) {
+	// 检查区域是否合法
+	allow := CheckAreaName(area)
+	if allow == false {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleUpdateMiddleData: The area name not be allow.")
+		return
+	}
+	// 检查区域是否存在
+	have_a := h.existArea(area)
+	if have_a == false {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleUpdateMiddleData: The area name not be exist.")
+		return
+	}
+
+	roleid := role.ReturnId()
+	// 查看是否存在这个角色
+	have_role, f_name := h.roleExist(area, roleid)
+	if have_role == false {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleUpdateMiddleData: The Role not exist.")
+		return
+	}
+
+	// 转码
+	mid, err := roles.EncodeRoleToMiddle(role)
+	if err != nil {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: %v", err)
+		return
+	}
+
+	// 去存
+	err = h.storeRoleMiddle(f_name, &mid)
+	if err != nil {
+		err = fmt.Errorf("hardstorage[HardStorage]RoleUpdateMiddleData: %v", err)
 	}
 	return
 }
@@ -346,6 +445,11 @@ func (h *HardStorage) createArea(path string) (err error) {
 		}
 	}
 	return
+}
+
+// 区域是否存在
+func (h *HardStorage) AreaExist(area string) (have bool) {
+	return h.existArea(area)
 }
 
 // 查看区域是否存在

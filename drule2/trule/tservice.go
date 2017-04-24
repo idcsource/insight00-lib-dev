@@ -75,10 +75,16 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 				t.lock.Unlock()
 				// 等待回音
 				fmt.Println("Tran log ", tran_id, "等待", id)
-				<-wait.approved
-				fmt.Println("Tran log ", tran_id, "等到了", id)
-				// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以直接返回就可以了
-				return rolec, nil
+				ifhave := <-wait.approved
+				if ifhave == true {
+					fmt.Println("Tran log ", tran_id, "等到了", id)
+					// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以直接返回就可以了
+					return rolec, nil
+				} else {
+					err = fmt.Errorf("The Role already be delete.")
+					return nil, err
+				}
+
 			}
 		}
 	}

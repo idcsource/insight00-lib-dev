@@ -46,10 +46,15 @@ type TRule struct {
 	tran_lock *sync.RWMutex
 	// 事务的信号
 	tran_commit_signal chan *tranCommitSignal
-	// 暂停信号
-	pause_signal chan bool
+
+	// 正在暂停信号
+	pausing_signal chan bool
+	// 已经暂停信号
+	paused_signal chan bool
 	// 工作状态，来自TRULE_RUN_*
 	work_status uint8
+	// 事务等待计数
+	tran_wait *sync.WaitGroup
 }
 
 // 事务

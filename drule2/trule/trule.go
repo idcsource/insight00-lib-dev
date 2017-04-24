@@ -33,16 +33,35 @@ func NewTRule(local_store *hardstorage.HardStorage) (t *TRule, err error) {
 		tran_timeout:       TRAN_TIME_OUT,
 		tran_timeout_check: TRAN_TIME_OUT_CHECK,
 		max_transaction:    TRAN_MAX_COUNT,
-		tran_commit_signal: make(chan bool),
+		pausing_signal:     make(chan bool),
+		paused_signal:      make(chan bool),
 		work_status:        TRULE_RUN_PAUSED,
+		tran_wait:          &sync.WaitGroup{},
 	}
+	go t.tranSignalHandle()
+	go t.tranTimeOutMonitor()
+	go t.pauseSignalHandle()
 	return
 }
 
+// 启动
 func (t *TRule) Start() {
 	t.work_status = TRULE_RUN_RUNNING
-	go t.tranSignalHandle()
-	go t.tranTimeOutMonitor()
+}
+
+// 暂停
+func (t *TRule) Pause() {
+	t.work_status = TRULE_RUN_PAUSEING
+	t.pausing_signal <- true
+	// 开始等paused_signal
+	<-t.paused_signal
+	t.work_status = TRULE_RUN_PAUSED
+	return
+}
+
+// 查看工作状态
+func (t *TRule) WorkStatus() (status uint8) {
+	return t.work_status
 }
 
 // 获取当前事务数
@@ -50,10 +69,21 @@ func (t *TRule) TransactionCount() (count int) {
 	return t.count_transaction
 }
 
+func (t *TRule) pauseSignalHandle() {
+	for {
+		// 等待暂停中信号
+		<-t.pausing_signal
+		// 等待waiting的信号
+		t.tran_wait.Wait()
+		// 发送已经暂停信号
+		t.paused_signal <- true
+	}
+}
+
 // 处理事务超时的监控
 func (t *TRule) tranTimeOutMonitor() {
 	for {
-		time.Sleep(t.tran_timeout_check * time.Second)
+		time.Sleep(time.Duration(t.tran_timeout_check) * time.Second)
 		t.tranTimeOutMonitorToDo()
 	}
 }
@@ -65,25 +95,30 @@ func (t *TRule) tranTimeOutMonitorToDo() {
 	defer t.tran_service.lock.Unlock()
 	defer t.tran_lock.Unlock()
 
-	for _, rolec := range t.tran_service.role_cache {
-		t.tranTimeOutMonitorToOneRoleC(rolec)
+	for key, rolec := range t.tran_service.role_cache {
+		del := t.tranTimeOutMonitorToOneRoleC(rolec)
+		if del == true {
+			delete(t.tran_service.role_cache, key)
+		}
 	}
 }
 
-func (t *TRule) tranTimeOutMonitorToOneRoleC(rolec *roleCache) {
+func (t *TRule) tranTimeOutMonitorToOneRoleC(rolec *roleCache) (del bool) {
+	del = false
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
 	wait_count := len(rolec.wait_line)
 	if wait_count == 0 {
 		// 如果没有在排队的，超时就延长10倍
-		if rolec.tran_time.Unix()+(t.tran_timeout*10) > time.Now().Unix() {
+		if rolec.tran_time.Unix()+(t.tran_timeout) > time.Now().Unix() {
 			// 找到这个事务
 			tran, find := t.transaction[rolec.tran_id]
 			if find == false {
 				// 如果事务已经不存在了怎么办，得强制释放
 				rolec.tran_id = ""
+				del = true
 			} else {
-				if tran.tran_time.Unix()+(t.tran_timeout*10) > time.Now().Unix() {
+				if tran.tran_time.Unix()+(t.tran_timeout) > time.Now().Unix() {
 					// 强制回滚
 					tran.Rollback()
 				}
@@ -120,6 +155,7 @@ func (t *TRule) tranTimeOutMonitorToOneRoleC(rolec *roleCache) {
 			}
 		}
 	}
+	return
 }
 
 // 处理事务的信号
@@ -138,7 +174,6 @@ func (t *TRule) tranSignalHandle() {
 
 // 处理commit信号
 func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
-	fmt.Println("Tran log, 正在执行 ", signal.tran_id)
 	// 给事务加锁
 	t.tran_lock.Lock()
 	defer t.tran_lock.Unlock()
@@ -160,7 +195,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	tran.lock.Lock()
 	defer tran.lock.Unlock()
 	// 遍历这里面所有的缓存角色
-	for roleid, rolec := range tran.tran_cache {
+	for cacheid, rolec := range tran.tran_cache {
 		// 给这个角色加锁
 		rolec.lock.Lock()
 
@@ -171,43 +206,52 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			// 如果没有等待队列
 			// 将这个角色保存或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
-				t.local_store.StoreRoleFromMiddle(rolec.role)
+				t.local_store.RoleStoreMiddleData(rolec.area, *rolec.role)
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
-				t.local_store.DeleteRole(rolec.role.Version.Id)
+				t.local_store.RoleDelete(rolec.area, rolec.role.Version.Id)
+				// 将这个角色从缓存中移除
+				t.tran_service.role_cache[cacheid] = nil
+				delete(t.tran_service.role_cache, cacheid)
 			}
-			// 将这个角色从缓存中移除
-			t.tran_service.role_cache[roleid] = nil
-			delete(t.tran_service.role_cache, roleid)
 		} else {
-			fmt.Println("Tran log, 不写入 ", rolec.role.Version.Id)
+			alreadyhave := true
 			// 替换本尊或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
 				rolec.role_store = *rolec.role
+				// 删除占用标记
+				rolec.tran_id = ""
+				// 得到第一个等待的队列
+				wait_first := rolec.wait_line[0]
+				// 构造新的waitline
+				if wait_count == 1 {
+					rolec.wait_line = make([]*tranAskGetRole, 0)
+				} else {
+					new_wait_line := make([]*tranAskGetRole, 0)
+					new_wait_line = rolec.wait_line[1:]
+					rolec.wait_line = new_wait_line
+				}
+				// 修改占用标记
+				rolec.tran_id = wait_first.tran_id
+				// 修改占用时间
+				rolec.tran_time = time.Now()
+				// 发送允许的信息，接收者要自行判断是否被删除
+				wait_first.approved <- alreadyhave
+				// 给这个角色解锁
+				rolec.lock.Unlock()
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
-				t.local_store.DeleteRole(rolec.role.Version.Id)
+				// 如果删除了怎么办
+				t.local_store.RoleDelete(rolec.area, rolec.role.Version.Id)
 				rolec.role = nil
+				rolec.tran_id = ""
 				rolec.be_delete = TRAN_ROLE_BE_DELETE_COMMIT
+				alreadyhave = false
+				// 向所有排队发送已经被删除的状态
+				for _, wait := range rolec.wait_line {
+					wait.approved <- alreadyhave
+				}
+				rolec.lock.Unlock()
+				delete(t.tran_service.role_cache, cacheid)
 			}
-			// 删除占用标记
-			rolec.tran_id = ""
-			// 得到第一个等待的队列
-			wait_first := rolec.wait_line[0]
-			// 构造新的waitline
-			if wait_count == 1 {
-				rolec.wait_line = make([]*tranAskGetRole, 0)
-			} else {
-				new_wait_line := make([]*tranAskGetRole, 0)
-				new_wait_line = rolec.wait_line[1:]
-				rolec.wait_line = new_wait_line
-			}
-			// 修改占用标记
-			rolec.tran_id = wait_first.tran_id
-			// 修改占用时间
-			rolec.tran_time = time.Now()
-			// 发送允许的信息，接收者要自行判断是否被删除
-			wait_first.approved <- true
-			// 给这个角色解锁
-			rolec.lock.Unlock()
 		}
 	}
 	// 发送回执
@@ -221,6 +265,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	t.transaction[signal.tran_id] = nil
 	delete(t.transaction, signal.tran_id)
 	t.count_transaction--
+	t.tran_wait.Done()
 }
 
 // 处理rollback信号
@@ -297,13 +342,17 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 	tran.be_delete = true
 	delete(t.transaction, signal.tran_id)
 	t.count_transaction--
+	t.tran_wait.Done()
 }
 
 // 创建事务
 func (t *TRule) Begin() (tran *Transaction, err error) {
+	if t.work_status != TRULE_RUN_RUNNING {
+		err = fmt.Errorf("trule[TRule]Begin: The TRule is paused.")
+		return
+	}
 	t.tran_lock.Lock()
 	defer t.tran_lock.Unlock()
-	t.count_transaction++
 	unid := random.GetRand(40)
 	tran = &Transaction{
 		unid:               unid,
@@ -315,7 +364,8 @@ func (t *TRule) Begin() (tran *Transaction, err error) {
 		be_delete:          false,
 	}
 	t.transaction[unid] = tran
-	fmt.Println("Zr Log, New Tran: ", unid)
+	t.count_transaction++
+	t.tran_wait.Add(1)
 	return
 }
 
@@ -325,127 +375,111 @@ func (t *TRule) Transcation() (tan *Transaction, err error) {
 }
 
 // 创建事务，并依据输入的角色ID进行准备，获取这些角色的写权限
-func (t *TRule) Prepare(roleids ...string) (tran *Transaction, err error) {
+func (t *TRule) Prepare(area string, roleids ...string) (tran *Transaction, err error) {
 	// 调用Begin()
 	tran, _ = t.Begin()
 	// 调用tran中的prepare()
-	err = tran.prepare(roleids)
+	err = tran.prepare(area, roleids)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]Prepare: %v", err)
+		err = fmt.Errorf("trule[TRule]Prepare: %v", err)
 		tran.Rollback()
 	}
 	return
 }
 
-// 创建事务，并依据输入的角色ID进行准备，获取这些角色的写权限
-func (t *TRule) prepareForDRule(unid string, roleids []string) (err error) {
-	_, find := t.transaction[unid]
-	// 没有找到所提供的unid就新建
-	if find == false {
-		// 调用Begin()
-		err = t.beginForDRule(unid)
-		if err != nil {
-			return err
-		}
-	}
-	// 调用tran中的prepare()
-	err = t.transaction[unid].prepare(roleids)
-	if err != nil {
-		t.transaction[unid].Rollback()
-		return err
-	}
-	return
-}
-
-// 由DRule来控制创建事务
-func (t *TRule) beginForDRule(unid string) (err error) {
-	t.tran_lock.Lock()
-	defer t.tran_lock.Unlock()
-	tran := &Transaction{
-		unid:               unid,
-		tran_cache:         make(map[string]*roleCache),
-		tran_service:       t.tran_service,
-		tran_time:          time.Now(),
-		lock:               new(sync.RWMutex),
-		tran_commit_signal: t.tran_commit_signal,
-		be_delete:          false,
-	}
-	_, find := t.transaction[unid]
-	if find == true {
-		err = fmt.Errorf("The transaction is already exist, can't recreate : %v .", unid)
-		return
-	}
-	t.transaction[unid] = tran
-	fmt.Println("Zr Log, New Tran: ", unid)
-	return
-}
-
-// 由DRule来控制的获取到事务
-func (t *TRule) getTransactionForDRule(unid string) (tran *Transaction, err error) {
-	var find bool
-	tran, find = t.transaction[unid]
-	if find == false {
-		err = fmt.Errorf("Can not find transaction : %v .", unid)
-		return
-	}
-	return
-}
-
 // 是否存在这个角色
-func (t *TRule) ExistRole(id string) (have bool) {
-	have = t.local_store.RoleExist(id)
+func (t *TRule) ExistRole(area, id string) (have bool) {
+	have = t.local_store.RoleExist(area, id)
 	return
 }
 
 /* 下面是rolesio.RolesInOutManager接口的实现 */
 
-// 往永久存储写入一个角色，直接调用底层HardStore存储（也就是说，直接使用这个是不安全的）
-func (t *TRule) StoreRole(role roles.Roleer) (err error) {
-	err = t.local_store.StoreRoleByMiddle(role)
+// 往永久存储写入一个角色
+func (t *TRule) StoreRole(area string, role roles.Roleer) (err error) {
+	mid, err := roles.EncodeRoleToMiddle(role)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]StoreRole: %v", err)
+		err = fmt.Errorf("trule[TRule]StoreRole: %v", err)
+		return
+	}
+	err = t.local_store.RoleStoreMiddleData(area, mid)
+	if err != nil {
+		err = fmt.Errorf("trule[TRule]StoreRole: %v", err)
 	}
 	return
 }
 
-func (t *TRule) storeRoleByte(b []byte) (err error) {
-	err = t.local_store.StoreRoleByMiddleByte(b)
+// 从永久存储读出一个角色
+func (t *TRule) ReadRole(area, id string, role roles.Roleer) (err error) {
+	mid, err := t.local_store.RoleReadMiddleData(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]storeRoleByte: %v", err)
+		err = fmt.Errorf("trule[TRule]RoleRead: %v", err)
+		return
 	}
-	return
-}
-
-// 从永久存储读出一个角色，直接调用底层HardStore存储（也就是说，直接使用这个是不安全的）
-func (t *TRule) ReadRole(id string, role roles.Roleer) (err error) {
-	err = t.local_store.ReadRoleByMiddle(id, role)
+	// 转码
+	err = roles.DecodeMiddleToRole(mid, role)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadRole: %v", err)
+		err = fmt.Errorf("trule[TRule]RoleRead: %v", err)
 	}
 	return
 }
 
 // 从永久存储读出角色的MiddleData格式
-func (t *TRule) readRoleMiddle(id string) (mid roles.RoleMiddleData, err error) {
-	mid, err = t.local_store.ReadMiddleData(id)
+func (t *TRule) RoleReadMiddleData(area, id string) (mid roles.RoleMiddleData, err error) {
+	mid, err = t.local_store.RoleReadMiddleData(area, id)
+	if err != nil {
+		err = fmt.Errorf("trule[TRule]RoleReadMiddleData: %v", err)
+	}
 	return
 }
 
 // 从永久存储删除一个角色，直接调用底层HardStore存储（也就是说，直接使用这个是不安全的）
-func (t *TRule) DeleteRole(id string) (err error) {
-	err = t.local_store.DeleteRole(id)
+func (t *TRule) DeleteRole(area, id string) (err error) {
+	err = t.local_store.RoleDelete(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]DeleteRole: %v", err)
+		err = fmt.Errorf("trule[TRule]DeleteRole: %v", err)
+	}
+	return
+}
+
+// 删除区域
+func (t *TRule) AreaDelete(area string) (err error) {
+	err = t.local_store.AreaDelete(area)
+	if err != nil {
+		err = fmt.Errorf("trule[TRule]AreaDelete: %v", err)
+	}
+	return
+}
+
+// 初始化区域
+func (t *TRule) AreaInit(area string) (err error) {
+	err = t.local_store.AreaInit(area)
+	if err != nil {
+		err = fmt.Errorf("trule[TRule]AreaInit: %v", err)
+	}
+	return
+}
+
+// 区域是否存在
+func (t *TRule) AreaExist(area string) (have bool) {
+	return t.local_store.AreaExist(area)
+}
+
+// 区域改名
+func (t *TRule) AreaReName(oldname, newname string) (err error) {
+	err = t.local_store.AreaReName(oldname, newname)
+	if err != nil {
+		err = fmt.Errorf("trule[TRule]AreaReName: %v", err)
 	}
 	return
 }
 
 // 设置父角色
-func (t *TRule) WriteFather(id, father string) (err error) {
+func (t *TRule) WriteFather(area, id, father string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteFather(id, father)
+	err = tran.WriteFather(area, id, father)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]WriteFather: %v", err)
+		err = fmt.Errorf("trule[TRule]WriteFather: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -454,11 +488,11 @@ func (t *TRule) WriteFather(id, father string) (err error) {
 }
 
 // 获取父角色
-func (t *TRule) ReadFather(id string) (father string, err error) {
+func (t *TRule) ReadFather(area, id string) (father string, err error) {
 	tran, _ := t.Begin()
-	father, err = tran.ReadFather(id)
+	father, err = tran.ReadFather(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadFather: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadFather: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -467,11 +501,11 @@ func (t *TRule) ReadFather(id string) (father string, err error) {
 }
 
 // 重置父角色
-func (t *TRule) ResetFather(id string) (err error) {
+func (t *TRule) ResetFather(area, id string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.ResetFather(id)
+	err = tran.ResetFather(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ResetFather: %v", err)
+		err = fmt.Errorf("trule[TRule]ResetFather: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -480,11 +514,11 @@ func (t *TRule) ResetFather(id string) (err error) {
 }
 
 // 读取所有角色的子角色
-func (t *TRule) ReadChildren(id string) (children []string, err error) {
+func (t *TRule) ReadChildren(area, id string) (children []string, err error) {
 	tran, _ := t.Begin()
-	children, err = tran.ReadChildren(id)
+	children, err = tran.ReadChildren(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadChildren: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadChildren: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -493,11 +527,11 @@ func (t *TRule) ReadChildren(id string) (children []string, err error) {
 }
 
 // 写入所有角色的子角色
-func (t *TRule) WriteChildren(id string, children []string) (err error) {
+func (t *TRule) WriteChildren(area, id string, children []string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteChildren(id, children)
+	err = tran.WriteChildren(area, id, children)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]WriteChildren: %v", err)
+		err = fmt.Errorf("trule[TRule]WriteChildren: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -506,11 +540,11 @@ func (t *TRule) WriteChildren(id string, children []string) (err error) {
 }
 
 // 删除所有子角色
-func (t *TRule) ResetChildren(id string) (err error) {
+func (t *TRule) ResetChildren(area, id string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.ResetChildren(id)
+	err = tran.ResetChildren(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ResetChildren: %v", err)
+		err = fmt.Errorf("trule[TRule]ResetChildren: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -519,11 +553,11 @@ func (t *TRule) ResetChildren(id string) (err error) {
 }
 
 // 写入一个子角色
-func (t *TRule) WriteChild(id, child string) (err error) {
+func (t *TRule) WriteChild(area, id, child string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteChild(id, child)
+	err = tran.WriteChild(area, id, child)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]WriteChild: %v", err)
+		err = fmt.Errorf("trule[TRule]WriteChild: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -532,11 +566,11 @@ func (t *TRule) WriteChild(id, child string) (err error) {
 }
 
 // 删除一个子角色
-func (t *TRule) DeleteChild(id, child string) (err error) {
+func (t *TRule) DeleteChild(area, id, child string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.DeleteChild(id, child)
+	err = tran.DeleteChild(area, id, child)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]DeleteChild: %v", err)
+		err = fmt.Errorf("trule[TRule]DeleteChild: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -545,11 +579,11 @@ func (t *TRule) DeleteChild(id, child string) (err error) {
 }
 
 // 查询是否有角色
-func (t *TRule) ExistChild(id, child string) (have bool, err error) {
+func (t *TRule) ExistChild(area, id, child string) (have bool, err error) {
 	tran, _ := t.Begin()
-	have, err = tran.ExistChild(id, child)
+	have, err = tran.ExistChild(area, id, child)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ExistChild: %v", err)
+		err = fmt.Errorf("trule[TRule]ExistChild: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -558,11 +592,11 @@ func (t *TRule) ExistChild(id, child string) (have bool, err error) {
 }
 
 // 读取所有朋友关系
-func (t *TRule) ReadFriends(id string) (friends map[string]roles.Status, err error) {
+func (t *TRule) ReadFriends(area, id string) (friends map[string]roles.Status, err error) {
 	tran, _ := t.Begin()
-	friends, err = tran.ReadFriends(id)
+	friends, err = tran.ReadFriends(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadFriends: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadFriends: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -571,11 +605,11 @@ func (t *TRule) ReadFriends(id string) (friends map[string]roles.Status, err err
 }
 
 // 写入所有朋友关系
-func (t *TRule) WriteFriends(id string, friends map[string]roles.Status) (err error) {
+func (t *TRule) WriteFriends(area, id string, friends map[string]roles.Status) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteFriends(id, friends)
+	err = tran.WriteFriends(area, id, friends)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]WriteFriends: %v", err)
+		err = fmt.Errorf("trule[TRule]WriteFriends: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -584,11 +618,11 @@ func (t *TRule) WriteFriends(id string, friends map[string]roles.Status) (err er
 }
 
 // 重置朋友关系
-func (t *TRule) ResetFriends(id string) (err error) {
+func (t *TRule) ResetFriends(area, id string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.ResetFriends(id)
+	err = tran.ResetFriends(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ResetFriends: %v", err)
+		err = fmt.Errorf("trule[TRule]ResetFriends: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -597,11 +631,11 @@ func (t *TRule) ResetFriends(id string) (err error) {
 }
 
 // 写一个朋友关系并绑定
-func (t *TRule) WriteFriend(id, friend string, bind int64) (err error) {
+func (t *TRule) WriteFriend(area, id, friend string, bind int64) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteFriend(id, friend, bind)
+	err = tran.WriteFriend(area, id, friend, bind)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]WriteFriend: %v", err)
+		err = fmt.Errorf("trule[TRule]WriteFriend: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -610,11 +644,11 @@ func (t *TRule) WriteFriend(id, friend string, bind int64) (err error) {
 }
 
 // 删除一个朋友关系
-func (t *TRule) DeleteFriend(id, friend string) (err error) {
+func (t *TRule) DeleteFriend(area, id, friend string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.DeleteFriend(id, friend)
+	err = tran.DeleteFriend(area, id, friend)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]DeleteFriend: %v", err)
+		err = fmt.Errorf("trule[TRule]DeleteFriend: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -623,11 +657,11 @@ func (t *TRule) DeleteFriend(id, friend string) (err error) {
 }
 
 // 创建一个空的上下文
-func (t *TRule) CreateContext(id, contextname string) (err error) {
+func (t *TRule) CreateContext(area, id, contextname string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.CreateContext(id, contextname)
+	err = tran.CreateContext(area, id, contextname)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]CreateContext: %v", err)
+		err = fmt.Errorf("trule[TRule]CreateContext: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -636,11 +670,11 @@ func (t *TRule) CreateContext(id, contextname string) (err error) {
 }
 
 // 删除一个上下文
-func (t *TRule) DropContext(id, contextname string) (err error) {
+func (t *TRule) DropContext(area, id, contextname string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.DropContext(id, contextname)
+	err = tran.DropContext(area, id, contextname)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]DropContext: %v", err)
+		err = fmt.Errorf("trule[TRule]DropContext: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -649,11 +683,11 @@ func (t *TRule) DropContext(id, contextname string) (err error) {
 }
 
 // 返回某个上下文全部的信息
-func (t *TRule) ReadContext(id, contextname string) (context roles.Context, have bool, err error) {
+func (t *TRule) ReadContext(area, id, contextname string) (context roles.Context, have bool, err error) {
 	tran, _ := t.Begin()
-	context, have, err = tran.ReadContext(id, contextname)
+	context, have, err = tran.ReadContext(area, id, contextname)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadContext: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadContext: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -662,11 +696,11 @@ func (t *TRule) ReadContext(id, contextname string) (context roles.Context, have
 }
 
 // 删除一个上下文绑定
-func (t *TRule) DeleteContextBind(id, contextname string, upordown uint8, bindrole string) (err error) {
+func (t *TRule) DeleteContextBind(area, id, contextname string, upordown uint8, bindrole string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.DeleteContextBind(id, contextname, upordown, bindrole)
+	err = tran.DeleteContextBind(area, id, contextname, upordown, bindrole)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]DeleteContextBind: %v", err)
+		err = fmt.Errorf("trule[TRule]DeleteContextBind: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -675,11 +709,11 @@ func (t *TRule) DeleteContextBind(id, contextname string, upordown uint8, bindro
 }
 
 // 返回某个上下文的同样绑定值的所有
-func (t *TRule) ReadContextSameBind(id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
+func (t *TRule) ReadContextSameBind(area, id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
 	tran, _ := t.Begin()
-	rolesid, have, err = tran.ReadContextSameBind(id, contextname, upordown, bind)
+	rolesid, have, err = tran.ReadContextSameBind(area, id, contextname, upordown, bind)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadContextSameBind: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadContextSameBind: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -688,11 +722,11 @@ func (t *TRule) ReadContextSameBind(id, contextname string, upordown uint8, bind
 }
 
 // 返回所有上下文组的名称
-func (t *TRule) ReadContextsName(id string) (names []string, err error) {
+func (t *TRule) ReadContextsName(area, id string) (names []string, err error) {
 	tran, _ := t.Begin()
-	names, err = tran.ReadContextsName(id)
+	names, err = tran.ReadContextsName(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadContextsName: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadContextsName: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -701,11 +735,11 @@ func (t *TRule) ReadContextsName(id string) (names []string, err error) {
 }
 
 // 设置朋友的状态属性
-func (t *TRule) WriteFriendStatus(id, friends string, bindbit int, value interface{}) (err error) {
+func (t *TRule) WriteFriendStatus(area, id, friends string, bindbit int, value interface{}) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteFriendStatus(id, friends, bindbit, value)
+	err = tran.WriteFriendStatus(area, id, friends, bindbit, value)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]WriteFriendStatus: %v", err)
+		err = fmt.Errorf("trule[TRule]WriteFriendStatus: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -714,11 +748,11 @@ func (t *TRule) WriteFriendStatus(id, friends string, bindbit int, value interfa
 }
 
 // 获取朋友的状态属性
-func (t *TRule) ReadFriendStatus(id, friends string, bindbit int, value interface{}) (err error) {
+func (t *TRule) ReadFriendStatus(area, id, friends string, bindbit int, value interface{}) (err error) {
 	tran, _ := t.Begin()
-	err = tran.ReadFriendStatus(id, friends, bindbit, value)
+	err = tran.ReadFriendStatus(area, id, friends, bindbit, value)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadFriendStatus: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadFriendStatus: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -727,11 +761,11 @@ func (t *TRule) ReadFriendStatus(id, friends string, bindbit int, value interfac
 }
 
 // 设置上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
-func (t *TRule) WriteContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+func (t *TRule) WriteContextStatus(area, id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteContextStatus(id, contextname, upordown, bindroleid, bindbit, value)
+	err = tran.WriteContextStatus(area, id, contextname, upordown, bindroleid, bindbit, value)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]WriteContextStatus: %v", err)
+		err = fmt.Errorf("trule[TRule]WriteContextStatus: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -740,11 +774,11 @@ func (t *TRule) WriteContextStatus(id, contextname string, upordown uint8, bindr
 }
 
 // 获取上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
-func (t *TRule) ReadContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+func (t *TRule) ReadContextStatus(area, id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
 	tran, _ := t.Begin()
-	err = tran.ReadContextStatus(id, contextname, upordown, bindroleid, bindbit, value)
+	err = tran.ReadContextStatus(area, id, contextname, upordown, bindroleid, bindbit, value)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadContextStatus: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadContextStatus: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -753,11 +787,11 @@ func (t *TRule) ReadContextStatus(id, contextname string, upordown uint8, bindro
 }
 
 // 设定上下文
-func (t *TRule) WriteContexts(id string, context map[string]roles.Context) (err error) {
+func (t *TRule) WriteContexts(area, id string, context map[string]roles.Context) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteContexts(id, context)
+	err = tran.WriteContexts(area, id, context)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]WriteContexts: %v", err)
+		err = fmt.Errorf("trule[TRule]WriteContexts: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -766,11 +800,11 @@ func (t *TRule) WriteContexts(id string, context map[string]roles.Context) (err 
 }
 
 // 获取上下文
-func (t *TRule) ReadContexts(id string) (contexts map[string]roles.Context, err error) {
+func (t *TRule) ReadContexts(area, id string) (contexts map[string]roles.Context, err error) {
 	tran, _ := t.Begin()
-	contexts, err = tran.ReadContexts(id)
+	contexts, err = tran.ReadContexts(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadContexts: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadContexts: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -779,11 +813,11 @@ func (t *TRule) ReadContexts(id string) (contexts map[string]roles.Context, err 
 }
 
 // 重置上下文
-func (t *TRule) ResetContexts(id string) (err error) {
+func (t *TRule) ResetContexts(area, id string) (err error) {
 	tran, _ := t.Begin()
-	err = tran.ResetContexts(id)
+	err = tran.ResetContexts(area, id)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ResetContexts: %v", err)
+		err = fmt.Errorf("trule[TRule]ResetContexts: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -792,11 +826,11 @@ func (t *TRule) ResetContexts(id string) (err error) {
 }
 
 // 把data的数据装入role的name值下，如果找不到name，则返回错误。
-func (t *TRule) WriteData(id, name string, data interface{}) (err error) {
+func (t *TRule) WriteData(area, id, name string, data interface{}) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteData(id, name, data)
+	err = tran.WriteData(area, id, name, data)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]WriteData: %v", err)
+		err = fmt.Errorf("trule[TRule]WriteData: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -804,9 +838,9 @@ func (t *TRule) WriteData(id, name string, data interface{}) (err error) {
 	return
 }
 
-func (t *TRule) writeDataFromByte(id, name, typename string, data []byte) (err error) {
+func (t *TRule) WriteDataFromByte(area, id, name, typename string, data []byte) (err error) {
 	tran, _ := t.Begin()
-	err = tran.writeDataFromByte(id, name, typename, data)
+	err = tran.WriteDataFromByte(area, id, name, typename, data)
 	if err != nil {
 		tran.Rollback()
 		return
@@ -816,11 +850,11 @@ func (t *TRule) writeDataFromByte(id, name, typename string, data []byte) (err e
 }
 
 // 从角色中知道name的数据名并返回其数据。
-func (t *TRule) ReadData(id, name string, data interface{}) (err error) {
+func (t *TRule) ReadData(area, id, name string, data interface{}) (err error) {
 	tran, _ := t.Begin()
-	err = tran.ReadData(id, name, data)
+	err = tran.ReadData(area, id, name, data)
 	if err != nil {
-		err = fmt.Errorf("drule[TRule]ReadData: %v", err)
+		err = fmt.Errorf("trule[TRule]ReadData: %v", err)
 		tran.Rollback()
 		return
 	}
@@ -828,19 +862,13 @@ func (t *TRule) ReadData(id, name string, data interface{}) (err error) {
 	return
 }
 
-func (t *TRule) readDataToByte(role_data *Net_RoleData_Data) (err error) {
+func (t *TRule) ReadDataToByte(area, id, name string) (data []byte, err error) {
 	tran, _ := t.Begin()
-	err = tran.readDataToByte(role_data)
+	data, err = tran.ReadDataToByte(area, id, name)
 	if err != nil {
 		tran.Rollback()
 		return
 	}
 	tran.Commit()
-	return
-}
-
-// 运行时保存
-func (t *TRule) ToStore() (err error) {
-	err = fmt.Errorf("drule[TRule]ToStore: Transaction does not provide this method.")
 	return
 }

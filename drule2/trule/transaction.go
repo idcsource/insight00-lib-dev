@@ -182,7 +182,7 @@ func (t *Transaction) ReadFather(area, id string) (father string, err error) {
 
 // 重置父角色
 func (t *Transaction) ResetFather(area, id string) (err error) {
-	return t.WriteFather(erea, id, "")
+	return t.WriteFather(area, id, "")
 }
 
 // 获取所有子角色名
@@ -708,7 +708,8 @@ func (t *Transaction) getrole(area, id string, lockmode uint8) (rolec *roleCache
 	defer t.lock.RUnlock()
 
 	var find bool
-	rolec, find = t.tran_cache[id]
+	cache_id := area + id
+	rolec, find = t.tran_cache[cache_id]
 	if find == true {
 		rolec.tran_time = time.Now()
 		return
@@ -721,7 +722,7 @@ func (t *Transaction) getrole(area, id string, lockmode uint8) (rolec *roleCache
 			return nil, fmt.Errorf("The role %v has already be deleted.", id)
 		}
 		if err == nil && lockmode == TRAN_LOCK_MODE_WRITE {
-			t.tran_cache[id] = rolec
+			t.tran_cache[cache_id] = rolec
 		}
 		rolec.tran_time = time.Now()
 		return
