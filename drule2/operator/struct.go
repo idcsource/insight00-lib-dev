@@ -12,12 +12,14 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // 这叫做“操作机”，是用来远程连接DRule的。
 type Operator struct {
 	selfname string      // 自己的名字
-	slaves   *druleInfo  // 服务器端
+	drule    *druleInfo  // 服务器端
+	login    bool        // 是否在登陆状态，如果不是则是false
 	logs     *ilogs.Logs // 日志
 }
 
@@ -25,7 +27,7 @@ type Operator struct {
 type OTransaction struct {
 	selfname       string      // 自己的名字
 	transaction_id string      // 事务id
-	slaves         *druleInfo  // 服务器端
+	drule          *druleInfo  // 服务器端
 	logs           *ilogs.Logs // 日志
 }
 
@@ -41,21 +43,22 @@ type druleInfo struct {
 
 /* 下面是网络传输所需要的结构 */
 
-// 前缀状态，每次向drule发信息都要先把这个状态发出去
-type O_PrefixStat struct {
-	Operate       uint   // 操作类型，从OPERATE_*
-	OperatorName  string // 客户端名称
-	InTransaction bool   // 在事务中
-	TransactionId string // 事务ID
-	RoleId        string // 涉及到的角色id
-	Unid          string // 登录的Unid
+// Operator的发送
+type O_OperatorSend struct {
+	Operate       OperatorType // 操作类型，从OPERATE_*
+	OperatorName  string       // 客户端名称
+	InTransaction bool         // 在事务中
+	TransactionId string       // 事务ID
+	RoleId        string       // 涉及到的角色id
+	Unid          string       // 登录的Unid
+	Data          []byte       // 数据体
 }
 
 // DRule回执带数据体
 type O_DRuleReceipt struct {
-	DataStat uint8  // 数据状态，来自DATA_*
-	Error    string // 返回的错误
-	Data     []byte // 数据体
+	DataStat DRuleReturnStatus // 数据状态，来自DATA_*
+	Error    string            // 返回的错误
+	Data     []byte            // 数据体
 }
 
 // 对事务的数据
@@ -187,13 +190,23 @@ type O_RoleData_Data struct {
 type O_Area struct {
 	Area   string
 	Rename string
+	Exist  bool
 }
 
 // 来往网络的用户信息
 type O_DRuleUser struct {
-	UserName  string // 用户名
-	Password  string // 密码
-	Email     string // 邮箱
-	Authority uint8  // 权限，USER_AUTHORITY_*
-	Unid      string // 唯一码
+	UserName  string        // 用户名
+	Password  string        // 密码
+	Email     string        // 邮箱
+	Authority UserAuthority // 权限，USER_AUTHORITY_*
+	Unid      string        // 唯一码
+}
+
+// 用户和区域的权限
+type O_Area_User struct {
+	UserName string // 用户名
+	Area     string // 区域名
+	WRable   bool   // true为读权限，false为写权限
+	Add      bool   // true为增加，false为减少
+
 }

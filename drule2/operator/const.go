@@ -7,17 +7,27 @@
 
 package operator
 
+type UserAuthority uint8
+
 const (
-	USER_AUTHORITY_NO     = iota // 没有权限
-	USER_AUTHORITY_ROOT          // 根权限
-	USER_AUTHORITY_DRULE         // DRule设备
-	USER_AUTHORITY_NORMAL        // 普通权限
+	USER_AUTHORITY_NO     UserAuthority = iota // 没有权限
+	USER_AUTHORITY_ROOT                        // 根权限
+	USER_AUTHORITY_DRULE                       // DRule设备
+	USER_AUTHORITY_NORMAL                      // 普通权限
 )
+
+// 几个时间
+const (
+	USER_ADD_LIFE   = 3000 // 续命间隔时间(单位秒)，不要大于USER_ALIVE_TIME
+	USER_ALIVE_TIME = 3600 // 用户的登录生存期（单位秒）
+)
+
+type DRuleReturnStatus uint8
 
 // 数据标记状态
 const (
 	// 数据没有任何的状态
-	DATA_NOTHING = iota
+	DATA_NOTHING DRuleReturnStatus = iota
 	// 数据并不是期望的
 	DATA_NOT_EXPECT
 	// 数据一切正常
@@ -44,12 +54,17 @@ const (
 	DATA_USER_EXIST
 	// 用户不存在
 	DATA_USER_NO_EXIST
+	// 用户没有权限
+	DATA_USER_NO_AUTHORITY
 )
 
-// 操作方式列表
+// OperatorType是Operator向Drule请求的操作类型
+type OperatorType uint
+
+// 这是OperatorType所可以使用的值
 const (
 	// 什么操作都没有
-	OPERATE_NOTHING = iota
+	OPERATE_NOTHING OperatorType = iota
 	// 强制保存
 	OPERATE_TOSTORE
 
@@ -183,4 +198,22 @@ const (
 	OPERATE_USER_PASSWORD
 	// 用户删除
 	OPERATE_USER_DEL
+	// 用户登出
+	OPERATE_USER_LOGOUT
+	// 用户列表
+	OPERATE_USER_LIST
+
+	// 添加区域
+	OPERATE_AREA_ADD
+	// 删除区域
+	OPERATE_AREA_DEL
+	// 修改区域名称
+	OPERATE_AREA_RENAME
+	// 区域是否存在
+	OPERATE_AREA_EXIST
+	// 区域列表
+	OPERATE_AREA_LIST
+
+	// 用户和区域的关系
+	OPERATE_USER_AREA
 )
