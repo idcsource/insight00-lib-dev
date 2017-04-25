@@ -404,6 +404,22 @@ func (h *HardStorage) AreaInit(path string) (err error) {
 	return
 }
 
+// 返回区域列表
+func (h *HardStorage) AreaList() (list []string, err error) {
+	dir, err := ioutil.ReadDir(h.local_path)
+	if err != nil {
+		err = fmt.Errorf("hardstorage[HardStroage]AreaList: %v", err)
+		return
+	}
+	list = make([]string, 0)
+	for _, path := range dir {
+		if path.IsDir() {
+			list = append(list, path.Name())
+		}
+	}
+	return
+}
+
 // 创建区域路径
 func (h *HardStorage) createArea(path string) (err error) {
 	// 检查区域名称是否合法

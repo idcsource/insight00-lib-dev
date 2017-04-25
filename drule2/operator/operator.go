@@ -60,7 +60,7 @@ func (o *Operator) autoLogin() (err error) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_return, err := o.operatorSend(cprocess, o.drule.unid, o.selfname, "", false, "", OPERATE_USER_LOGIN, login_b)
+	drule_return, err := o.operatorSend(cprocess, "", OPERATE_USER_LOGIN, login_b)
 	if err != nil {
 		return
 	}
@@ -97,7 +97,7 @@ func (o *Operator) keepLifeOnec() (err error) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_return, err := o.operatorSend(cprocess, o.drule.unid, o.selfname, "", false, "", OPERATE_USER_ADD_LIFE, nil)
+	drule_return, err := o.operatorSend(cprocess, "", OPERATE_USER_ADD_LIFE, nil)
 	if err != nil {
 		return
 	}
@@ -107,18 +107,18 @@ func (o *Operator) keepLifeOnec() (err error) {
 	return
 }
 
-func (o *Operator) operatorSend(process *nst.ProgressData, unid, selfname, transactionid string, intransaction bool, roleid string, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {
+func (o *Operator) operatorSend(process *nst.ProgressData, roleid string, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {
 	if o.login == false {
 		err = fmt.Errorf("Not login to the DRule server.")
 		return
 	}
 	thestat := O_OperatorSend{
-		OperatorName:  selfname,
+		OperatorName:  o.selfname,
 		Operate:       operate,
-		TransactionId: transactionid,
-		InTransaction: intransaction,
+		TransactionId: "",
+		InTransaction: false,
 		RoleId:        roleid,
-		Unid:          unid,
+		Unid:          o.drule.unid,
 		Data:          data,
 	}
 	statbyte, err := iendecode.StructGobBytes(thestat)

@@ -188,9 +188,9 @@ type O_RoleData_Data struct {
 
 // 区域
 type O_Area struct {
-	Area   string
-	Rename string
-	Exist  bool
+	AreaName string
+	Rename   string
+	Exist    bool
 }
 
 // 来往网络的用户信息

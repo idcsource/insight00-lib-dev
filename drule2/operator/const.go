@@ -27,7 +27,7 @@ type DRuleReturnStatus uint8
 // 数据标记状态
 const (
 	// 数据没有任何的状态
-	DATA_NOTHING DRuleReturnStatus = iota
+	DATA_NO_RETRUN DRuleReturnStatus = iota
 	// 数据并不是期望的
 	DATA_NOT_EXPECT
 	// 数据一切正常
