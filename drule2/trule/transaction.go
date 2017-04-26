@@ -380,7 +380,7 @@ func (t *Transaction) DeleteFriend(area, id, friend string) (err error) {
 	return
 }
 
-// 创建一个空的上下文，如果已经存在则忽略
+// 创建一个空的上下文
 func (t *Transaction) CreateContext(area, id, contextname string) (err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]CreateContext: This transaction has been deleted.")
@@ -392,7 +392,26 @@ func (t *Transaction) CreateContext(area, id, contextname string) (err error) {
 		err = fmt.Errorf("drule[Transaction]CreateContext: %v", err)
 		return
 	}
-	rolec.role.NewContext(contextname)
+	err = rolec.role.NewContext(contextname)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]CreateContext: %v", err)
+	}
+	return
+}
+
+// 是否有这个上下文
+func (t *Transaction) ExistContext(area, id, contextname string) (have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]ExistContext: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]ExistContext: %v", err)
+		return
+	}
+	have = rolec.role.ExistContext(contextname)
 	return
 }
 

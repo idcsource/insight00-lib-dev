@@ -669,6 +669,19 @@ func (t *TRule) CreateContext(area, id, contextname string) (err error) {
 	return
 }
 
+// 是否有这个上下文
+func (t *TRule) ExistContext(area, id, contextname string) (have bool, err error) {
+	tran, _ := t.Begin()
+	have, err = tran.ExistContext(area, id, contextname)
+	if err != nil {
+		err = fmt.Errorf("trule[TRule]ExistContext: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
 // 删除一个上下文
 func (t *TRule) DropContext(area, id, contextname string) (err error) {
 	tran, _ := t.Begin()
