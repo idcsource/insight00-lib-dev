@@ -77,8 +77,10 @@ type Roleer interface {
 	// 设置数据体被改变
 	SetDataChanged()
 
-	// 创建一个空的上下文，如果已经存在则忽略
-	NewContext(contextname string)
+	// 创建一个空的上下文
+	NewContext(contextname string) (err error)
+	// 是否含有这个上下文
+	ExistContext(contextname string) (have bool)
 	// 设定一个上下文的上游
 	AddContextUp(contextname, upname string, bind int64)
 	// 设定一个上下文的下游

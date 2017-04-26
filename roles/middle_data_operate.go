@@ -192,14 +192,23 @@ func (r *RoleMiddleData) GetContexts() map[string]Context {
 }
 
 // 创建一个空的上下文，如果已经存在则忽略
-func (r *RoleMiddleData) NewContext(contextname string) {
+func (r *RoleMiddleData) NewContext(contextname string) (err error) {
 	_, find := r.Relation.Contexts[contextname]
 	if find == false {
 		r.Relation.Contexts[contextname] = Context{
 			Up:   make(map[string]Status),
 			Down: make(map[string]Status),
 		}
+	} else {
+		err = fmt.Errorf("The context already exist.")
 	}
+	return
+}
+
+// 是否存在一个上下文
+func (r *RoleMiddleData) ExistContext(contextname string) (have bool) {
+	_, have = r.Relation.Contexts[contextname]
+	return have
 }
 
 // 设定一个上下文的上游
