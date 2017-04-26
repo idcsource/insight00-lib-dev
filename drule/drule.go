@@ -239,7 +239,7 @@ func (d *DRule) findConn(id string) (connmode uint8, conn []*slaveIn) {
 }
 
 // 判断friend或context的状态的类型，types：1为int，2为float，3为complex
-func (d *DRule) statusValueType(value interface{}) (types uint8) {
+func (d *DRule) statusValueType(value interface{}) (types roles.StatusValueType) {
 	valuer := reflect.Indirect(reflect.ValueOf(value))
 	vname := valuer.Type().String()
 	switch vname {

@@ -150,7 +150,7 @@ type Net_RoleAndFriend struct {
 	Bind   int64
 	Status roles.Status
 	// 单一的绑定属性修改，1为int，2为float，3为complex
-	Single uint8
+	Single roles.StatusValueType
 	// 单一的绑定修改所对应的位置，也就是0到9
 	Bit int
 	// 单一修改的Int
@@ -196,7 +196,7 @@ type Net_RoleAndContext_Data struct {
 	// 名字等的集合
 	Gather []string
 	// 单一的绑定属性修改，1为int，2为float，3为complex
-	Single uint8
+	Single roles.StatusValueType
 	// 单一的绑定修改所对应的位置，也就是0到9
 	Bit int
 	// 单一修改的Int

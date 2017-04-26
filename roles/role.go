@@ -36,9 +36,11 @@ const (
 	CONTEXT_DOWN
 )
 
+type StatusValueType uint8
+
 const (
 	// 状态位的值类型：null
-	STATUS_VALUE_TYPE_NULL = iota
+	STATUS_VALUE_TYPE_NULL StatusValueType = iota
 	// 状态位的值类型：int64
 	STATUS_VALUE_TYPE_INT
 	// 状态位的值类型：float64
