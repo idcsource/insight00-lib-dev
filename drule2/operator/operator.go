@@ -36,14 +36,39 @@ func NewOperator(selfname string, addr string, conn_num int, username, password 
 		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
 		return
 	}
-
-	o = &Operator{
-		selfname: selfname,
-		drule:    drule,
-		login:    false,
-		logs:     log,
+	operatorS := &operatorService{
+		tran_signal: make(chan tranService, 10),
 	}
+	o = &Operator{
+		selfname:    selfname,
+		drule:       drule,
+		service:     operatorS,
+		transaction: make(map[string]*OTransaction),
+		login:       false,
+		logs:        log,
+	}
+
+	// 事务信号监控
+	go o.transactionSignalHandle()
+
 	return
+}
+
+// 事务信号监控
+func (o *Operator) transactionSignalHandle() {
+	for {
+		tran_signal := <-o.service.tran_signal
+		switch tran_signal.askfor {
+		case TRANSACTION_ASKFOR_KEEPLIVE:
+			if _, find := o.transaction[tran_signal.unid]; find == true {
+				o.transaction[tran_signal.unid].activetime = time.Now()
+			}
+		case TRANSACTION_ASKFOR_END:
+			if _, find := o.transaction[tran_signal.unid]; find == true {
+				delete(o.transaction, tran_signal.unid)
+			}
+		}
+	}
 }
 
 // 写登陆
@@ -60,7 +85,7 @@ func (o *Operator) autoLogin() (err error) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_return, err := o.operatorSend(cprocess, "", OPERATE_USER_LOGIN, login_b)
+	drule_return, err := o.operatorSend(cprocess, "", "", OPERATE_USER_LOGIN, login_b)
 	if err != nil {
 		return
 	}
@@ -97,7 +122,7 @@ func (o *Operator) keepLifeOnec() (err error) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_return, err := o.operatorSend(cprocess, "", OPERATE_USER_ADD_LIFE, nil)
+	drule_return, err := o.operatorSend(cprocess, "", "", OPERATE_USER_ADD_LIFE, nil)
 	if err != nil {
 		return
 	}
@@ -107,7 +132,7 @@ func (o *Operator) keepLifeOnec() (err error) {
 	return
 }
 
-func (o *Operator) operatorSend(process *nst.ProgressData, roleid string, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {
+func (o *Operator) operatorSend(process *nst.ProgressData, areaid, roleid string, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {
 	if o.login == false {
 		err = fmt.Errorf("Not login to the DRule server.")
 		return
@@ -118,6 +143,7 @@ func (o *Operator) operatorSend(process *nst.ProgressData, roleid string, operat
 		TransactionId: "",
 		InTransaction: false,
 		RoleId:        roleid,
+		AreaId:        areaid,
 		Unid:          o.drule.unid,
 		Data:          data,
 	}

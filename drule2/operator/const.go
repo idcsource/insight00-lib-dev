@@ -22,7 +22,16 @@ const (
 	USER_ALIVE_TIME = 3600 // 用户的登录生存期（单位秒）
 )
 
-type DRuleReturnStatus uint8
+// 事务的请求操作
+type TransactionAskFor uint8
+
+const (
+	TRANSACTION_ASKFOR_NO       TransactionAskFor = iota // 事务没有请求
+	TRANSACTION_ASKFOR_END                               // 事务请求终止（rollback或commit）
+	TRANSACTION_ASKFOR_KEEPLIVE                          // 事务续期
+)
+
+type DRuleReturnStatus uint
 
 // 数据标记状态
 const (

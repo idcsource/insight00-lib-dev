@@ -28,7 +28,7 @@ const (
 	// 事务超时监测时间，单位秒
 	TRAN_TIME_OUT_CHECK = 30
 	// 事务超时时间，单位为秒
-	TRAN_TIME_OUT = 60
+	TRAN_TIME_OUT = 120
 	// 最多事务数
 	TRAN_MAX_COUNT = 1000
 )

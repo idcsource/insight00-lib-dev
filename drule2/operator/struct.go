@@ -15,20 +15,34 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
+type tranService struct {
+	unid   string            // 事务ID
+	askfor TransactionAskFor // 请求操作
+}
+
+type operatorService struct {
+	tran_signal chan tranService // 事务信号
+}
+
 // 这叫做“操作机”，是用来远程连接DRule的。
 type Operator struct {
-	selfname string      // 自己的名字
-	drule    *druleInfo  // 服务器端
-	login    bool        // 是否在登陆状态，如果不是则是false
-	logs     *ilogs.Logs // 日志
+	selfname    string                   // 自己的名字
+	drule       *druleInfo               // 服务器端
+	login       bool                     // 是否在登陆状态，如果不是则是false
+	service     *operatorService         // 操作者服务
+	transaction map[string]*OTransaction // 事务列表，time是事务的活跃时间
+	logs        *ilogs.Logs              // 日志
 }
 
 // 操作机事务
 type OTransaction struct {
-	selfname       string      // 自己的名字
-	transaction_id string      // 事务id
-	drule          *druleInfo  // 服务器端
-	logs           *ilogs.Logs // 日志
+	selfname       string           // 自己的名字
+	transaction_id string           // 事务id
+	drule          *druleInfo       // 服务器端
+	service        *operatorService // 操作者服务
+	logs           *ilogs.Logs      // 日志
+	bedelete       bool             // 如果为true则被删除
+	activetime     time.Time        // 活跃日期
 }
 
 // 一台服务器的信息
@@ -50,6 +64,7 @@ type O_OperatorSend struct {
 	InTransaction bool         // 在事务中
 	TransactionId string       // 事务ID
 	RoleId        string       // 涉及到的角色id
+	AreaId        string       // 涉及到的区域ID
 	Unid          string       // 登录的Unid
 	Data          []byte       // 数据体
 }
@@ -71,10 +86,10 @@ type O_Transaction struct {
 
 // 角色的接收与发送格式
 type O_RoleSendAndReceive struct {
-	Area     string // 区域
-	RoleID   string // 角色的ID
-	IfHave   bool   // 是否存在
-	RoleBody []byte // 角色的身体
+	Area     string               // 区域
+	RoleID   string               // 角色的ID
+	IfHave   bool                 // 是否存在
+	RoleBody roles.RoleMiddleData // 角色的身体
 }
 
 // 角色的father修改的数据格式
