@@ -5,6 +5,7 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
+// drule2的远程操作者
 package operator
 
 import (

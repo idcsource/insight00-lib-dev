@@ -5,6 +5,9 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
+// drule2的事务统治者
+//
+// 需要配合drule2的hardstorage包实现本地的存储。
 package trule
 
 import (

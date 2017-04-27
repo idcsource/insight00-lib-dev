@@ -5,6 +5,9 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
+// drule2的新一代硬盘永久存储
+//
+// 支持分区操作，类似于SQL数据库的“库”概念。
 package hardstorage
 
 const (

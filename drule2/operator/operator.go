@@ -54,6 +54,49 @@ func NewOperator(selfname string, addr string, conn_num int, username, password 
 	return
 }
 
+// 创建一个操作者，并使用加密连接。自己的名字，远程地址，连接数，用户名，密码，日志
+func NewOperatorTLS(selfname string, addr string, conn_num int, username, password string, log *ilogs.Logs) (o *Operator, err error) {
+	drule_conn, err := nst.NewTcpClient(addr, conn_num, log)
+	if err != nil {
+		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
+		return
+	}
+	err = nst.TcpClientTLS(drule_conn)
+	if err != nil {
+		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
+		return
+	}
+	drule := &druleInfo{
+		name:     addr,
+		username: username,
+		password: password,
+		tcpconn:  drule_conn,
+	}
+
+	// 自动登陆
+	err = o.autoLogin()
+	if err != nil {
+		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
+		return
+	}
+	operatorS := &operatorService{
+		tran_signal: make(chan tranService, 10),
+	}
+	o = &Operator{
+		selfname:    selfname,
+		drule:       drule,
+		service:     operatorS,
+		transaction: make(map[string]*OTransaction),
+		login:       false,
+		logs:        log,
+	}
+
+	// 事务信号监控
+	go o.transactionSignalHandle()
+
+	return
+}
+
 // 事务信号监控
 func (o *Operator) transactionSignalHandle() {
 	for {
