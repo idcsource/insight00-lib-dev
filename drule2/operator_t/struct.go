@@ -6,6 +6,12 @@
 // Use of this source code is governed by GNU LGPL v3 license
 
 // drule2的远程控制者控制台终端
+//
+// 具体命令如下：
+//	area list
+//	area add 'area name'
+//	area delete 'area name'
+//	area rename 'old name' to 'new name'
 package operator_t
 
 import (

@@ -5,7 +5,6 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
-// drule2的远程控制者控制台终端
 package operator_t
 
 import (
@@ -28,6 +27,35 @@ func NewOperatorT(o *operator.Operator) (ot *OperatorT) {
 	return
 }
 
+// 命令输入，并返回结构字符集，一行一个string
+func (o *OperatorT) Command(command string) (r []string, err error) {
+	// 拆分命令
+	split, err := o.commandSplit(command)
+	if err != nil {
+		return
+	}
+	// 交给执行器
+	r, err = o.exec(split)
+	return
+}
+
+// 命令执行器
+func (o *OperatorT) exec(split []string) (r []string, err error) {
+	split_l := len(split)
+	if split_l < 2 {
+		err = fmt.Errorf("Command syntax error.")
+		return
+	}
+	switch split[0] {
+	case "area":
+		r, err = o.execArea(split, split_l)
+	default:
+		err = fmt.Errorf("Command syntax error.")
+	}
+	return
+}
+
+// 主要是用来检查命令的
 func (o *OperatorT) CommandSplit(command string) (split []string, err error) {
 	return o.commandSplit(command)
 }
@@ -66,6 +94,8 @@ func (o *OperatorT) commandSplit(command string) (split []string, err error) {
 			// 处理空格
 			if o.regexp["space"].MatchString(t) == false {
 				continue
+			} else {
+				t = strings.ToLower(t)
 			}
 		}
 		t = strings.Trim(t, "'")
