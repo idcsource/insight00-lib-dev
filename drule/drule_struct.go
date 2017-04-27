@@ -167,7 +167,7 @@ type Net_RoleAndContext struct {
 	// 上下文的名字
 	Context string
 	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
-	UpOrDown uint8
+	UpOrDown roles.ContextUpDown
 	// 要操作的绑定角色的ID
 	BindRole string
 }
@@ -186,7 +186,7 @@ type Net_RoleAndContext_Data struct {
 	// 要求的上下文是否存在
 	Exist bool
 	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
-	UpOrDown uint8
+	UpOrDown roles.ContextUpDown
 	// 要操作的绑定角色的ID
 	BindRole string
 	// 一个的状态位结构

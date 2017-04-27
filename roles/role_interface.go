@@ -109,9 +109,9 @@ type Roleer interface {
 	// 获取朋友的状态属性
 	GetFriendStatus(id string, bit int, value interface{}) (err error)
 	// 设置上下文的状态属性
-	SetContextStatus(contextname string, upordown uint8, id string, bit int, value interface{}) (err error)
+	SetContextStatus(contextname string, upordown ContextUpDown, id string, bit int, value interface{}) (err error)
 	// 获取上下文的状态属性
-	GetContextStatus(contextname string, upordown uint8, id string, bit int, value interface{}) (err error)
+	GetContextStatus(contextname string, upordown ContextUpDown, id string, bit int, value interface{}) (err error)
 
 	// 设定上下文
 	SetContexts(context map[string]Context)

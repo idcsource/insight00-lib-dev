@@ -420,7 +420,7 @@ func (r *RoleMiddleData) GetFriendStatus(id string, bit int, value interface{}) 
 }
 
 // 设置上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值，只接收int64、float64、complex128。
-func (r *RoleMiddleData) SetContextStatus(contextname string, upordown uint8, id string, bit int, value interface{}) (err error) {
+func (r *RoleMiddleData) SetContextStatus(contextname string, upordown ContextUpDown, id string, bit int, value interface{}) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("roles:[RoleMiddleData]SetContextStatus: %v", e)
@@ -489,7 +489,7 @@ func (r *RoleMiddleData) SetContextStatus(contextname string, upordown uint8, id
 }
 
 // 获取上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值，只接收int64、float64、complex128。
-func (r *RoleMiddleData) GetContextStatus(contextname string, upordown uint8, id string, bit int, value interface{}) (err error) {
+func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUpDown, id string, bit int, value interface{}) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("roles[RoleMiddleData]GetContextStatus: %v", e)

@@ -488,7 +488,7 @@ func (o *Operator) ReadContext(id, contextname string) (context roles.Context, h
 }
 
 // 删除一个上下文中的绑定
-func (o *Operator) DeleteContextBind(id, contextname string, upordown uint8, bindrole string) (err error) {
+func (o *Operator) DeleteContextBind(id, contextname string, upordown roles.ContextUpDown, bindrole string) (err error) {
 	err = o.checkDMZ(id)
 	if err != nil {
 		return
@@ -514,7 +514,7 @@ func (o *Operator) DeleteContextBind(id, contextname string, upordown uint8, bin
 }
 
 // 返回某个上下文的同样绑定值的所有
-func (o *Operator) ReadContextSameBind(id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
+func (o *Operator) ReadContextSameBind(id, contextname string, upordown roles.ContextUpDown, bind int64) (rolesid []string, have bool, err error) {
 	err = o.checkDMZ(id)
 	if err != nil {
 		return
@@ -787,7 +787,7 @@ func (o *Operator) ReadFriendStatus(id, friend string, bindbit int, value interf
 }
 
 // 设置一个上下文的属性
-func (o *Operator) WriteContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+func (o *Operator) WriteContextStatus(id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (err error) {
 	err = o.checkDMZ(id)
 	if err != nil {
 		return
@@ -847,7 +847,7 @@ func (o *Operator) WriteContextStatus(id, contextname string, upordown uint8, bi
 }
 
 // 读取一个上下文的状态
-func (o *Operator) ReadContextStatus(id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+func (o *Operator) ReadContextStatus(id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (err error) {
 	err = o.checkDMZ(id)
 	if err != nil {
 		return
