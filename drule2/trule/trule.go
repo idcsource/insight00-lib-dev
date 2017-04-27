@@ -709,7 +709,7 @@ func (t *TRule) ReadContext(area, id, contextname string) (context roles.Context
 }
 
 // 删除一个上下文绑定
-func (t *TRule) DeleteContextBind(area, id, contextname string, upordown uint8, bindrole string) (err error) {
+func (t *TRule) DeleteContextBind(area, id, contextname string, upordown roles.ContextUpDown, bindrole string) (err error) {
 	tran, _ := t.Begin()
 	err = tran.DeleteContextBind(area, id, contextname, upordown, bindrole)
 	if err != nil {
@@ -722,7 +722,7 @@ func (t *TRule) DeleteContextBind(area, id, contextname string, upordown uint8, 
 }
 
 // 返回某个上下文的同样绑定值的所有
-func (t *TRule) ReadContextSameBind(area, id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
+func (t *TRule) ReadContextSameBind(area, id, contextname string, upordown roles.ContextUpDown, bind int64) (rolesid []string, have bool, err error) {
 	tran, _ := t.Begin()
 	rolesid, have, err = tran.ReadContextSameBind(area, id, contextname, upordown, bind)
 	if err != nil {
@@ -774,7 +774,7 @@ func (t *TRule) ReadFriendStatus(area, id, friends string, bindbit int, value in
 }
 
 // 设置上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
-func (t *TRule) WriteContextStatus(area, id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+func (t *TRule) WriteContextStatus(area, id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (err error) {
 	tran, _ := t.Begin()
 	err = tran.WriteContextStatus(area, id, contextname, upordown, bindroleid, bindbit, value)
 	if err != nil {
@@ -787,7 +787,7 @@ func (t *TRule) WriteContextStatus(area, id, contextname string, upordown uint8,
 }
 
 // 获取上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
-func (t *TRule) ReadContextStatus(area, id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+func (t *TRule) ReadContextStatus(area, id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (err error) {
 	tran, _ := t.Begin()
 	err = tran.ReadContextStatus(area, id, contextname, upordown, bindroleid, bindbit, value)
 	if err != nil {

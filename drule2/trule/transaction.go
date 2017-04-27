@@ -448,7 +448,7 @@ func (t *Transaction) ReadContext(area, id, contextname string) (context roles.C
 }
 
 // 删除一个上下文的绑定，upordown为roles包中的CONTEXT_UP或CONTEXT_DOWN，binderole是绑定的角色id
-func (t *Transaction) DeleteContextBind(area, id, contextname string, upordown uint8, bindrole string) (err error) {
+func (t *Transaction) DeleteContextBind(area, id, contextname string, upordown roles.ContextUpDown, bindrole string) (err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]DeleteContextBind: This transaction has been deleted.")
 		return
@@ -470,7 +470,7 @@ func (t *Transaction) DeleteContextBind(area, id, contextname string, upordown u
 }
 
 // 返回某个上下文中的同样绑定值的所有，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN，如果给定的contextname不存在，则have返回false。
-func (t *Transaction) ReadContextSameBind(area, id, contextname string, upordown uint8, bind int64) (rolesid []string, have bool, err error) {
+func (t *Transaction) ReadContextSameBind(area, id, contextname string, upordown roles.ContextUpDown, bind int64) (rolesid []string, have bool, err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]ReadContextSameBind: This transaction has been deleted.")
 		return
@@ -508,7 +508,7 @@ func (t *Transaction) ReadContextsName(area, id string) (names []string, err err
 }
 
 // 设定上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
-func (t *Transaction) WriteContextStatus(area, id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+func (t *Transaction) WriteContextStatus(area, id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]WriteContextStatus: This transaction has been deleted.")
 		return
@@ -527,7 +527,7 @@ func (t *Transaction) WriteContextStatus(area, id, contextname string, upordown 
 }
 
 // 获取上下文的状态属性，upordown为roles.CONTEXT_UP或roles.CONTEXT_DOWN
-func (t *Transaction) ReadContextStatus(area, id, contextname string, upordown uint8, bindroleid string, bindbit int, value interface{}) (err error) {
+func (t *Transaction) ReadContextStatus(area, id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]ReadContextStatus: This transaction has been deleted.")
 		return

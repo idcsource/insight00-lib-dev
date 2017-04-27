@@ -705,6 +705,7 @@ func (o *OTransaction) WriteFriendStatus(areaid, roleid, friendid string, bindbi
 		Area:   areaid,
 		Id:     roleid,
 		Friend: friendid,
+		Bit:    bindbit,
 	}
 
 	// 拦截反射错误
@@ -782,6 +783,7 @@ func (o *OTransaction) ReadFriendStatus(areaid, roleid, friendid string, bindbit
 		Area:   areaid,
 		Id:     roleid,
 		Friend: friendid,
+		Bit:    bindbit,
 	}
 
 	// 拦截反射错误
@@ -967,6 +969,716 @@ func (o *OTransaction) ExistContext(areaid, roleid, contextname string) (errs DR
 	errs.Code = r.DataStat
 	if r.DataStat != DATA_ALL_OK {
 		errs.Err = fmt.Errorf("operator[OTransaction]ExistContext: %v", r.Error)
+		return
+	}
+	return
+}
+
+// 清除一个上下文
+func (o *OTransaction) DropContext(areaid, roleid, contextname string) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]DropContext: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rc := O_RoleAndContext{
+		Area:    areaid,
+		Id:      roleid,
+		Context: contextname,
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]DropContext: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_DROP_CONTEXT, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]DropContext: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]DropContext: %v", r.Error)
+		return
+	}
+	return
+}
+
+// 返回某个上下文的全部信息
+func (o *OTransaction) ReadContext(areaid, roleid, contextname string) (context roles.Context, have bool, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContext: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rc := O_RoleAndContext_Data{
+		Area:    areaid,
+		Id:      roleid,
+		Context: contextname,
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContext: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_READ_CONTEXT, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContext: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContext: %v", r.Error)
+		return
+	}
+	// 解码返回值
+	err = iendecode.BytesGobStruct(r.Data, &rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContext: %v", err)
+		return
+	}
+	context = rc.ContextBody
+	have = rc.Exist
+	return
+}
+
+// 删除一个上下文绑定
+func (o *OTransaction) DeleteContextBind(areaid, roleid, contextname string, upordown roles.ContextUpDown, bindrole string) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]DeleteContextBind: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rc := O_RoleAndContext{
+		Area:     areaid,
+		Id:       roleid,
+		Context:  contextname,
+		UpOrDown: upordown,
+		BindRole: bindrole,
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]DeleteContextBind: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_DEL_CONTEXT_BIND, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]DeleteContextBind: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]DeleteContextBind: %v", r.Error)
+		return
+	}
+	return
+}
+
+// 获取同一个上下文的同一个绑定值的所有角色id
+func (o *OTransaction) ReadContextSameBind(areaid, roleid, contextname string, upordown roles.ContextUpDown, bind int64) (rolesid []string, have bool, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextSameBind: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rc := O_RoleAndContext_Data{
+		Area:     areaid,
+		Id:       roleid,
+		Context:  contextname,
+		UpOrDown: upordown,
+		Bit:      0,
+		Int:      bind,
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextSameBind: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_CONTEXT_SAME_BIND, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextSameBind: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextSameBind: %v", r.Error)
+		return
+	}
+	// 解码返回值
+	err = iendecode.BytesGobStruct(r.Data, &rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextSameBind: %v", err)
+		return
+	}
+	rolesid = rc.Gather
+	have = rc.Exist
+	return
+}
+
+// 返回所有上下文组的名称
+func (o *OTransaction) ReadContextsName(areaid, roleid string) (names []string, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextsName: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rc := O_RoleAndContext_Data{
+		Area: areaid,
+		Id:   roleid,
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextsName: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_CONTEXTS_NAME, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextsName: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextsName: %v", r.Error)
+		return
+	}
+	// 解码返回值
+	err = iendecode.BytesGobStruct(r.Data, &rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextsName: %v", err)
+		return
+	}
+	names = rc.Gather
+	return
+}
+
+// 设定上下文的状态
+func (o *OTransaction) WriteContextStatus(areaid, roleid, contextname string, upordown roles.ContextUpDown, bindrole string, bindbit int, value interface{}) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContextStatus: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构造
+	rc := O_RoleAndContext_Data{
+		Area:     areaid,
+		Id:       roleid,
+		Context:  contextname,
+		UpOrDown: upordown,
+		BindRole: bindrole,
+		Bit:      bindbit,
+	}
+
+	// 拦截反射错误
+	defer func() {
+		if e := recover(); e != nil {
+			errs.Err = fmt.Errorf("operator[OTransaction]WriteContextStatus: %v", e)
+		}
+	}()
+	value_v := reflect.Indirect(reflect.ValueOf(value))
+	vname := value_v.Type().String()
+	switch vname {
+	case "int":
+		rc.Int = value_v.Int()
+		rc.Single = roles.STATUS_VALUE_TYPE_INT
+	case "int64":
+		rc.Int = value_v.Int()
+		rc.Single = roles.STATUS_VALUE_TYPE_INT
+	case "float":
+		rc.Float = value_v.Float()
+		rc.Single = roles.STATUS_VALUE_TYPE_FLOAT
+	case "float64":
+		rc.Float = value_v.Float()
+		rc.Single = roles.STATUS_VALUE_TYPE_FLOAT
+	case "complex64":
+		rc.Complex = value_v.Complex()
+		rc.Single = roles.STATUS_VALUE_TYPE_COMPLEX
+	case "complex128":
+		rc.Complex = value_v.Complex()
+		rc.Single = roles.STATUS_VALUE_TYPE_COMPLEX
+	default:
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContextStatus: The value's type must int64, float64 or complex128.")
+		return
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContextStatus: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_CONTEXT_STATUS, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContextStatus: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContextStatus: %v", r.Error)
+		return
+	}
+	return
+}
+
+// 获取一个上下文的状态
+func (o *OTransaction) ReadContextStatus(areaid, roleid, contextname string, upordown roles.ContextUpDown, bindrole string, bindbit int, value interface{}) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构造
+	rc := O_RoleAndContext_Data{
+		Area:     areaid,
+		Id:       roleid,
+		Context:  contextname,
+		UpOrDown: upordown,
+		BindRole: bindrole,
+		Bit:      bindbit,
+	}
+
+	// 拦截反射错误
+	defer func() {
+		if e := recover(); e != nil {
+			errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: %v", e)
+		}
+	}()
+	value_v := reflect.Indirect(reflect.ValueOf(value))
+	vname := value_v.Type().String()
+	switch vname {
+	case "int":
+		rc.Single = roles.STATUS_VALUE_TYPE_INT
+	case "int64":
+		rc.Single = roles.STATUS_VALUE_TYPE_INT
+	case "float":
+		rc.Single = roles.STATUS_VALUE_TYPE_FLOAT
+	case "float64":
+		rc.Single = roles.STATUS_VALUE_TYPE_FLOAT
+	case "complex64":
+		rc.Single = roles.STATUS_VALUE_TYPE_COMPLEX
+	case "complex128":
+		rc.Single = roles.STATUS_VALUE_TYPE_COMPLEX
+	default:
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: The value's type must int64, float64 or complex128.")
+		return
+	}
+
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_CONTEXT_STATUS, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: %v", r.Error)
+		return
+	}
+
+	// 解码返回
+	err = iendecode.BytesGobStruct(r.Data, &rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: %v", err)
+		return
+	}
+
+	// 装入数据
+	switch rc.Single {
+	case roles.STATUS_VALUE_TYPE_INT:
+		value_v.SetInt(rc.Int)
+	case roles.STATUS_VALUE_TYPE_FLOAT:
+		value_v.SetFloat(rc.Float)
+	case roles.STATUS_VALUE_TYPE_COMPLEX:
+		value_v.SetComplex(rc.Complex)
+	default:
+		err = fmt.Errorf("operator[OTransaction]ReadContextStatus: The value's type not int64, float64 or complex128.")
+	}
+	return
+}
+
+// 设定完全上下文
+func (o *OTransaction) WriteContexts(areaid, roleid string, contexts map[string]roles.Context) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContexts: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rc := O_RoleAndContexts{
+		Area:     areaid,
+		Id:       roleid,
+		Contexts: contexts,
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContexts: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_CONTEXTS, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContexts: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContexts: %v", r.Error)
+		return
+	}
+	return
+}
+
+// 获取完全上下文
+func (o *OTransaction) ReadContexts(areaid, roleid string) (contexts map[string]roles.Context, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContexts: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rc := O_RoleAndContexts{
+		Area: areaid,
+		Id:   roleid,
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContexts: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_CONTEXTS, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContexts: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContexts: %v", r.Error)
+		return
+	}
+	// 解码
+	err = iendecode.BytesGobStruct(r.Data, &rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContexts: %v", err)
+		return
+	}
+	contexts = rc.Contexts
+	return
+}
+
+// 重置上下文
+func (o *OTransaction) ResetContexts(areaid, roleid string) (errs DRuleError) {
+	contexts := make(map[string]roles.Context)
+	return o.WriteContexts(areaid, roleid, contexts)
+}
+
+// 写入数据
+func (o *OTransaction) WriteData(areaid, roleid, name string, data interface{}) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteData: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 数据编码
+	data_b, err := iendecode.StructGobBytes(data)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteData: %v", err)
+		return
+	}
+	// 构建
+	rd := O_RoleData_Data{
+		Area: areaid,
+		Id:   roleid,
+		Name: name,
+		Data: data_b,
+	}
+	// 编码
+	rd_b, err := iendecode.StructGobBytes(rd)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteData: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_DATA, rd_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteData: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteData: %v", r.Error)
+		return
+	}
+	return
+}
+
+// 写入数据
+func (o *OTransaction) WriteDataFromByte(areaid, roleid, name string, data_b []byte) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteDataFromByte: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rd := O_RoleData_Data{
+		Area: areaid,
+		Id:   roleid,
+		Name: name,
+		Data: data_b,
+	}
+	// 编码
+	rd_b, err := iendecode.StructGobBytes(rd)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteDataFromByte: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_DATA, rd_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteDataFromByte: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteDataFromByte: %v", r.Error)
+		return
+	}
+	return
+}
+
+// 读取数据
+func (o *OTransaction) ReadData(areaid, roleid, name string, data interface{}) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadData: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rd := O_RoleData_Data{
+		Area: areaid,
+		Id:   roleid,
+		Name: name,
+	}
+	// 编码
+	rd_b, err := iendecode.StructGobBytes(rd)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadData: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_DATA, rd_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadData: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadData: %v", r.Error)
+		return
+	}
+	// 解码返回值
+	err = iendecode.BytesGobStruct(r.Data, &rd)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadData: %v", err)
+		return
+	}
+	// 解码数据
+	err = iendecode.BytesGobStruct(rd.Data, &data)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadData: %v", err)
+		return
+	}
+	return
+}
+
+// 读取数据
+func (o *OTransaction) ReadDataToByte(areaid, roleid, name string) (data_b []byte, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadDataToByte: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rd := O_RoleData_Data{
+		Area: areaid,
+		Id:   roleid,
+		Name: name,
+	}
+	// 编码
+	rd_b, err := iendecode.StructGobBytes(rd)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadDataToByte: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_DATA, rd_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadDataToByte: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadDataToByte: %v", r.Error)
+		return
+	}
+	// 解码返回值
+	err = iendecode.BytesGobStruct(r.Data, &rd)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadDataToByte: %v", err)
+		return
+	}
+	data_b = rd.Data
+	return
+}
+
+// 准备锁定角色
+func (o *OTransaction) LockRole(areaid string, roleids ...string) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]LockRole: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rt := O_Transaction{
+		TransactionId: o.transaction_id,
+		Area:          areaid,
+		PrepareIDs:    roleids,
+	}
+	// 编码
+	rt_b, err := iendecode.StructGobBytes(rt)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]LockRole: %v", err)
+		return
+	}
+	// 传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, "", OPERATE_TRAN_PREPARE, rt_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]LockRole: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]LockRole: %v", r.Error)
 		return
 	}
 	return
