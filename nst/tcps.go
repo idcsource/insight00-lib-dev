@@ -8,6 +8,7 @@
 package nst
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"reflect"
@@ -18,10 +19,24 @@ import (
 // 这是一个使用Tcp协议的服务器端监听组件。
 // 根据设置接收tcp套接字传送来的信息并转交给注册的接收者。
 type TcpServer struct {
-	role   reflect.Value    // 将收到的数据返回给谁处理
-	logs   *ilogs.Logs      // 运行日志
-	port   string           // 监听的端口
-	listen *net.TCPListener // 监听
+	role       reflect.Value    // 将收到的数据返回给谁处理
+	logs       *ilogs.Logs      // 运行日志
+	port       string           // 监听的端口
+	tls        bool             // 是否tls加密
+	tls_config *tls.Config      // tls配置
+	listen     *net.TCPListener // 监听
+}
+
+// 新建一个TCP的监听，使用TLS加密。注册一个*TcpServer。
+func TcpServerTLS(ts *TcpServer, pem, key string) (err error) {
+	cert, err := tls.LoadX509KeyPair(pem, key)
+	if err != nil {
+		err = fmt.Errorf("nst[TcpServer]TcpServerTLS: %v", err)
+		return
+	}
+	ts.tls_config = &tls.Config{Certificates: []tls.Certificate{cert}}
+	ts.tls = true
+	return
 }
 
 // 新建一个Tcp的监听。注册一个符合ConnExecer接口的执行者负责真正的处理接口。
@@ -30,6 +45,7 @@ func NewTcpServer(role ConnExecer, port string, logs *ilogs.Logs) (ts *TcpServer
 		role: reflect.ValueOf(role),
 		logs: logs,
 		port: port,
+		tls:  false,
 	}
 
 	theport := ":" + ts.port
@@ -55,13 +71,16 @@ func (ts *TcpServer) Close() (err error) {
 
 // 启动服务器，在NewTcpServer中直接执行
 func (ts *TcpServer) startServer() {
+	var err error
+	var connecter *net.TCPConn
 	for {
-		Connecter, err := ts.listen.AcceptTCP()
+		connecter, err = ts.listen.AcceptTCP()
+
 		if err != nil {
 			ts.logerr(fmt.Errorf("StartServer: AcceptTCP: %v", err))
 			continue
 		}
-		go ts.doConn(Connecter)
+		go ts.doConn(connecter)
 	}
 }
 
@@ -72,7 +91,13 @@ func (ts *TcpServer) doConn(conn *net.TCPConn) {
 			ts.logerr(fmt.Errorf("nst[TcpServer]doConn: ", e))
 		}
 	}()
-	tcp := NewTCP(conn)
+	var tcp *TCP
+	if ts.tls == false {
+		tcp = NewTCP(conn)
+	} else {
+		tcp = NewTCPtls(tls.Server(conn, ts.tls_config))
+	}
+
 	conn_exec := NewConnExec(tcp)
 
 	for {

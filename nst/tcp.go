@@ -8,19 +8,26 @@
 package nst
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 )
 
 // TCP发送接收数据结构。发送数据的方法必须使用对应类型的接收方法进行接收
 type TCP struct {
-	tcp *net.TCPConn
-	buf int
+	tls     bool
+	tcp     *net.TCPConn
+	tcp_tls *tls.Conn
+	buf     int
 }
 
 // 新建TCP的发送接收
 func NewTCP(tcp *net.TCPConn) *TCP {
-	return &TCP{tcp: tcp, buf: 1024}
+	return &TCP{tls: false, tcp: tcp, buf: 1024}
+}
+
+func NewTCPtls(tcp *tls.Conn) *TCP {
+	return &TCP{tls: true, tcp_tls: tcp, buf: 1024}
 }
 
 // 设置缓冲大小
@@ -134,15 +141,19 @@ func (t *TCP) GetStat() (status uint8, errs error) {
 }
 
 // 发送字节切片（没有字节长度信息）
-func (t *TCP) SendBytes(bytes []byte) (errs error) {
+func (t *TCP) SendBytes(bytes []byte) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			errs = fmt.Errorf("nst[TCP]SendBytes: %v", e)
+			err = fmt.Errorf("nst[TCP]SendBytes: %v", e)
 		}
 	}()
-	_, err := t.tcp.Write(bytes)
+	if t.tls == false {
+		_, err = t.tcp.Write(bytes)
+	} else {
+		_, err = t.tcp_tls.Write(bytes)
+	}
 	if err != nil {
-		errs = err
+		return
 	}
 	return
 }
@@ -156,13 +167,19 @@ func (t *TCP) GetBytes(len uint64) (returnByte []byte, err error) {
 	}()
 	returnByte = make([]byte, 0, len)
 	for {
+		var err error
 		tempdata := []byte{}
 		if len < uint64(t.buf) {
 			tempdata = make([]byte, len)
 		} else {
 			tempdata = make([]byte, t.buf)
 		}
-		r, err := t.tcp.Read(tempdata)
+		var r int
+		if t.tls == false {
+			r, err = t.tcp.Read(tempdata)
+		} else {
+			r, err = t.tcp_tls.Read(tempdata)
+		}
 		if err != nil {
 			return returnByte, err
 		}
@@ -184,6 +201,12 @@ func (t *TCP) SetKeepAlive(keepalive bool) error {
 
 // 关闭连接
 func (t *TCP) Close() (err error) {
+	if t.tls == true {
+		err = t.tcp_tls.Close()
+		if err != nil {
+			return
+		}
+	}
 	err = t.tcp.Close()
 	return
 }

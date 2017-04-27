@@ -8,6 +8,7 @@
 package nst
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -30,6 +31,7 @@ type TcpClient struct {
 	tcpc        []*tcpC             // 连接管理池
 	alloc_count int                 // 连接分配计数
 	lock        *sync.RWMutex       // 连接分配计数的锁
+	tls         bool                // 是否tls加密
 }
 
 // 进程的数据队列
@@ -50,6 +52,19 @@ type tcpC struct {
 	slock chan bool
 }
 
+// 建立一个加密的TCP连接
+func TcpClientTLS(ts *TcpClient) (err error) {
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	for i := range ts.tcpc {
+		ts.tcpc[i].tcp.tls = true
+		ts.tcpc[i].tcp.tcp_tls = tls.Client(ts.tcpc[i].tcp.tcp, conf)
+	}
+	ts.tls = true
+	return
+}
+
 // 建立一个TCP的客户端，并与addr的地址建立连接
 func NewTcpClient(addr string, count int, logs *ilogs.Logs) (tc *TcpClient, err error) {
 	tc = &TcpClient{
@@ -61,6 +76,7 @@ func NewTcpClient(addr string, count int, logs *ilogs.Logs) (tc *TcpClient, err 
 		tcpc:        make([]*tcpC, count),
 		alloc_count: 0,
 		lock:        new(sync.RWMutex),
+		tls:         false,
 	}
 	tc.setBridgeBind()
 	ipAdrr, err := net.ResolveTCPAddr("tcp", tc.addr)
