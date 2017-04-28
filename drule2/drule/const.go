@@ -15,11 +15,11 @@ const (
 	ROOT_USER          = "root"   // 根用户用户名
 	ROOT_USER_PASSWORD = "123456" // 根用户默认密码
 
-	OPERATOR_PREFIX = "_operator_"    // 远程控制者的角色id前缀
-	OPERATOR_ROOT   = "root_operator" // 远程控制者的存储根角色id
+	OPERATOR_PREFIX = "_operator_"     // 远程控制者的角色id前缀
+	OPERATOR_ROOT   = "_root_operator" // 远程控制者的存储根角色id
 
-	AREA_DRULE_PREFIX = "_area_drule_"    // 路由蔓延规则的角色id前缀
-	AREA_DRULE_ROOT   = "root_area_drule" // 路由蔓延规则的根角色id
+	AREA_DRULE_PREFIX = "_area_drule_"     // 路由蔓延规则的角色id前缀
+	AREA_DRULE_ROOT   = "_root_area_drule" // 路由蔓延规则的根角色id
 )
 
 // 工作模式

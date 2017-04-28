@@ -628,6 +628,7 @@ func (t *Transaction) ReadData(area, id, name string, data interface{}) (err err
 		return
 	}
 	t.tran_time = time.Now()
+
 	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)

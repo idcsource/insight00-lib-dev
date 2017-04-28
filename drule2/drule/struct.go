@@ -69,9 +69,10 @@ type DRuleOperatorRoot struct {
 
 // 远端操作者的记录，为OperatorRoot的子角色
 type DRuleOperator struct {
+	roles.Role
 	Name     string // 名称
 	Address  string // 地址与端口
-	ConnNum  uint   // 连接数
+	ConnNum  int    // 连接数
 	TLS      bool   // 是否加密
 	Username string // 用户名
 	Password string // 密码
