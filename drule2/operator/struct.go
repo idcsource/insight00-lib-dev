@@ -226,3 +226,23 @@ type O_Area_User struct {
 	Add      bool   // true为增加，false为减少
 
 }
+
+// 远端操作者的记录
+type O_DRuleOperator struct {
+	Name     string // 名称
+	Address  string // 地址与端口
+	ConnNum  int    // 连接数
+	TLS      bool   // 是否加密
+	Username string // 用户名
+	Password string // 密码
+	Add      bool   // true为添加，false为删除
+}
+
+// 蔓延到其他drule上的区域
+type O_AreasDRule struct {
+	AreaName string              // 区域名称
+	Mirror   bool                // 是否为镜像，ture为镜像，则所有的文件都发给下面所有的drule
+	Mirrors  []string            // string为drule的名字
+	Chars    map[string][]string // 如果mirror为false，则看这个根据不同的字母进行路由，第一个stirng为首字母，第二个string为operator的名称
+	Add      bool                // true为添加，false为删除
+}

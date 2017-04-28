@@ -227,4 +227,8 @@ const (
 
 	// 用户和区域的关系
 	OPERATE_USER_AREA
+	// 对远程Operator的处理
+	OPERATE_DRULE_OPERATOR
+	// 对角色远端路由的处理
+	OPERATE_AREA_ROUTER
 )

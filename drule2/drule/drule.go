@@ -85,6 +85,10 @@ func NewDRule(selfname string, mode OperateMode, t *trule.TRule, log *ilogs.Logs
 
 // 启动服务，对工作模式等进行管理
 func (d *DRule) Start() (err error) {
+	if d.closed == false {
+		err = fmt.Errorf("drule[DRule]Start: DRule already started.")
+		return
+	}
 	// 准备区域数据
 	areas, err := d.trule.ReadChildren(INSIDE_DMZ, AREA_DRULE_ROOT)
 	if err != nil {
@@ -131,6 +135,7 @@ func (d *DRule) Start() (err error) {
 			d.operators[op_set_r.Name] = op
 		}
 	}
+	d.trule.Start()
 	d.closed = false
 	return
 }
@@ -138,4 +143,5 @@ func (d *DRule) Start() (err error) {
 // 关闭
 func (d *DRule) Close() {
 	d.closed = true
+	d.trule.Pause()
 }
