@@ -14,12 +14,16 @@ import (
 )
 
 // area的命令执行器，从split[1]开始
-func (o *OperatorT) execArea(split []string, l int) (r []string, err error) {
+func (o *OperatorT) execArea(split []string, l int) (r [][]string, err error) {
 	errs := operator.NewDRuleError()
 	// area list
 	if split[1] == "list" {
-		r, errs = o.operator.AreaList()
+		rt, errs := o.operator.AreaList()
 		err = errs.IsError()
+		r = make([][]string, 0)
+		for _, rto := range rt {
+			r = append(r, []string{rto})
+		}
 		return
 	}
 	if l < 3 {
@@ -29,15 +33,15 @@ func (o *OperatorT) execArea(split []string, l int) (r []string, err error) {
 
 	switch split[1] {
 	case "add":
-		// area add 'area name'
+		// area add 'area_name'
 		errs = o.operator.AreaAdd(split[2])
 		err = errs.IsError()
 	case "delete":
-		// area delete 'area name'
+		// area delete 'area_name'
 		errs = o.operator.AreaDel(split[2])
 		err = errs.IsError()
 	case "rename":
-		// area rename 'old name' to 'new name'
+		// area rename 'old_name' to 'new_name'
 		if l < 5 {
 			err = fmt.Errorf("Command syntax error.")
 		} else {

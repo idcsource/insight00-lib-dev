@@ -34,9 +34,9 @@ type DRule struct {
 
 	operators map[string]*operator.Operator // 这是operator的连接
 
-	areas map[string]*areasDRule // 需要蔓延到其他drule上的区域列表
+	areas map[string]*AreasDRule // 需要蔓延到其他drule上的区域列表
 
-	// 登录进来的用户
+	// 登录进来的用户,string为用户名
 	loginuser map[string]*loginUser
 
 	// 日志
@@ -44,16 +44,17 @@ type DRule struct {
 }
 
 // 蔓延到其他drule上的区域
-type areasDRule struct {
-	mirror  bool                // 是否为镜像，ture为镜像，则所有的文件都发给下面所有的drule
-	mirrors []string            // string为trule的名字
-	chars   map[string][]string // 如果mirror为false，则看这个根据不同的字母进行路由
+type AreasDRule struct {
+	roles.Role                     // 角色
+	Mirror     bool                // 是否为镜像，ture为镜像，则所有的文件都发给下面所有的drule
+	Mirrors    []string            // string为drule的名字
+	Chars      map[string][]string // 如果mirror为false，则看这个根据不同的字母进行路由，第一个stirng为首字母，第二个string为operator的名称
 }
 
 // 登录进来的用户
 type loginUser struct {
 	username   string
-	unid       string
+	unid       map[string]time.Time // string为unid，time则为活动时间
 	authority  uint8
 	wrable     map[string]bool // 与DRuleUser一致
 	activetime time.Time

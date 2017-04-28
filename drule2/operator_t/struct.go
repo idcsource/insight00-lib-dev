@@ -9,9 +9,9 @@
 //
 // 具体命令如下：
 //	area list
-//	area add 'area name'
-//	area delete 'area name'
-//	area rename 'old name' to 'new name'
+//	area add 'area_name'
+//	area delete 'area_name'
+//	area rename 'old_name' to 'new_name'
 package operator_t
 
 import (
