@@ -5,6 +5,8 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
+// drule2的“分布式统治者”
+//
 // DRule需要提供一个*cpool.Block类型的配置信息，示例如下:
 //	{drule}
 //
@@ -39,4 +41,6 @@
 //	username = username
 // 	# 密码
 //	password = password
+//
+// 分布式路由功能在运行时设置，不依靠配置文件
 package drule
