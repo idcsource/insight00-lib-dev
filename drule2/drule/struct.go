@@ -36,16 +36,25 @@ type DRule struct {
 	// 登录进来的用户,string为用户名
 	loginuser map[string]*loginUser
 
+	// 事务映射
+	transaction_map map[string]*transactionMap // string为外来的id
+
 	// 日志
 	logs *ilogs.Logs
+}
+
+// 事务映射
+type transactionMap struct {
+	self_unid string    // 对应自己的事务id
+	alivetime time.Time // 活动时间
 }
 
 // 登录进来的用户
 type loginUser struct {
 	username   string
-	unid       map[string]time.Time // string为unid，time则为活动时间
-	authority  uint8
-	wrable     map[string]bool // 与DRuleUser一致
+	unid       map[string]time.Time   // string为unid，time则为活动时间
+	authority  operator.UserAuthority // 用户权限
+	wrable     map[string]bool        // 与DRuleUser一致
 	activetime time.Time
 }
 

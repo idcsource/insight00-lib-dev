@@ -22,14 +22,15 @@ import (
 // 自身的名字，工作模式，trule，日志
 func NewDRule(selfname string, mode operator.DRuleOperateMode, t *trule.TRule, log *ilogs.Logs) (d *DRule, err error) {
 	d = &DRule{
-		selfname:  selfname,
-		dmode:     mode,
-		trule:     t,
-		closed:    true,
-		operators: make(map[string]*operator.Operator),
-		areas:     make(map[string]*AreasRouter),
-		loginuser: make(map[string]*loginUser),
-		logs:      log,
+		selfname:        selfname,
+		dmode:           mode,
+		trule:           t,
+		closed:          true,
+		operators:       make(map[string]*operator.Operator),
+		areas:           make(map[string]*AreasRouter),
+		loginuser:       make(map[string]*loginUser),
+		transaction_map: make(map[string]*transactionMap),
+		logs:            log,
 	}
 	var have bool
 	// 查看又无自己的区域，没有就建立
@@ -194,6 +195,19 @@ func (d *DRule) checkUserLogin(username, unid string) (yes bool) {
 	// 续期
 	d.loginuser[username].unid[unid] = time.Now()
 	yes = true
+	return
+}
+
+// 查看用户的管理权限
+func (d *DRule) getUserAuthority(username, unid string) (authoriy operator.UserAuthority, login bool) {
+	// 查看是否登录
+	have := d.checkUserLogin(username, unid)
+	if have == false {
+		login = false
+		return
+	}
+	authoriy = d.loginuser[username].authority
+	login = true
 	return
 }
 

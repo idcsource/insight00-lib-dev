@@ -660,6 +660,11 @@ func (t *Transaction) ReadDataToByte(area, id, name string) (data []byte, err er
 	return
 }
 
+// 返回事务ID
+func (t *Transaction) TransactionId() (id string) {
+	return t.unid
+}
+
 // 事务执行的处理
 func (t *Transaction) Commit() (err error) {
 	if t.be_delete == true {

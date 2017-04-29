@@ -42,6 +42,11 @@ func (o *OTransaction) operatorSend(process *nst.ProgressData, areaid, roleid st
 	return
 }
 
+// 返回事务ID
+func (o *OTransaction) TransactionId() (id string) {
+	return o.transaction_id
+}
+
 // 执行事务
 func (o *OTransaction) Commit() (errs DRuleError) {
 	var err error

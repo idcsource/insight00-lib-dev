@@ -7,6 +7,10 @@
 
 package operator
 
+import (
+	"fmt"
+)
+
 type DRuleError struct {
 	Code DRuleReturnStatus
 	Err  error
@@ -22,8 +26,13 @@ func NewDRuleError() (err DRuleError) {
 // 返回错误
 func (errs *DRuleError) IsError() (err error) {
 	if errs.Err == nil || len(errs.Err.Error()) == 0 {
-		err = nil
-		return
+		if errs.Code == DATA_ALL_OK {
+			err = nil
+			return
+		} else {
+			err = fmt.Errorf(errs.CodeString())
+			return
+		}
 	} else {
 		err = errs.Err
 		return
