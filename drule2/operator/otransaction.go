@@ -25,6 +25,7 @@ func (o *OTransaction) operatorSend(process *nst.ProgressData, areaid, roleid st
 		InTransaction: true,
 		RoleId:        roleid,
 		AreaId:        areaid,
+		User:          o.drule.username,
 		Unid:          o.drule.unid,
 		Data:          data,
 	}

@@ -7,6 +7,7 @@
 
 package operator
 
+// 用户权限
 type UserAuthority uint8
 
 const (
@@ -14,6 +15,14 @@ const (
 	USER_AUTHORITY_ROOT                        // 根权限
 	USER_AUTHORITY_DRULE                       // DRule设备
 	USER_AUTHORITY_NORMAL                      // 普通权限
+)
+
+// 用户区域访问权限
+type UserAreaVisit uint8
+
+const (
+	USER_AREA_VISIT_READONLY UserAreaVisit = iota // 只读
+	USER_AREA_VISIT_WRITABLE                      // 可写
 )
 
 // 几个时间
@@ -29,6 +38,14 @@ const (
 	TRANSACTION_ASKFOR_NO       TransactionAskFor = iota // 事务没有请求
 	TRANSACTION_ASKFOR_END                               // 事务请求终止（rollback或commit）
 	TRANSACTION_ASKFOR_KEEPLIVE                          // 事务续期
+)
+
+// DRule工作模式
+type DRuleOperateMode uint8
+
+const (
+	DRULE_OPERATE_MODE_SLAVE  DRuleOperateMode = iota // 从机模式
+	DRULE_OPERATE_MODE_MASTER                         // 主机模式
 )
 
 type DRuleReturnStatus uint
@@ -227,8 +244,23 @@ const (
 
 	// 用户和区域的关系
 	OPERATE_USER_AREA
-	// 对远程Operator的处理
-	OPERATE_DRULE_OPERATOR
-	// 对角色远端路由的处理
-	OPERATE_AREA_ROUTER
+	// 对远程Operator的设置
+	OPERATE_DRULE_OPERATOR_SET
+	// 对远程Operator的删除
+	OPERATE_DRULE_OPERATOR_DELETE
+	// 对远程Operator的列表
+	OPERATE_DRULE_OPERATOR_LIST
+	// 对角色远端路由的设置
+	OPERATE_AREA_ROUTER_SET
+	// 对角色远端路由的删除
+	OPERATE_AREA_ROUTER_DELETE
+	// 对角色远端路由的列表
+	OPERATE_AREA_ROUTER_LIST
+
+	// DRule的工作模式
+	OPERATE_DRULE_OPERATE_MODE
+	// DRule启动
+	OPERATE_DRULE_START
+	// DRule暂停
+	OPERATE_DRULE_PAUSE
 )

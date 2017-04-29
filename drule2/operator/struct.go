@@ -66,6 +66,7 @@ type O_OperatorSend struct {
 	TransactionId string       // 事务ID
 	RoleId        string       // 涉及到的角色id
 	AreaId        string       // 涉及到的区域ID
+	User          string       // 登陆的用户名
 	Unid          string       // 登录的Unid
 	Data          []byte       // 数据体
 }
@@ -235,14 +236,12 @@ type O_DRuleOperator struct {
 	TLS      bool   // 是否加密
 	Username string // 用户名
 	Password string // 密码
-	Add      bool   // true为添加，false为删除
 }
 
 // 蔓延到其他drule上的区域
-type O_AreasDRule struct {
+type O_AreasRouter struct {
 	AreaName string              // 区域名称
 	Mirror   bool                // 是否为镜像，ture为镜像，则所有的文件都发给下面所有的drule
 	Mirrors  []string            // string为drule的名字
 	Chars    map[string][]string // 如果mirror为false，则看这个根据不同的字母进行路由，第一个stirng为首字母，第二个string为operator的名称
-	Add      bool                // true为添加，false为删除
 }

@@ -27,11 +27,11 @@ type DRule struct {
 	closed bool
 
 	// 分布式服务模式，OPERATE_MODE_*
-	dmode OperateMode
+	dmode operator.DRuleOperateMode
 
-	operators map[string]*operator.Operator // 这是operator的连接
+	operators map[string]*operator.Operator // 这是operator的连接，连接到其他DRule上的
 
-	areas map[string]*AreasDRule // 需要蔓延到其他drule上的区域列表
+	areas map[string]*AreasRouter // 需要蔓延到其他drule上的区域列表
 
 	// 登录进来的用户,string为用户名
 	loginuser map[string]*loginUser
@@ -49,12 +49,12 @@ type loginUser struct {
 	activetime time.Time
 }
 
-type AreasDRuleRoot struct {
+type AreasRouterRoot struct {
 	roles.Role
 }
 
 // 蔓延到其他drule上的区域
-type AreasDRule struct {
+type AreasRouter struct {
 	roles.Role                     // 角色
 	AreaName   string              // 区域名称
 	Mirror     bool                // 是否为镜像，ture为镜像，则所有的文件都发给下面所有的drule

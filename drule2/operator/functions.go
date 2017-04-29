@@ -91,6 +91,67 @@ func (o *Operator) UserDel(username string) (errs DRuleError) {
 	return
 }
 
+// 用户登陆
+func (o *Operator) UserLogin(username, password string) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	o.drule.username = username
+	o.drule.password = password
+	login := O_DRuleUser{
+		UserName: username,
+		Password: random.GetSha1Sum(password),
+	}
+	// 编码
+	login_b, err := iendecode.StructGobBytes(login)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogin: %v", err)
+		return
+	}
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_LOGIN, login_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogin: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogin: %v", drule_r.Error)
+	}
+	// 解码
+	err = iendecode.BytesGobStruct(login_b, &login)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogin: %v", err)
+		return
+	}
+	o.login = true
+	o.drule.unid = login.Unid
+
+	return
+}
+
+// 用户登出
+func (o *Operator) UserLogout() (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_LOGOUT, nil)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogout: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogout: %v", drule_r.Error)
+		return
+	}
+	o.login = false
+	return
+}
+
 // 列出所有用户
 func (o *Operator) UserList() (list []O_DRuleUser, errs DRuleError) {
 	var err error
@@ -212,6 +273,291 @@ func (o *Operator) AreaList() (list []string, errs DRuleError) {
 	errs.Code = drule_r.DataStat
 	if drule_r.DataStat != DATA_ALL_OK {
 		errs.Err = fmt.Errorf("operator[Operator]AreaList: %v", drule_r.Error)
+	}
+	return
+}
+
+// 添加(更新)一个用户对区域的访问权限
+func (o *Operator) UserAreaAlert(userid, areaname string, rw UserAreaVisit) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	// 构建
+	au := O_Area_User{
+		UserName: userid,
+		Area:     areaname,
+		Add:      true,
+	}
+	if rw == USER_AREA_VISIT_READONLY {
+		au.WRable = false
+	} else {
+		au.WRable = true
+	}
+	au_b, err := iendecode.StructGobBytes(au)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserAreaAlert: %v", err)
+		return
+	}
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_AREA, au_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserAreaAlert: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]UserAreaAlert: %v", drule_r.Error)
+	}
+	return
+}
+
+// 删除一个用户对区域的访问权限
+func (o *Operator) UserAreaDelete(userid, areaname string) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	// 构建
+	au := O_Area_User{
+		UserName: userid,
+		Area:     areaname,
+		Add:      false,
+	}
+	au_b, err := iendecode.StructGobBytes(au)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserAreaDelete: %v", err)
+		return
+	}
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_AREA, au_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserAreaDelete: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]UserAreaDelete: %v", drule_r.Error)
+	}
+	return
+}
+
+// 给DRule添加一个Operator
+func (o *Operator) DRuleOperatorSet(name, address string, connnum int, tls bool, username, password string) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	// 构建
+	do := O_DRuleOperator{
+		Name:     name,
+		Address:  address,
+		ConnNum:  connnum,
+		TLS:      tls,
+		Username: username,
+		Password: random.GetSha1Sum(password),
+	}
+	do_b, err := iendecode.StructGobBytes(do)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorSet: %v", err)
+		return
+	}
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_OPERATOR_SET, do_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorSet: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorSet: %v", drule_r.Error)
+	}
+	return
+}
+
+// 删除DRule的一个远程Operator
+func (o *Operator) DRuleOperatorDelete(name string) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_OPERATOR_DELETE, []byte(name))
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorDelete: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorDelete: %v", drule_r.Error)
+	}
+	return
+}
+
+// 返回DRule上远端Operator的列表
+func (o *Operator) DRuleOperatorList() (list []O_DRuleOperator, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_OPERATOR_LIST, nil)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorList: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorList: %v", drule_r.Error)
+	}
+	// 解码返回
+	list = make([]O_DRuleOperator, 0)
+	err = iendecode.BytesGobStruct(drule_r.Data, &list)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorList: %v", err)
+		return
+	}
+	return
+}
+
+// 设置远端区域的路由
+func (o *Operator) AreaRouterSet(set O_AreasRouter) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 编码
+	set_b, err := iendecode.StructGobBytes(set)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]AreaRouterAdd: %v", err)
+		return
+	}
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_ROUTER_SET, set_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]AreaRouterAdd: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]AreaRouterAdd: %v", drule_r.Error)
+	}
+	return
+}
+
+// 删除远端区域的路由
+func (o *Operator) AreaRouterDelete(areaname string) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_ROUTER_DELETE, []byte(areaname))
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]AreaRouterDelete: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]AreaRouterDelete: %v", drule_r.Error)
+	}
+	return
+}
+
+// 返回所有区域路由的信息
+func (o *Operator) AreaRouterList() (list []O_AreasRouter, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_ROUTER_LIST, nil)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]AreaRouterList: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]AreaRouterList: %v", drule_r.Error)
+	}
+	// 解码返回
+	list = make([]O_AreasRouter, 0)
+	err = iendecode.BytesGobStruct(drule_r.Data, &list)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]AreaRouterList: %v", err)
+		return
+	}
+	return
+}
+
+// 返回Drule的工作模式
+func (o *Operator) DRuleModeGet() (mode DRuleOperateMode, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_OPERATE_MODE, nil)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleModeGet: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleModeGet: %v", drule_r.Error)
+	}
+	// 解码返回
+	err = iendecode.BytesGobStruct(drule_r.Data, &mode)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleModeGet: %v", err)
+		return
+	}
+	return
+}
+
+// 启动DRule
+func (o *Operator) DRuleStart() (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_START, nil)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleStart: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]DRuleStart: %v", drule_r.Error)
+	}
+	return
+}
+
+// 暂停Drule
+func (o *Operator) DRulePause() (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_PAUSE, nil)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]DRulePause: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]DRulePause: %v", drule_r.Error)
 	}
 	return
 }

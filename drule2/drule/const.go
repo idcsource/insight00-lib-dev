@@ -22,18 +22,10 @@ const (
 	AREA_DRULE_ROOT   = "_root_area_drule" // 路由蔓延规则的根角色id
 )
 
-// 工作模式
-type OperateMode uint8
+type RolePosition uint8
 
+// 角色保存位置
 const (
-	OPERATE_MODE_SLAVE  OperateMode = iota // 从机模式
-	OPERATE_MODE_MASTER                    // 主机模式
-)
-
-// 角色保存位置，或叫连接模式
-const (
-	// 连接为本地存储
-	CONN_IS_LOCAL = iota
-	// 连接为网络
-	CONN_IS_NET
+	ROLE_POSITION_IN_LOCAL  RolePosition = iota // 角色保存在本地
+	ROLE_POSITION_IN_REMOTE                     // 角色保存在远程
 )
