@@ -224,6 +224,8 @@ const (
 	OPERATE_USER_ADD
 	// 用户改密码
 	OPERATE_USER_PASSWORD
+	// 更改用户邮箱
+	OPERATE_USER_EMAIL
 	// 用户删除
 	OPERATE_USER_DEL
 	// 用户登出

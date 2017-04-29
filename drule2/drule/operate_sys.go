@@ -151,3 +151,27 @@ func (d *DRule) sys_userAddLife(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 		return
 	}
 }
+
+// 新建用户
+func (d *DRule) sys_userAdd(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	// 解码
+	var newuser operator.O_DRuleUser
+	err = iendecode.BytesGobStruct(o_send.Data, &newuser)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+
+	return
+}

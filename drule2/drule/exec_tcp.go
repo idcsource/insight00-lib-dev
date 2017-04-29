@@ -57,6 +57,18 @@ func (d *DRule) operateSys(conn_exec *nst.ConnExec, o_send *operator.O_OperatorS
 	case operator.OPERATE_USER_ADD_LIFE:
 		// 用户续命
 		err = d.sys_userAddLife(conn_exec, o_send)
+	case operator.OPERATE_USER_ADD:
+		// 新建用户
+	case operator.OPERATE_USER_PASSWORD:
+		// 修改密码
+	case operator.OPERATE_USER_EMAIL:
+		// 修改邮箱
+	case operator.OPERATE_USER_DEL:
+		// 删除用户
+	case operator.OPERATE_USER_LOGOUT:
+		// 用户登出
+	case operator.OPERATE_USER_LIST:
+		// 用户列表
 	default:
 		gogo = true
 	}
