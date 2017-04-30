@@ -170,3 +170,84 @@ func (d *DRule) man_userPassword(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	return
 }
+
+// 修改邮箱
+func (d *DRule) man_userEmail(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	// 解码
+	var theuser operator.O_DRuleUser
+	err = iendecode.BytesGobStruct(o_send.Data, &theuser)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+
+	if auth != operator.USER_AUTHORITY_ROOT || theuser.UserName != o_send.User {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	// 修改密码
+	userid := USER_PREFIX + theuser.UserName
+	err = d.trule.WriteData(INSIDE_DMZ, userid, "Email", theuser.Email)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 删除用户
+func (d *DRule) man_userDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	// 解码
+	var username string
+	err = iendecode.BytesGobStruct(o_send.Data, &username)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 检查是否为可以删除的
+	if username == ROOT_USER || username == o_send.User {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "Can not delete this user.", nil)
+		return
+	}
+	userid := USER_PREFIX + username
+
+	tran, _ := d.trule.Begin()
+	err = tran.DeleteRole(INSIDE_DMZ, userid)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		tran.Rollback()
+		return
+	}
+	err = tran.DeleteChild(INSIDE_DMZ, USER_PREFIX+ROOT_USER, userid)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		tran.Rollback()
+		return
+	}
+	err = tran.Commit()
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}

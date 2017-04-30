@@ -165,7 +165,7 @@ func (d *DRule) Start() (err error) {
 // 暂停
 func (d *DRule) Pause() {
 	d.closed = true
-	d.trule.Pause()
+	//d.trule.Pause()
 }
 
 // 查看用户是否登陆，如果登陆了就续期

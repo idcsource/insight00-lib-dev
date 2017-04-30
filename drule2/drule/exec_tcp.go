@@ -76,8 +76,10 @@ func (d *DRule) operateManage(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 		err = d.man_userPassword(conn_exec, o_send)
 	case operator.OPERATE_USER_EMAIL:
 		// 修改邮箱
+		err = d.man_userEmail(conn_exec, o_send)
 	case operator.OPERATE_USER_DEL:
 		// 删除用户
+		err = d.man_userDel(conn_exec, o_send)
 	case operator.OPERATE_USER_LOGOUT:
 		// 用户登出
 	case operator.OPERATE_USER_LIST:
