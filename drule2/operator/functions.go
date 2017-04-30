@@ -32,7 +32,7 @@ func (o *Operator) Password(username, password string) (errs DRuleError) {
 	}
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_PASSWORD, user_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_PASSWORD, user_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]Password: %v", err)
 		return
@@ -61,7 +61,7 @@ func (o *Operator) UserAdd(username, password, email string, authority UserAutho
 	}
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_ADD, user_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_ADD, user_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]UserAdd: %v", err)
 		return
@@ -79,7 +79,7 @@ func (o *Operator) UserDel(username string) (errs DRuleError) {
 	errs = NewDRuleError()
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_DEL, []byte(username))
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_DEL, []byte(username))
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]UserDel: %v", err)
 		return
@@ -111,7 +111,7 @@ func (o *Operator) UserLogin(username, password string) (errs DRuleError) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_LOGIN, login_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_LOGIN, login_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]UserLogin: %v", err)
 		return
@@ -138,7 +138,7 @@ func (o *Operator) UserLogout() (errs DRuleError) {
 	errs = NewDRuleError()
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_LOGOUT, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_LOGOUT, nil)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]UserLogout: %v", err)
 		return
@@ -158,7 +158,7 @@ func (o *Operator) UserList() (list []O_DRuleUser, errs DRuleError) {
 	errs = NewDRuleError()
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_DEL, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_DEL, nil)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]UserList: %v", err)
 		return
@@ -191,7 +191,7 @@ func (o *Operator) AreaAdd(area string) (errs DRuleError) {
 	}
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_ADD, a_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_AREA_ADD, a_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]AreaAdd: %v", err)
 		return
@@ -218,7 +218,7 @@ func (o *Operator) AreaDel(area string) (errs DRuleError) {
 	}
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_DEL, a_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_AREA_DEL, a_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]AreaDel: %v", err)
 		return
@@ -246,7 +246,7 @@ func (o *Operator) AreaRename(oldname, newname string) (errs DRuleError) {
 	}
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_DEL, a_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_AREA_DEL, a_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]AreaRename: %v", err)
 		return
@@ -265,7 +265,7 @@ func (o *Operator) AreaList() (list []string, errs DRuleError) {
 
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_LIST, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_AREA_LIST, nil)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]AreaList: %v", err)
 		return
@@ -301,7 +301,7 @@ func (o *Operator) UserAreaAlert(userid, areaname string, rw UserAreaVisit) (err
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_AREA, au_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_AREA, au_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]UserAreaAlert: %v", err)
 		return
@@ -332,7 +332,7 @@ func (o *Operator) UserAreaDelete(userid, areaname string) (errs DRuleError) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_USER_AREA, au_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_AREA, au_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]UserAreaDelete: %v", err)
 		return
@@ -366,7 +366,7 @@ func (o *Operator) DRuleOperatorSet(name, address string, connnum int, tls bool,
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_OPERATOR_SET, do_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_DRULE_OPERATOR_SET, do_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorSet: %v", err)
 		return
@@ -385,7 +385,7 @@ func (o *Operator) DRuleOperatorDelete(name string) (errs DRuleError) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_OPERATOR_DELETE, []byte(name))
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_DRULE_OPERATOR_DELETE, []byte(name))
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorDelete: %v", err)
 		return
@@ -405,7 +405,7 @@ func (o *Operator) DRuleOperatorList() (list []O_DRuleOperator, errs DRuleError)
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_OPERATOR_LIST, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_DRULE_OPERATOR_LIST, nil)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]DRuleOperatorList: %v", err)
 		return
@@ -437,7 +437,7 @@ func (o *Operator) AreaRouterSet(set O_AreasRouter) (errs DRuleError) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_ROUTER_SET, set_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_AREA_ROUTER_SET, set_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]AreaRouterAdd: %v", err)
 		return
@@ -457,7 +457,7 @@ func (o *Operator) AreaRouterDelete(areaname string) (errs DRuleError) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_ROUTER_DELETE, []byte(areaname))
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_AREA_ROUTER_DELETE, []byte(areaname))
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]AreaRouterDelete: %v", err)
 		return
@@ -477,7 +477,7 @@ func (o *Operator) AreaRouterList() (list []O_AreasRouter, errs DRuleError) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_AREA_ROUTER_LIST, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_AREA_ROUTER_LIST, nil)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]AreaRouterList: %v", err)
 		return
@@ -504,7 +504,7 @@ func (o *Operator) DRuleModeGet() (mode DRuleOperateMode, errs DRuleError) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_OPERATE_MODE, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_SYSTEM, OPERATE_DRULE_OPERATE_MODE, nil)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]DRuleModeGet: %v", err)
 		return
@@ -530,7 +530,7 @@ func (o *Operator) DRuleStart() (errs DRuleError) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_START, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_SYSTEM, OPERATE_DRULE_START, nil)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]DRuleStart: %v", err)
 		return
@@ -550,7 +550,7 @@ func (o *Operator) DRulePause() (errs DRuleError) {
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_DRULE_PAUSE, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_SYSTEM, OPERATE_DRULE_PAUSE, nil)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]DRulePause: %v", err)
 		return
@@ -579,7 +579,7 @@ func (o *Operator) Begin() (t *OTransaction, errs DRuleError) {
 	}
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_TRAN_BEGIN, tsend_b)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_NORMAL, OPERATE_TRAN_BEGIN, tsend_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]Begin: %v", err)
 		return

@@ -8,6 +8,8 @@
 package drule
 
 import (
+	"fmt"
+
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
 	"github.com/idcsource/Insight-0-0-lib/nst"
@@ -26,21 +28,21 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	if err != nil {
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "Data not expect.", nil)
 	}
-	// 查看那些无论是否被暂停都会执行的命令
-	gogo, err := d.operateSys(conn_exec, &o_send)
-	if err != nil {
-		return
-	}
-	if gogo == false {
-		return
+	switch o_send.OperateZone {
+	case operator.OPERATE_ZONE_SYSTEM:
+		err = d.operateSys(conn_exec, &o_send)
+	case operator.OPERATE_ZONE_MANAGE:
+		err = d.operateManage(conn_exec, &o_send)
+	case operator.OPERATE_ZONE_NORMAL:
+	default:
+		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}
 	// 判断是否被暂停再看剩余的命令
 	return
 }
 
 // 处理系统级别的请求
-func (d *DRule) operateSys(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (gogo bool, err error) {
-	gogo = false
+func (d *DRule) operateSys(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (err error) {
 	switch o_send.Operate {
 	case operator.OPERATE_DRULE_START:
 		// 启动drule
@@ -51,16 +53,27 @@ func (d *DRule) operateSys(conn_exec *nst.ConnExec, o_send *operator.O_OperatorS
 	case operator.OPERATE_DRULE_OPERATE_MODE:
 		// drule运行模式
 		err = d.sys_druleMode(conn_exec, o_send)
+	default:
+		err = fmt.Errorf("no operate.")
+	}
+	return
+}
+
+// 处理管理级别的请求
+func (d *DRule) operateManage(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (err error) {
+	switch o_send.Operate {
 	case operator.OPERATE_USER_LOGIN:
 		// 用户登录
-		err = d.sys_userLogin(conn_exec, o_send)
+		err = d.man_userLogin(conn_exec, o_send)
 	case operator.OPERATE_USER_ADD_LIFE:
 		// 用户续命
-		err = d.sys_userAddLife(conn_exec, o_send)
+		err = d.man_userAddLife(conn_exec, o_send)
 	case operator.OPERATE_USER_ADD:
 		// 新建用户
+		err = d.man_userAdd(conn_exec, o_send)
 	case operator.OPERATE_USER_PASSWORD:
 		// 修改密码
+		err = d.man_userPassword(conn_exec, o_send)
 	case operator.OPERATE_USER_EMAIL:
 		// 修改邮箱
 	case operator.OPERATE_USER_DEL:
@@ -70,7 +83,7 @@ func (d *DRule) operateSys(conn_exec *nst.ConnExec, o_send *operator.O_OperatorS
 	case operator.OPERATE_USER_LIST:
 		// 用户列表
 	default:
-		gogo = true
+		err = fmt.Errorf("no operate.")
 	}
 	return
 }

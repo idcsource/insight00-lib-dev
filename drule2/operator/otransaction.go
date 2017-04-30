@@ -17,9 +17,10 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
-func (o *OTransaction) operatorSend(process *nst.ProgressData, areaid, roleid string, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {
+func (o *OTransaction) operatorSend(process *nst.ProgressData, areaid, roleid string, oz OperateZone, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {
 	thestat := O_OperatorSend{
 		OperatorName:  o.selfname,
+		OperateZone:   oz,
 		Operate:       operate,
 		TransactionId: o.transaction_id,
 		InTransaction: true,
@@ -59,7 +60,7 @@ func (o *OTransaction) Commit() (errs DRuleError) {
 
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_TRAN_COMMIT, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_NORMAL, OPERATE_TRAN_COMMIT, nil)
 
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]Commit: %v", err)
@@ -95,7 +96,7 @@ func (o *OTransaction) Rollback() (errs DRuleError) {
 
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_TRAN_ROLLBACK, nil)
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_NORMAL, OPERATE_TRAN_ROLLBACK, nil)
 
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]Rollback: %v", err)
@@ -142,7 +143,7 @@ func (o *OTransaction) ExistRole(area, id string) (have bool, errs DRuleError) {
 	}
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, area, id, OPERATE_EXIST_ROLE, role_b)
+	drule_r, err := o.operatorSend(cprocess, area, id, OPERATE_ZONE_NORMAL, OPERATE_EXIST_ROLE, role_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ExistRole: %v", err)
 		return
@@ -187,7 +188,7 @@ func (o *OTransaction) ReadRole(area, id string, role roles.Roleer) (errs DRuleE
 	// 开始传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, area, id, OPERATE_READ_ROLE, rsend_b)
+	drule_r, err := o.operatorSend(cprocess, area, id, OPERATE_ZONE_NORMAL, OPERATE_READ_ROLE, rsend_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadRole: %v", err)
 		return
@@ -246,7 +247,7 @@ func (o *OTransaction) StoreRole(area string, role roles.Roleer) (errs DRuleErro
 	// 开始传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, area, roleid, OPERATE_WRITE_ROLE, rsend_b)
+	drule_r, err := o.operatorSend(cprocess, area, roleid, OPERATE_ZONE_NORMAL, OPERATE_WRITE_ROLE, rsend_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]StoreRole: %v", err)
 		return
@@ -284,7 +285,7 @@ func (o *OTransaction) DeleteRole(areaid, roleid string) (errs DRuleError) {
 	// 开始传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_DEL_ROLE, rsend_b)
+	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_DEL_ROLE, rsend_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]DeleteRole: %v", err)
 		return
@@ -322,7 +323,7 @@ func (o *OTransaction) WriteFather(areaid, roleid, fatherid string) (errs DRuleE
 	// 开始传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_FATHER, of_b)
+	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_SET_FATHER, of_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]WriteFather: %v", err)
 		return
@@ -364,7 +365,7 @@ func (o *OTransaction) ReadFather(areaid, roleid string) (fatherid string, errs 
 	// 开始传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_FATHER, of_b)
+	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_GET_FATHER, of_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadFather: %v", err)
 		return
@@ -410,7 +411,7 @@ func (o *OTransaction) ReadChildren(areaid, roleid string) (children []string, e
 	// 开始传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_CHILDREN, oc_b)
+	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_GET_CHILDREN, oc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadChildren: %v", err)
 		return
@@ -457,7 +458,7 @@ func (o *OTransaction) WriteChildren(areaid, roleid string, children []string) (
 	// 开始传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_CHILDREN, oc_b)
+	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_SET_CHILDREN, oc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]WriteChildren: %v", err)
 		return
@@ -503,7 +504,7 @@ func (o *OTransaction) WriteChild(areaid, roleid, childid string) (errs DRuleErr
 	// 开始传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ADD_CHILD, rc_b)
+	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_ADD_CHILD, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]WriteChild: %v", err)
 		return
@@ -543,7 +544,7 @@ func (o *OTransaction) DeleteChild(areaid, roleid, childid string) (errs DRuleEr
 	// 开始传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_DEL_CHILD, rc_b)
+	drule_r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_DEL_CHILD, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]DeleteChild: %v", err)
 		return
@@ -583,7 +584,7 @@ func (o *OTransaction) ExistChild(areaid, roleid, childid string) (have bool, er
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_EXIST_CHILD, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_EXIST_CHILD, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ExistChild: %v", err)
 		return
@@ -629,7 +630,7 @@ func (o *OTransaction) ReadFriends(areaid, roleid string) (firends map[string]ro
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_FRIENDS, rf_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_GET_FRIENDS, rf_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadFriends: %v", err)
 		return
@@ -675,7 +676,7 @@ func (o *OTransaction) WriteFriends(areaid, roleid string, friends map[string]ro
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_FRIENDS, rf_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_SET_FRIENDS, rf_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]WriteFriends: %v", err)
 		return
@@ -754,7 +755,7 @@ func (o *OTransaction) WriteFriendStatus(areaid, roleid, friendid string, bindbi
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_FRIEND_STATUS, rf_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_SET_FRIEND_STATUS, rf_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]WriteFriendStatus: %v", err)
 		return
@@ -827,7 +828,7 @@ func (o *OTransaction) ReadFriendStatus(areaid, roleid, friendid string, bindbit
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_FRIEND_STATUS, rf_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_GET_FRIEND_STATUS, rf_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadFriendStatus: %v", err)
 		return
@@ -887,7 +888,7 @@ func (o *OTransaction) DeleteFriend(areaid, roleid, friendid string) (errs DRule
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_DEL_FRIEND, rf_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_DEL_FRIEND, rf_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]DeleteFriend: %v", err)
 		return
@@ -927,7 +928,7 @@ func (o *OTransaction) CreateContext(areaid, roleid, contextname string) (errs D
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ADD_CONTEXT, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_ADD_CONTEXT, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]DeleteFriend: %v", err)
 		return
@@ -967,7 +968,7 @@ func (o *OTransaction) ExistContext(areaid, roleid, contextname string) (errs DR
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_EXIST_CONTEXT, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_EXIST_CONTEXT, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ExistContext: %v", err)
 		return
@@ -1007,7 +1008,7 @@ func (o *OTransaction) DropContext(areaid, roleid, contextname string) (errs DRu
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_DROP_CONTEXT, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_DROP_CONTEXT, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]DropContext: %v", err)
 		return
@@ -1047,7 +1048,7 @@ func (o *OTransaction) ReadContext(areaid, roleid, contextname string) (context 
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_READ_CONTEXT, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_READ_CONTEXT, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadContext: %v", err)
 		return
@@ -1097,7 +1098,7 @@ func (o *OTransaction) DeleteContextBind(areaid, roleid, contextname string, upo
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_DEL_CONTEXT_BIND, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_DEL_CONTEXT_BIND, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]DeleteContextBind: %v", err)
 		return
@@ -1140,7 +1141,7 @@ func (o *OTransaction) ReadContextSameBind(areaid, roleid, contextname string, u
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_CONTEXT_SAME_BIND, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_CONTEXT_SAME_BIND, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextSameBind: %v", err)
 		return
@@ -1187,7 +1188,7 @@ func (o *OTransaction) ReadContextsName(areaid, roleid string) (names []string, 
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_CONTEXTS_NAME, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_GET_CONTEXTS_NAME, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextsName: %v", err)
 		return
@@ -1269,7 +1270,7 @@ func (o *OTransaction) WriteContextStatus(areaid, roleid, contextname string, up
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_CONTEXT_STATUS, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_SET_CONTEXT_STATUS, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]WriteContextStatus: %v", err)
 		return
@@ -1339,7 +1340,7 @@ func (o *OTransaction) ReadContextStatus(areaid, roleid, contextname string, upo
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_CONTEXT_STATUS, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_GET_CONTEXT_STATUS, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: %v", err)
 		return
@@ -1398,7 +1399,7 @@ func (o *OTransaction) WriteContexts(areaid, roleid string, contexts map[string]
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_CONTEXTS, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_SET_CONTEXTS, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]WriteContexts: %v", err)
 		return
@@ -1437,7 +1438,7 @@ func (o *OTransaction) ReadContexts(areaid, roleid string) (contexts map[string]
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_CONTEXTS, rc_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_GET_CONTEXTS, rc_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadContexts: %v", err)
 		return
@@ -1497,7 +1498,7 @@ func (o *OTransaction) WriteData(areaid, roleid, name string, data interface{}) 
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_DATA, rd_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_SET_DATA, rd_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]WriteData: %v", err)
 		return
@@ -1538,7 +1539,7 @@ func (o *OTransaction) WriteDataFromByte(areaid, roleid, name string, data_b []b
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_SET_DATA, rd_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_SET_DATA, rd_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]WriteDataFromByte: %v", err)
 		return
@@ -1578,7 +1579,7 @@ func (o *OTransaction) ReadData(areaid, roleid, name string, data interface{}) (
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_DATA, rd_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_GET_DATA, rd_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadData: %v", err)
 		return
@@ -1630,7 +1631,7 @@ func (o *OTransaction) ReadDataToByte(areaid, roleid, name string) (data_b []byt
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_GET_DATA, rd_b)
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_GET_DATA, rd_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadDataToByte: %v", err)
 		return
@@ -1677,7 +1678,7 @@ func (o *OTransaction) LockRole(areaid string, roleids ...string) (errs DRuleErr
 	// 传输
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
-	r, err := o.operatorSend(cprocess, areaid, "", OPERATE_TRAN_PREPARE, rt_b)
+	r, err := o.operatorSend(cprocess, areaid, "", OPERATE_ZONE_NORMAL, OPERATE_TRAN_PREPARE, rt_b)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]LockRole: %v", err)
 		return

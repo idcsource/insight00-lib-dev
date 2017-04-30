@@ -60,6 +60,7 @@ type druleInfo struct {
 
 // Operator的发送
 type O_OperatorSend struct {
+	OperateZone   OperateZone  // 操作分区
 	Operate       OperatorType // 操作类型，从OPERATE_*
 	OperatorName  string       // 客户端名称
 	InTransaction bool         // 在事务中

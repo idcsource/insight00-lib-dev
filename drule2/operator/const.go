@@ -84,6 +84,16 @@ const (
 	DATA_USER_NO_AUTHORITY
 )
 
+// 操作的区域划分
+type OperateZone uint
+
+const (
+	OPERATE_ZONE_NOTHING OperateZone = iota // 什么都没有
+	OPERATE_ZONE_NORMAL                     // 用户
+	OPERATE_ZONE_SYSTEM                     // 系统操作
+	OPERATE_ZONE_MANAGE                     // 管理
+)
+
 // OperatorType是Operator向Drule请求的操作类型
 type OperatorType uint
 
@@ -216,6 +226,8 @@ const (
 	// 准备事务
 	OPERATE_TRAN_PREPARE
 
+	/* 下面对应管理的部分 */
+
 	// 用户登录
 	OPERATE_USER_LOGIN
 	// 用户续命
@@ -259,6 +271,7 @@ const (
 	// 对角色远端路由的列表
 	OPERATE_AREA_ROUTER_LIST
 
+	/* 下面对应OPERATE_ZONE_SYSTEM */
 	// DRule的工作模式
 	OPERATE_DRULE_OPERATE_MODE
 	// DRule启动
