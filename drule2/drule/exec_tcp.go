@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
+	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 )
@@ -27,6 +28,10 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	err = iendecode.BytesGobStruct(o_send_b, &o_send)
 	if err != nil {
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "Data not expect.", nil)
+	}
+	// 如果trule没有再工作
+	if d.trule.WorkStatus() != trule.TRULE_RUN_RUNNING {
+		return d.sendReceipt(conn_exec, operator.DATA_DRULE_CLOSED, "The DRule service is already closed.", nil)
 	}
 	switch o_send.OperateZone {
 	case operator.OPERATE_ZONE_SYSTEM:
@@ -82,8 +87,24 @@ func (d *DRule) operateManage(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 		err = d.man_userDel(conn_exec, o_send)
 	case operator.OPERATE_USER_LOGOUT:
 		// 用户登出
+		err = d.man_userLogout(conn_exec, o_send)
 	case operator.OPERATE_USER_LIST:
 		// 用户列表
+		err = d.man_userList(conn_exec, o_send)
+	case operator.OPERATE_AREA_ADD:
+		// 添加区域
+		err = d.man_areaAdd(conn_exec, o_send)
+	case operator.OPERATE_AREA_DEL:
+	// 删除区域
+
+	case operator.OPERATE_AREA_RENAME:
+	// 修改区域名称
+
+	case operator.OPERATE_AREA_EXIST:
+	// 区域是否存在
+
+	case operator.OPERATE_AREA_LIST:
+	// 区域列表
 	default:
 		err = fmt.Errorf("no operate.")
 	}

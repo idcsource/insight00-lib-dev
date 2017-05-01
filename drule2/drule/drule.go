@@ -162,10 +162,16 @@ func (d *DRule) Start() (err error) {
 	return
 }
 
-// 暂停
+// 暂停，管理级别的操作还可以进行，这个模式主要是用来调整比如路由策略
 func (d *DRule) Pause() {
 	d.closed = true
 	//d.trule.Pause()
+}
+
+// 停止，真正的停止，没有远程命令可以恢复
+func (d *DRule) Close() {
+	d.closed = true
+	d.trule.Pause()
 }
 
 // 查看用户是否登陆，如果登陆了就续期
