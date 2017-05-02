@@ -682,3 +682,144 @@ func (d *DRule) man_operatorList(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", list_b)
 	return
 }
+
+// 远端路由的设置
+func (d *DRule) man_areaRouterSet(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+
+	// 解码
+	ars := operator.O_AreasRouter{}
+	err = iendecode.BytesGobStruct(o_send.Data, &ars)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	ars_id := AREA_DRULE_PREFIX + ars.AreaName
+	// 开始
+	tran, _ := d.trule.Begin()
+	ars_r := &AreasRouter{
+		AreaName: ars.AreaName,
+		Mirror:   ars.Mirror,
+		Mirrors:  ars.Mirrors,
+		Chars:    ars.Chars,
+	}
+	ars_r.New(ars_id)
+	err = tran.StoreRole(INSIDE_DMZ, ars_r)
+	if err != nil {
+		tran.Rollback()
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	have, err := tran.ExistChild(INSIDE_DMZ, AREA_DRULE_ROOT, ars_id)
+	if err != nil {
+		tran.Rollback()
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	if have == false {
+		err = tran.WriteChild(INSIDE_DMZ, AREA_DRULE_ROOT, ars_id)
+		if err != nil {
+			tran.Rollback()
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+	}
+	tran.Commit()
+	d.areas[ars.AreaName] = ars_r
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 删除远端路由的设置
+func (d *DRule) man_areaRouterDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+
+	areaname := string(o_send.Data)
+	tran, _ := d.trule.Begin()
+	err = tran.DeleteRole(INSIDE_DMZ, AREA_DRULE_PREFIX+areaname)
+	if err != nil {
+		tran.Rollback()
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	err = tran.DeleteChild(INSIDE_DMZ, AREA_DRULE_ROOT, AREA_DRULE_PREFIX+areaname)
+	if err != nil {
+		tran.Rollback()
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	tran.Commit()
+	delete(d.areas, areaname)
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 列出远端路由的设置
+func (d *DRule) man_areaRouterList(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+
+	tran, _ := d.trule.Begin()
+	children, err := tran.ReadChildren(INSIDE_DMZ, AREA_DRULE_ROOT)
+	if err != nil {
+		tran.Rollback()
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	list := make([]operator.O_AreasRouter, 0)
+	for _, child := range children {
+		one_r := &AreasRouter{}
+		err = tran.ReadRole(INSIDE_DMZ, child, one_r)
+		if err != nil {
+			tran.Rollback()
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+		one := operator.O_AreasRouter{
+			AreaName: one_r.AreaName,
+			Mirror:   one_r.Mirror,
+			Mirrors:  one_r.Mirrors,
+			Chars:    one_r.Chars,
+		}
+		list = append(list, one)
+	}
+	tran.Commit()
+	// 编码
+	list_b, err := iendecode.StructGobBytes(list)
+	if err != nil {
+		tran.Rollback()
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", list_b)
+	return
+}

@@ -119,11 +119,14 @@ func (d *DRule) operateManage(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 		// 对远程Operator的列表
 		err = d.man_operatorList(conn_exec, o_send)
 	case operator.OPERATE_AREA_ROUTER_SET:
-	// 对角色远端路由的设置
+		// 对角色远端路由的设置
+		err = d.man_areaRouterSet(conn_exec, o_send)
 	case operator.OPERATE_AREA_ROUTER_DELETE:
-	// 对角色远端路由的删除
+		// 对角色远端路由的删除
+		err = d.man_areaRouterDel(conn_exec, o_send)
 	case operator.OPERATE_AREA_ROUTER_LIST:
-	// 对角色远端路由的列表
+		// 对角色远端路由的列表
+		err = d.man_areaRouterList(conn_exec, o_send)
 	default:
 		err = fmt.Errorf("no operate.")
 	}
