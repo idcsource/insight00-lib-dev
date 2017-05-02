@@ -219,11 +219,6 @@ func (d *DRule) getUserAuthority(username, unid string) (authoriy operator.UserA
 
 // 查看用户一般权限，也就是针对area的权限,wr为true则检查是否可写，否则为是否可读
 func (d *DRule) checkUserNormalPower(username, unid, areaname string, wr bool) (have bool) {
-	// 先看是否登陆了，没有登陆显然不可能有权限
-	have = d.checkUserLogin(username, unid)
-	if have == false {
-		return
-	}
 	// 找到loginuser中的权限项目
 	wrable, find := d.loginuser[username].wrable[areaname]
 	if find == false {
@@ -270,5 +265,14 @@ func (d *DRule) getRolePosition(areaname, roleid string) (position RolePosition,
 	}
 	// 其他任何情况
 	position = ROLE_POSITION_IN_LOCAL
+	return
+}
+
+// 全面获取是否有区域的执行权限，以及存在哪里
+func (d *DRule) getAreaPowerAndRolePosition(username, unid, areaname, roleid string, wr bool) (have bool, position RolePosition, os []string) {
+	have = d.checkUserNormalPower(username, unid, areaname, wr)
+	if have == true {
+		position, os = d.getRolePosition(areaname, roleid)
+	}
 	return
 }

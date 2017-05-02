@@ -543,6 +543,11 @@ func (d *DRule) man_areaAndUser(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 
 // 设置operator
 func (d *DRule) man_operatorSet(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	if d.closed != true {
+		errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_NOT_PAUSED, "The DRule must be paused to do this.", nil)
+		return
+	}
+
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -601,6 +606,11 @@ func (d *DRule) man_operatorSet(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 
 // 删除operator
 func (d *DRule) man_operatorDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	if d.closed != true {
+		errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_NOT_PAUSED, "The DRule must be paused to do this.", nil)
+		return
+	}
+
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -685,6 +695,11 @@ func (d *DRule) man_operatorList(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 
 // 远端路由的设置
 func (d *DRule) man_areaRouterSet(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	if d.closed != true {
+		errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_NOT_PAUSED, "The DRule must be paused to do this.", nil)
+		return
+	}
+
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -742,6 +757,11 @@ func (d *DRule) man_areaRouterSet(conn_exec *nst.ConnExec, o_send *operator.O_Op
 
 // 删除远端路由的设置
 func (d *DRule) man_areaRouterDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	if d.closed != true {
+		errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_NOT_PAUSED, "The DRule must be paused to do this.", nil)
+		return
+	}
+
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)

@@ -8,8 +8,6 @@
 package drule
 
 import (
-	"fmt"
-
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
@@ -39,6 +37,7 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case operator.OPERATE_ZONE_MANAGE:
 		err = d.operateManage(conn_exec, &o_send)
 	case operator.OPERATE_ZONE_NORMAL:
+		err = d.operateNormal(conn_exec, &o_send)
 	default:
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}
@@ -59,7 +58,7 @@ func (d *DRule) operateSys(conn_exec *nst.ConnExec, o_send *operator.O_OperatorS
 		// drule运行模式
 		err = d.sys_druleMode(conn_exec, o_send)
 	default:
-		err = fmt.Errorf("no operate.")
+		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}
 	return
 }
@@ -128,7 +127,25 @@ func (d *DRule) operateManage(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 		// 对角色远端路由的列表
 		err = d.man_areaRouterList(conn_exec, o_send)
 	default:
-		err = fmt.Errorf("no operate.")
+		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
+	}
+	return
+}
+
+// 处理一般性请求
+func (d *DRule) operateNormal(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (err error) {
+	// 是否关闭了
+	if d.closed == true {
+		return d.sendReceipt(conn_exec, operator.DATA_DRULE_CLOSED, "The DRule service is already closed.", nil)
+	}
+	// 是否登录了
+	if login := d.checkUserLogin(o_send.User, o_send.Unid); login == false {
+		return d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+	}
+	switch o_send.Operate {
+	case operator.OPERATE_TRAN_BEGIN:
+	default:
+		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}
 	return
 }
