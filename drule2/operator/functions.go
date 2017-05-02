@@ -230,6 +230,40 @@ func (o *Operator) AreaDel(area string) (errs DRuleError) {
 	return
 }
 
+// 区域是否存在
+func (o *Operator) AreaExist(area string) (exist bool, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	a := O_Area{
+		AreaName: area,
+	}
+	a_b, err := iendecode.StructGobBytes(a)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]AreaExist: %v", err)
+		return
+	}
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_AREA_DEL, a_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]AreaExist: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]AreaExist: %v", drule_r.Error)
+	}
+	// 解码返回
+	err = iendecode.BytesGobStruct(drule_r.Data, &a)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]AreaExist: %v", err)
+		return
+	}
+	exist = a.Exist
+	return
+}
+
 // 重命名区域
 func (o *Operator) AreaRename(oldname, newname string) (errs DRuleError) {
 	var err error
@@ -273,6 +307,12 @@ func (o *Operator) AreaList() (list []string, errs DRuleError) {
 	errs.Code = drule_r.DataStat
 	if drule_r.DataStat != DATA_ALL_OK {
 		errs.Err = fmt.Errorf("operator[Operator]AreaList: %v", drule_r.Error)
+	}
+	list = make([]string, 0)
+	// 解码
+	err = iendecode.BytesGobStruct(drule_r.Data, &list)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]AreaList: %v", err)
 	}
 	return
 }

@@ -353,3 +353,332 @@ func (d *DRule) man_areaAdd(conn_exec *nst.ConnExec, o_send *operator.O_Operator
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	return
 }
+
+// 删除区域
+func (d *DRule) man_areaDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	// 解码
+	var area operator.O_Area
+	err = iendecode.BytesGobStruct(o_send.Data, &area)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	err = d.trule.AreaDelete(area.AreaName)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 区域改名
+func (d *DRule) man_areaRename(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	// 解码
+	var area operator.O_Area
+	err = iendecode.BytesGobStruct(o_send.Data, &area)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	err = d.trule.AreaReName(area.AreaName, area.Rename)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 区域是否存在
+func (d *DRule) man_areaExist(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	// 解码
+	var area operator.O_Area
+	err = iendecode.BytesGobStruct(o_send.Data, &area)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	area.Exist = d.trule.AreaExist(area.AreaName)
+	// 编码
+	area_b, err := iendecode.StructGobBytes(area)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", area_b)
+	return
+}
+
+// 所有区域的列表
+func (d *DRule) man_areaList(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	list, err := d.trule.AreaList()
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 编码
+	list_b, err := iendecode.StructGobBytes(list)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", list_b)
+	return
+}
+
+// 用户和区域的关系
+func (d *DRule) man_areaAndUser(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	// 解码
+	au := operator.O_Area_User{}
+	err = iendecode.BytesGobStruct(o_send.Data, &au)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 查看是否有这个用户
+	userid := USER_PREFIX + au.UserName
+	if have := d.trule.ExistRole(INSIDE_DMZ, userid); have == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_EXIST, "user not exist.", nil)
+		return
+	}
+	// 查看是否有这个区域
+	if have := d.trule.AreaExist(au.Area); have == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_AREA_NO_EXIST, "area not exist.", nil)
+		return
+	}
+	// 查看用户是不是root级别
+	var user_auth operator.UserAuthority
+	err = d.trule.ReadData(INSIDE_DMZ, userid, "Authority", &user_auth)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 是root就直接返回，不需要加什么
+	if user_auth == operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+		return
+	}
+	// 读取用户的权限表
+	wrable := make(map[string]bool)
+	err = d.trule.ReadData(INSIDE_DMZ, userid, "WRable", &wrable)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 查看是删除还是添加
+	if au.Add == true {
+		wrable[au.Area] = au.WRable
+	} else {
+		delete(wrable, au.Area)
+	}
+	// 重新写进去
+	err = d.trule.WriteData(INSIDE_DMZ, userid, "WRable", wrable)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 看有没有正在登录的，有的话就改
+	if _, find := d.loginuser[au.UserName]; find == true {
+		d.loginuser[au.UserName].wrable = wrable
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 设置operator
+func (d *DRule) man_operatorSet(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	// 解码
+	odo := operator.O_DRuleOperator{}
+	err = iendecode.BytesGobStruct(o_send.Data, &odo)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// id
+	odo_id := OPERATOR_PREFIX + odo.Name
+	odo_r := &DRuleOperator{
+		Name:     odo.Name,
+		Address:  odo.Address,
+		ConnNum:  odo.ConnNum,
+		TLS:      odo.TLS,
+		Username: odo.Username,
+		Password: odo.Password,
+	}
+	odo_r.New(odo_id)
+	// 开始保存
+	tran, _ := d.trule.Begin()
+	err = tran.StoreRole(INSIDE_DMZ, odo_r)
+	if err != nil {
+		tran.Rollback()
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	have, err := tran.ExistChild(INSIDE_DMZ, OPERATOR_ROOT, odo_id)
+	if err != nil {
+		tran.Rollback()
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	if have == false {
+		err = tran.WriteChild(INSIDE_DMZ, OPERATOR_ROOT, odo_id)
+		if err != nil {
+			tran.Rollback()
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+	}
+	tran.Commit()
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 删除operator
+func (d *DRule) man_operatorDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+
+	name := string(o_send.Data)
+	odo_id := OPERATOR_PREFIX + name
+	// 开始执行
+	tran, _ := d.trule.Begin()
+	have := tran.ExistRole(INSIDE_DMZ, odo_id)
+	if have == true {
+		err = tran.DeleteRole(INSIDE_DMZ, odo_id)
+		if err != nil {
+			tran.Rollback()
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+		err = tran.DeleteChild(INSIDE_DMZ, OPERATOR_ROOT, odo_id)
+		if err != nil {
+			tran.Rollback()
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+	}
+	tran.Commit()
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 列出operator
+func (d *DRule) man_operatorList(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+	// 查看用户权限
+	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
+	if login == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
+	}
+	if auth != operator.USER_AUTHORITY_ROOT {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+
+	children, err := d.trule.ReadChildren(INSIDE_DMZ, OPERATOR_ROOT)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	list := make([]operator.O_DRuleOperator, 0)
+	for _, child := range children {
+		one := &DRuleOperator{}
+		err = d.trule.ReadRole(INSIDE_DMZ, child, one)
+		if err != nil {
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+		onel := operator.O_DRuleOperator{
+			Name:     one.Name,
+			Address:  one.Address,
+			ConnNum:  one.ConnNum,
+			TLS:      one.TLS,
+			Username: one.Username,
+		}
+		list = append(list, onel)
+	}
+	// 编码
+	list_b, err := iendecode.StructGobBytes(list)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", list_b)
+	return
+}

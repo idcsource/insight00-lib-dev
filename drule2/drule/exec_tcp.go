@@ -95,16 +95,35 @@ func (d *DRule) operateManage(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 		// 添加区域
 		err = d.man_areaAdd(conn_exec, o_send)
 	case operator.OPERATE_AREA_DEL:
-	// 删除区域
-
+		// 删除区域
+		err = d.man_areaDel(conn_exec, o_send)
 	case operator.OPERATE_AREA_RENAME:
-	// 修改区域名称
-
+		// 修改区域名称
+		err = d.man_areaRename(conn_exec, o_send)
 	case operator.OPERATE_AREA_EXIST:
-	// 区域是否存在
-
+		// 区域是否存在
+		err = d.man_areaExist(conn_exec, o_send)
 	case operator.OPERATE_AREA_LIST:
-	// 区域列表
+		// 区域列表
+		err = d.man_areaList(conn_exec, o_send)
+	case operator.OPERATE_USER_AREA:
+		// 用户和区域的关系
+		err = d.man_areaAndUser(conn_exec, o_send)
+	case operator.OPERATE_DRULE_OPERATOR_SET:
+		// 对远程Operator的设置
+		err = d.man_operatorSet(conn_exec, o_send)
+	case operator.OPERATE_DRULE_OPERATOR_DELETE:
+		// 对远程Operator的删除
+		err = d.man_operatorDel(conn_exec, o_send)
+	case operator.OPERATE_DRULE_OPERATOR_LIST:
+		// 对远程Operator的列表
+		err = d.man_operatorList(conn_exec, o_send)
+	case operator.OPERATE_AREA_ROUTER_SET:
+	// 对角色远端路由的设置
+	case operator.OPERATE_AREA_ROUTER_DELETE:
+	// 对角色远端路由的删除
+	case operator.OPERATE_AREA_ROUTER_LIST:
+	// 对角色远端路由的列表
 	default:
 		err = fmt.Errorf("no operate.")
 	}

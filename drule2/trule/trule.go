@@ -465,6 +465,11 @@ func (t *TRule) AreaExist(area string) (have bool) {
 	return t.local_store.AreaExist(area)
 }
 
+// 区域列表
+func (t *TRule) AreaList() (list []string, err error) {
+	return t.local_store.AreaList()
+}
+
 // 区域改名
 func (t *TRule) AreaReName(oldname, newname string) (err error) {
 	err = t.local_store.AreaReName(oldname, newname)

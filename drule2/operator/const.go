@@ -72,8 +72,10 @@ const (
 	DATA_RETURN_IS_FALSE
 	// 事务找不到
 	DATA_TRAN_NOT_EXIST
-	// 已经关闭
+	// DRule已经关闭
 	DATA_DRULE_CLOSED
+	// DRule没有暂停
+	DATA_DRULE_NOT_PAUSED
 	// 用户没有登录
 	DATA_USER_NOT_LOGIN
 	// 用户重复
@@ -82,6 +84,14 @@ const (
 	DATA_USER_NO_EXIST
 	// 用户没有权限
 	DATA_USER_NO_AUTHORITY
+	// 区域存在
+	DATA_AREA_EXIST
+	// 区域不存在
+	DATA_AREA_NO_EXIST
+	// Drule的operator存在
+	DATA_DRULE_OPERATOR_EXIST
+	// Drule的operator不存在
+	DATA_DRULE_OPERATOR_NO_EXIST
 )
 
 // 操作的区域划分

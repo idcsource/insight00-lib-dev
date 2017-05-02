@@ -77,6 +77,8 @@ func (errs *DRuleError) CodeString() (s string) {
 		s = "Data transaction not exist"
 	case DATA_DRULE_CLOSED:
 		s = "DRule closed"
+	case DATA_DRULE_NOT_PAUSED:
+		s = "DRule not paused."
 	case DATA_USER_NOT_LOGIN:
 		s = "User not login"
 	case DATA_USER_EXIST:
@@ -85,6 +87,14 @@ func (errs *DRuleError) CodeString() (s string) {
 		s = "User not exist"
 	case DATA_USER_NO_AUTHORITY:
 		s = "User not have authority"
+	case DATA_AREA_EXIST:
+		s = "Area exist."
+	case DATA_AREA_NO_EXIST:
+		s = "Area not exist."
+	case DATA_DRULE_OPERATOR_EXIST:
+		s = "DRule remote perator exist."
+	case DATA_DRULE_OPERATOR_NO_EXIST:
+		s = "DRule remote operator not exist."
 	default:
 		s = "unkown"
 	}
