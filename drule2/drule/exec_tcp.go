@@ -152,6 +152,9 @@ func (d *DRule) operateNormal(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 	case operator.OPERATE_TRAN_ROLLBACK:
 		// 回滚事务
 		err = d.normalTranRollback(conn_exec, o_send)
+	case operator.OPERATE_TRAN_PREPARE:
+		// 锁定角色
+		err = d.normalLockRole(conn_exec, o_send)
 	default:
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}

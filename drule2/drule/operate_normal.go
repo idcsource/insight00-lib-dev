@@ -147,3 +147,62 @@ func (d *DRule) normalTranRollback(conn_exec *nst.ConnExec, o_send *operator.O_O
 
 	return
 }
+
+// 锁定角色
+func (d *DRule) normalLockRole(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var err error
+
+	// 如果不事务中
+	if o_send.InTransaction == false || len(o_send.TransactionId) == 0 {
+		errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, "Not in a transaction.", nil)
+		return
+	}
+	// 获取到事务
+	tran_map, find := d.transaction_map[o_send.TransactionId]
+	if find == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, "Can not find transaction.", nil)
+		return
+	}
+	// 解码
+	ot := operator.O_Transaction{}
+	err = iendecode.BytesGobStruct(o_send.Data, &ot)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 查看区域的权限
+	have := d.checkUserNormalPower(o_send.User, ot.Area, true)
+	if have == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
+		return
+	}
+	// 查看运行模式
+	if d.dmode == operator.DRULE_OPERATE_MODE_MASTER {
+		err_a := make([]string, 0)
+		for _, roleid := range ot.PrepareIDs {
+			// 获得角色的问题
+			position, o := d.getRolePosition(ot.Area, roleid)
+			if position == ROLE_POSITION_IN_REMOTE {
+				for _, name := range o {
+					errd := tran_map.operators[name].LockRole(ot.Area, roleid)
+					err_a = append(err_a, errd.String())
+				}
+			} else {
+				err = tran_map.tran.LockRole(ot.Area, roleid)
+				err_a = append(err_a, err.Error())
+			}
+		}
+		if len(err_a) != 0 {
+			errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, strings.Join(err_a, " | "), nil)
+			return
+		}
+	} else {
+		err = tran_map.tran.LockRole(ot.Area, ot.PrepareIDs...)
+		if err != nil {
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
