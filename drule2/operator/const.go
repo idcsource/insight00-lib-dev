@@ -72,6 +72,8 @@ const (
 	DATA_RETURN_IS_FALSE
 	// 事务找不到
 	DATA_TRAN_NOT_EXIST
+	// 事务错误
+	DATA_TRAN_ERROR
 	// DRule已经关闭
 	DATA_DRULE_CLOSED
 	// DRule没有暂停

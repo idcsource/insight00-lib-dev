@@ -144,6 +144,14 @@ func (d *DRule) operateNormal(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 	}
 	switch o_send.Operate {
 	case operator.OPERATE_TRAN_BEGIN:
+		// 开启事务
+		err = d.normalTranBigen(conn_exec, o_send)
+	case operator.OPERATE_TRAN_COMMIT:
+		// 执行事务
+		err = d.normalTranCommit(conn_exec, o_send)
+	case operator.OPERATE_TRAN_ROLLBACK:
+		// 回滚事务
+		err = d.normalTranRollback(conn_exec, o_send)
 	default:
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}

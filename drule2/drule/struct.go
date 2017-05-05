@@ -45,8 +45,10 @@ type DRule struct {
 
 // 事务映射
 type transactionMap struct {
-	self_unid string    // 对应自己的事务id
-	alivetime time.Time // 活动时间
+	tran_unid string                            // 对应外来的事务unid
+	tran      *trule.Transaction                // 对应的本地trule的事务
+	operators map[string]*operator.OTransaction // 对应的外部的
+	alivetime time.Time                         // 活动时间
 }
 
 // 登录进来的用户

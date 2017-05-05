@@ -74,7 +74,9 @@ func (errs *DRuleError) CodeString() (s string) {
 	case DATA_RETURN_IS_FALSE:
 		s = "Data return is false"
 	case DATA_TRAN_NOT_EXIST:
-		s = "Data transaction not exist"
+		s = "Transaction not exist."
+	case DATA_TRAN_ERROR:
+		s = "Transaction error."
 	case DATA_DRULE_CLOSED:
 		s = "DRule closed"
 	case DATA_DRULE_NOT_PAUSED:
