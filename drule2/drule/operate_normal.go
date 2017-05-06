@@ -245,6 +245,27 @@ func (d *DRule) checkTranOrNoTran(conn_exec *nst.ConnExec, o_send *operator.O_Op
 	case operator.OPERATE_GET_CHILDREN:
 		// 读children
 		errs = d.normalReadChildren(conn_exec, o_send, tran)
+	case operator.OPERATE_SET_CHILDREN:
+		// 写children
+		errs = d.normalWriteChildren(conn_exec, o_send, tran)
+	case operator.OPERATE_ADD_CHILD:
+		// 写child
+		errs = d.normalWriteChild(conn_exec, o_send, tran)
+	case operator.OPERATE_DEL_CHILD:
+		// 删child
+		errs = d.normalDeleteChild(conn_exec, o_send, tran)
+	case operator.OPERATE_EXIST_CHILD:
+		// 存在child
+		errs = d.normalExistChild(conn_exec, o_send, tran)
+	case operator.OPERATE_GET_FRIENDS:
+		// 读friends
+		errs = d.normalReadFriends(conn_exec, o_send, tran)
+	case operator.OPERATE_SET_FRIENDS:
+		// 写friends
+		errs = d.normalWriteFriends(conn_exec, o_send, tran)
+	case operator.OPERATE_SET_FRIEND_STATUS:
+		// 写friend状态
+		errs = d.normalWriteFriendStatus(conn_exec, o_send, tran)
 	default:
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}
