@@ -409,6 +409,14 @@ func (t *TRule) StoreRole(area string, role roles.Roleer) (err error) {
 	return
 }
 
+func (t *TRule) StoreRoleFromMiddleData(area string, mid roles.RoleMiddleData) (err error) {
+	err = t.local_store.RoleStoreMiddleData(area, mid)
+	if err != nil {
+		err = fmt.Errorf("trule[TRule]StoreRole: %v", err)
+	}
+	return
+}
+
 // 从永久存储读出一个角色
 func (t *TRule) ReadRole(area, id string, role roles.Roleer) (err error) {
 	mid, err := t.local_store.RoleReadMiddleData(area, id)
@@ -425,7 +433,7 @@ func (t *TRule) ReadRole(area, id string, role roles.Roleer) (err error) {
 }
 
 // 从永久存储读出角色的MiddleData格式
-func (t *TRule) RoleReadMiddleData(area, id string) (mid roles.RoleMiddleData, err error) {
+func (t *TRule) ReadRoleMiddleData(area, id string) (mid roles.RoleMiddleData, err error) {
 	mid, err = t.local_store.RoleReadMiddleData(area, id)
 	if err != nil {
 		err = fmt.Errorf("trule[TRule]RoleReadMiddleData: %v", err)

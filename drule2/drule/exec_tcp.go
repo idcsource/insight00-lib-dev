@@ -156,7 +156,7 @@ func (d *DRule) operateNormal(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 		// 锁定角色
 		err = d.normalLockRole(conn_exec, o_send)
 	default:
-		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
+		err = d.checkTranOrNoTran(conn_exec, o_send)
 	}
 	return
 }

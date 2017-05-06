@@ -89,6 +89,41 @@ func (o *Operator) ReadRole(area, id string, role roles.Roleer) (errs DRuleError
 	return
 }
 
+// 读角色到中间数据格式
+func (o *Operator) ReadRoleToMiddleData(area, id string) (md roles.RoleMiddleData, errs DRuleError) {
+
+	// 生成传输
+	rsend := O_RoleSendAndReceive{
+		Area:   area,
+		RoleID: id,
+	}
+	rsend_b, err := iendecode.StructGobBytes(rsend)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]ReadRole: %v", err)
+		return
+	}
+	// 开始传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, area, id, OPERATE_ZONE_NORMAL, OPERATE_READ_ROLE, rsend_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]ReadRole: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]ReadRole: %v", drule_r.Error)
+	}
+	// 解码返回数据
+	err = iendecode.BytesGobStruct(drule_r.Data, &rsend)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]ReadRole: %v", err)
+		return
+	}
+	md = rsend.RoleBody
+	return
+}
+
 // 存入角色
 func (o *Operator) StoreRole(area string, role roles.Roleer) (errs DRuleError) {
 
@@ -100,6 +135,39 @@ func (o *Operator) StoreRole(area string, role roles.Roleer) (errs DRuleError) {
 		errs.Err = fmt.Errorf("operator[Operator]StoreRole: %v", err)
 		return
 	}
+
+	// 生成传输
+	rsend := O_RoleSendAndReceive{
+		Area:     area,
+		RoleID:   roleid,
+		RoleBody: rolemid,
+	}
+	rsend_b, err := iendecode.StructGobBytes(rsend)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]StoreRole: %v", err)
+		return
+	}
+	// 开始传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, area, roleid, OPERATE_ZONE_NORMAL, OPERATE_WRITE_ROLE, rsend_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]StoreRole: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]StoreRole: %v", drule_r.Error)
+		return
+	}
+	return
+}
+
+// 保存角色
+func (o *Operator) StoreRoleFromMiddleData(area string, rolemid roles.RoleMiddleData) (errs DRuleError) {
+
+	// 获取角色ID
+	roleid := rolemid.Version.Id
 
 	// 生成传输
 	rsend := O_RoleSendAndReceive{

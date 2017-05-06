@@ -14,6 +14,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
 // 创建事务
@@ -204,5 +205,59 @@ func (d *DRule) normalLockRole(conn_exec *nst.ConnExec, o_send *operator.O_Opera
 		}
 	}
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 查看是否在事务中
+func (d *DRule) checkTranOrNoTran(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	var tran *transactionMap
+
+	// 查看事务情况
+	if o_send.InTransaction == true && len(o_send.TransactionId) != 0 {
+		// 找到tran
+		var find bool
+		tran, find = d.transaction_map[o_send.TransactionId]
+		if find == false {
+			errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, "Can not find transaction.", nil)
+			return
+		}
+	}
+
+	switch o_send.Operate {
+	case operator.OPERATE_EXIST_ROLE:
+		// 是否存在角色
+		errs = d.normalExitRole(conn_exec, o_send, tran)
+	case operator.OPERATE_READ_ROLE:
+		// 读取角色
+		errs = d.normalReadRole(conn_exec, o_send, tran)
+	default:
+		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
+	}
+	return
+}
+
+// 从给出的名字中随机获取一个oprator
+func (d *DRule) randomOneOperator(o_s []string) (o *operator.Operator, find bool) {
+	lens := len(o_s)
+	var r_i int
+	if lens == 1 {
+		r_i = 0
+	} else {
+		r_i = random.GetRandNum(lens - 1)
+	}
+	o, find = d.operators[o_s[r_i]]
+	return
+}
+
+// 从给出的名字中随机获取一个事务的operator
+func (d *DRule) randomOneOTransaction(o_s []string, trano *transactionMap) (o *operator.OTransaction, find bool) {
+	lens := len(o_s)
+	var r_i int
+	if lens == 1 {
+		r_i = 0
+	} else {
+		r_i = random.GetRandNum(lens - 1)
+	}
+	o, find = trano.operators[o_s[r_i]]
 	return
 }

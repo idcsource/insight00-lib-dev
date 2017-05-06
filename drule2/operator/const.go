@@ -86,6 +86,8 @@ const (
 	DATA_USER_NO_EXIST
 	// 用户没有权限
 	DATA_USER_NO_AUTHORITY
+	// 用户没有区域权限
+	DATA_USER_NO_AREA_AUTHORITY
 	// 区域存在
 	DATA_AREA_EXIST
 	// 区域不存在

@@ -48,7 +48,7 @@ func (t *Transaction) ReadRole(area, id string, role roles.Roleer) (err error) {
 }
 
 // 从永久存储读出角色的MiddleData格式
-func (t *Transaction) ReadRoleMiddle(area, id string) (mid roles.RoleMiddleData, err error) {
+func (t *Transaction) ReadRoleMiddleData(area, id string) (mid roles.RoleMiddleData, err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]readRoleMiddle: This transaction has been deleted.")
 		return
@@ -102,6 +102,29 @@ func (t *Transaction) StoreRole(area string, role roles.Roleer) (err error) {
 		if err != nil {
 			return fmt.Errorf("drule[Transaction]StoreRole: %v", err)
 		}
+		rolec, err = t.tran_service.addRole(t.unid, area, mid)
+		if err != nil {
+			return fmt.Errorf("drule[Transaction]StoreRole: %v", err)
+		}
+		t.tran_cache[roleid] = rolec
+	}
+	return nil
+}
+
+func (t *Transaction) StoreRoleFromMiddleData(area string, mid roles.RoleMiddleData) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("drule[Transaction]StoreRole: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	roleid := mid.Version.Id
+	var find bool
+	rolec, find := t.tran_cache[roleid]
+	if find == true {
+		rolec.role = &mid
+		rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
+	} else {
 		rolec, err = t.tran_service.addRole(t.unid, area, mid)
 		if err != nil {
 			return fmt.Errorf("drule[Transaction]StoreRole: %v", err)

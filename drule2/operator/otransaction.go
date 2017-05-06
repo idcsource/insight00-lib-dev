@@ -212,6 +212,50 @@ func (o *OTransaction) ReadRole(area, id string, role roles.Roleer) (errs DRuleE
 	return
 }
 
+// 读取角色到中间格式
+func (o *OTransaction) ReadRoleToMiddleData(area, id string) (md roles.RoleMiddleData, errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadRole: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 生成传输
+	rsend := O_RoleSendAndReceive{
+		Area:   area,
+		RoleID: id,
+	}
+	rsend_b, err := iendecode.StructGobBytes(rsend)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadRole: %v", err)
+		return
+	}
+	// 开始传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, area, id, OPERATE_ZONE_NORMAL, OPERATE_READ_ROLE, rsend_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadRole: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadRole: %v", drule_r.Error)
+	}
+	// 解码返回数据
+	err = iendecode.BytesGobStruct(drule_r.Data, &rsend)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadRole: %v", err)
+		return
+	}
+	md = rsend.RoleBody
+	return
+}
+
 // 存入角色
 func (o *OTransaction) StoreRole(area string, role roles.Roleer) (errs DRuleError) {
 	var err error
@@ -232,6 +276,48 @@ func (o *OTransaction) StoreRole(area string, role roles.Roleer) (errs DRuleErro
 		errs.Err = fmt.Errorf("operator[OTransaction]StoreRole: %v", err)
 		return
 	}
+
+	// 生成传输
+	rsend := O_RoleSendAndReceive{
+		Area:     area,
+		RoleID:   roleid,
+		RoleBody: rolemid,
+	}
+	rsend_b, err := iendecode.StructGobBytes(rsend)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]StoreRole: %v", err)
+		return
+	}
+	// 开始传输
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, area, roleid, OPERATE_ZONE_NORMAL, OPERATE_WRITE_ROLE, rsend_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]StoreRole: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]StoreRole: %v", drule_r.Error)
+		return
+	}
+	return
+}
+
+// 存入角色
+func (o *OTransaction) StoreRoleFromMiddleData(area string, rolemid roles.RoleMiddleData) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]StoreRole: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 获取角色ID
+	roleid := rolemid.Version.Id
 
 	// 生成传输
 	rsend := O_RoleSendAndReceive{
