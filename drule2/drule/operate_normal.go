@@ -230,6 +230,21 @@ func (d *DRule) checkTranOrNoTran(conn_exec *nst.ConnExec, o_send *operator.O_Op
 	case operator.OPERATE_READ_ROLE:
 		// 读取角色
 		errs = d.normalReadRole(conn_exec, o_send, tran)
+	case operator.OPERATE_WRITE_ROLE:
+		// 写角色
+		errs = d.normalStoreRole(conn_exec, o_send, tran)
+	case operator.OPERATE_DEL_ROLE:
+		// 删角色
+		errs = d.normalDeleteRole(conn_exec, o_send, tran)
+	case operator.OPERATE_SET_FATHER:
+		// 写father
+		errs = d.normalWriteFather(conn_exec, o_send, tran)
+	case operator.OPERATE_GET_FATHER:
+		// 读father
+		errs = d.normalReadFather(conn_exec, o_send, tran)
+	case operator.OPERATE_GET_CHILDREN:
+		// 读children
+		errs = d.normalReadChildren(conn_exec, o_send, tran)
 	default:
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}
