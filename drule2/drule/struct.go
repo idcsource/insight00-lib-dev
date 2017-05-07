@@ -5,6 +5,7 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
+// drule2的“分布式统治者”
 package drule
 
 import (
