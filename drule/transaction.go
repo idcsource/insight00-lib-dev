@@ -594,7 +594,7 @@ func (t *Transaction) writeDataFromByte(id, name, typename string, data_b []byte
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
 		return
 	}
-	err = rolec.role.SetDataFromByte(name, typename, data_b)
+	err = rolec.role.SetDataFromByte(name, data_b)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
 	}
