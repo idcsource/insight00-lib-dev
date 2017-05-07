@@ -587,7 +587,7 @@ func (r *RoleMiddleData) SetData(name string, datas interface{}) (err error) {
 }
 
 // 从[]byte设置数据点数据
-func (r *RoleMiddleData) SetDataFromByte(name, typename string, data_b []byte) (err error) {
+func (r *RoleMiddleData) SetDataFromByte(name string, data_b []byte) (err error) {
 	r.Data.Point[name] = data_b
 
 	return
