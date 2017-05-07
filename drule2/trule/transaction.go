@@ -626,7 +626,7 @@ func (t *Transaction) WriteData(area, id, name string, data interface{}) (err er
 }
 
 // 从Byte写入Data，这是一个内部的函数
-func (t *Transaction) WriteDataFromByte(area, id, name, typename string, data_b []byte) (err error) {
+func (t *Transaction) WriteDataFromByte(area, id, name string, data_b []byte) (err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: This transaction has been deleted.")
 		return
@@ -637,7 +637,7 @@ func (t *Transaction) WriteDataFromByte(area, id, name, typename string, data_b 
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
 		return
 	}
-	err = rolec.role.SetDataFromByte(name, typename, data_b)
+	err = rolec.role.SetDataFromByte(name, data_b)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
 	}

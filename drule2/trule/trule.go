@@ -864,9 +864,9 @@ func (t *TRule) WriteData(area, id, name string, data interface{}) (err error) {
 	return
 }
 
-func (t *TRule) WriteDataFromByte(area, id, name, typename string, data []byte) (err error) {
+func (t *TRule) WriteDataFromByte(area, id, name string, data []byte) (err error) {
 	tran, _ := t.Begin()
-	err = tran.WriteDataFromByte(area, id, name, typename, data)
+	err = tran.WriteDataFromByte(area, id, name, data)
 	if err != nil {
 		tran.Rollback()
 		return

@@ -281,6 +281,36 @@ func (d *DRule) checkTranOrNoTran(conn_exec *nst.ConnExec, o_send *operator.O_Op
 	case operator.OPERATE_DROP_CONTEXT:
 		// 删除上下文
 		errs = d.normalDropContext(conn_exec, o_send, tran)
+	case operator.OPERATE_READ_CONTEXT:
+		// 读上下文
+		errs = d.normalReadContext(conn_exec, o_send, tran)
+	case operator.OPERATE_DEL_CONTEXT_BIND:
+		// 删上下文绑定
+		errs = d.normalDeleteContextBind(conn_exec, o_send, tran)
+	case operator.OPERATE_CONTEXT_SAME_BIND:
+		// 上下文同样绑定
+		errs = d.normalReadContextSameBind(conn_exec, o_send, tran)
+	case operator.OPERATE_GET_CONTEXTS_NAME:
+		// 上下文名称
+		errs = d.normalReadContextsName(conn_exec, o_send, tran)
+	case operator.OPERATE_SET_CONTEXT_STATUS:
+		// 设定上下文状态
+		errs = d.normalWriteContextStatus(conn_exec, o_send, tran)
+	case operator.OPERATE_GET_CONTEXT_STATUS:
+		// 读取上下文状态
+		errs = d.normalReadContextStatus(conn_exec, o_send, tran)
+	case operator.OPERATE_SET_CONTEXTS:
+		// 写contexts
+		errs = d.normalWriteContexts(conn_exec, o_send, tran)
+	case operator.OPERATE_GET_CONTEXTS:
+		// 读contexts
+		errs = d.normalReadContexts(conn_exec, o_send, tran)
+	case operator.OPERATE_SET_DATA:
+		// 写数据
+		errs = d.normalWriteData(conn_exec, o_send, tran)
+	case operator.OPERATE_GET_DATA:
+		// 读数据
+		errs = d.normalReadData(conn_exec, o_send, tran)
 	default:
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}
