@@ -752,7 +752,7 @@ func (o *Operator) CreateContext(areaid, roleid, contextname string) (errs DRule
 }
 
 // 查看是否有这个上下文
-func (o *Operator) ExistContext(areaid, roleid, contextname string) (errs DRuleError) {
+func (o *Operator) ExistContext(areaid, roleid, contextname string) (have bool, errs DRuleError) {
 
 	// 构建
 	rc := O_RoleAndContext{
@@ -779,6 +779,7 @@ func (o *Operator) ExistContext(areaid, roleid, contextname string) (errs DRuleE
 		errs.Err = fmt.Errorf("operator[Operator]ExistContext: %v", r.Error)
 		return
 	}
+	have = rc.Exist
 	return
 }
 

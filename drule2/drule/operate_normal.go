@@ -266,6 +266,21 @@ func (d *DRule) checkTranOrNoTran(conn_exec *nst.ConnExec, o_send *operator.O_Op
 	case operator.OPERATE_SET_FRIEND_STATUS:
 		// 写friend状态
 		errs = d.normalWriteFriendStatus(conn_exec, o_send, tran)
+	case operator.OPERATE_GET_FRIEND_STATUS:
+		// 读friend状态
+		errs = d.normalReadFriendStatus(conn_exec, o_send, tran)
+	case operator.OPERATE_DEL_FRIEND:
+		// 删friend
+		errs = d.normalDeleteFriend(conn_exec, o_send, tran)
+	case operator.OPERATE_ADD_CONTEXT:
+		// 创建上下文
+		errs = d.normalCreateContext(conn_exec, o_send, tran)
+	case operator.OPERATE_EXIST_CONTEXT:
+		// 是否存在上下文
+		errs = d.normalExistContext(conn_exec, o_send, tran)
+	case operator.OPERATE_DROP_CONTEXT:
+		// 删除上下文
+		errs = d.normalDropContext(conn_exec, o_send, tran)
 	default:
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}

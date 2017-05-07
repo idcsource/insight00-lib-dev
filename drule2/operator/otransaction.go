@@ -1028,7 +1028,7 @@ func (o *OTransaction) CreateContext(areaid, roleid, contextname string) (errs D
 }
 
 // 查看是否有这个上下文
-func (o *OTransaction) ExistContext(areaid, roleid, contextname string) (errs DRuleError) {
+func (o *OTransaction) ExistContext(areaid, roleid, contextname string) (have bool, errs DRuleError) {
 	var err error
 	errs = NewDRuleError()
 	// 查看是否删除
@@ -1064,6 +1064,7 @@ func (o *OTransaction) ExistContext(areaid, roleid, contextname string) (errs DR
 		errs.Err = fmt.Errorf("operator[OTransaction]ExistContext: %v", r.Error)
 		return
 	}
+	have = rc.Exist
 	return
 }
 

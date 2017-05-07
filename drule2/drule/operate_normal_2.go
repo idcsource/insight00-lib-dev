@@ -872,3 +872,327 @@ func (d *DRule) normalWriteFriendStatus(conn_exec *nst.ConnExec, o_send *operato
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	return
 }
+
+// 读friend状态
+func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+	var err error
+	// 解码，ds = data struct
+	ds := operator.O_RoleAndFriend{}
+	err = iendecode.BytesGobStruct(o_send.Data, &ds)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 查看读写权限和角色位置，o_s = operator service
+	havepower, position, o_s := d.getAreaPowerAndRolePosition(o_send.User, ds.Area, ds.Id, false)
+	if havepower == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "", nil)
+		return
+	}
+	if position == ROLE_POSITION_IN_LOCAL {
+		if tran == nil {
+			switch ds.Single {
+			case roles.STATUS_VALUE_TYPE_INT:
+				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
+			case roles.STATUS_VALUE_TYPE_FLOAT:
+				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
+			case roles.STATUS_VALUE_TYPE_COMPLEX:
+				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+			}
+		} else {
+			switch ds.Single {
+			case roles.STATUS_VALUE_TYPE_INT:
+				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
+			case roles.STATUS_VALUE_TYPE_FLOAT:
+				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
+			case roles.STATUS_VALUE_TYPE_COMPLEX:
+				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+			}
+		}
+	} else {
+		var errd operator.DRuleError
+		if tran == nil {
+			o, f := d.randomOneOperator(o_s)
+			if f == false {
+				errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_OPERATOR_NO_EXIST, "Can not find remote operator.", nil)
+				return
+			}
+			switch ds.Single {
+			case roles.STATUS_VALUE_TYPE_INT:
+				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
+			case roles.STATUS_VALUE_TYPE_FLOAT:
+				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
+			case roles.STATUS_VALUE_TYPE_COMPLEX:
+				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+			}
+		} else {
+			o, f := d.randomOneOTransaction(o_s, tran)
+			if f == false {
+				errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_OPERATOR_NO_EXIST, "Can not find remote operator.", nil)
+				return
+			}
+			switch ds.Single {
+			case roles.STATUS_VALUE_TYPE_INT:
+				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
+			case roles.STATUS_VALUE_TYPE_FLOAT:
+				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
+			case roles.STATUS_VALUE_TYPE_COMPLEX:
+				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+			}
+		}
+		if errd.IsError() != nil {
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, errd.String(), nil)
+			return
+		}
+	}
+	// 编码
+	ds_b, err := iendecode.StructGobBytes(ds)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 发送
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", ds_b)
+	return
+}
+
+// 删朋友
+func (d *DRule) normalDeleteFriend(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+	var err error
+	// 解码，ds = data struct
+	ds := operator.O_RoleAndFriend{}
+	err = iendecode.BytesGobStruct(o_send.Data, &ds)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 查看读写权限和角色位置，o_s = operator service
+	havepower, position, o_s := d.getAreaPowerAndRolePosition(o_send.User, ds.Area, ds.Id, true)
+	if havepower == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "", nil)
+		return
+	}
+	if position == ROLE_POSITION_IN_LOCAL {
+		if tran == nil {
+			err = d.trule.DeleteFriend(ds.Area, ds.Id, ds.Friend)
+		} else {
+			err = tran.tran.DeleteFriend(ds.Area, ds.Id, ds.Friend)
+		}
+		if err != nil {
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+	} else {
+		var errd operator.DRuleError
+		erra := make([]string, 0)
+		if tran == nil {
+			for _, one := range o_s {
+				if _, find := d.operators[one]; find == false {
+					erra = append(erra, "Can not find remote operator "+one)
+					continue
+				}
+				errd = d.operators[one].DeleteFriend(ds.Area, ds.Id, ds.Friend)
+				if errd.IsError() != nil {
+					erra = append(erra, errd.String())
+				}
+			}
+		} else {
+			for _, one := range o_s {
+				if _, find := tran.operators[one]; find == false {
+					erra = append(erra, "Can not find remote operator "+one)
+					continue
+				}
+				errd = tran.operators[one].DeleteFriend(ds.Area, ds.Id, ds.Friend)
+				if errd.IsError() != nil {
+					erra = append(erra, errd.String())
+				}
+			}
+		}
+		if len(erra) != 0 {
+			errstr := strings.Join(erra, " | ")
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, errstr, nil)
+			return
+		}
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 创建空的上下文
+func (d *DRule) normalCreateContext(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+	var err error
+	// 解码，ds = data struct
+	ds := operator.O_RoleAndContext{}
+	err = iendecode.BytesGobStruct(o_send.Data, &ds)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 查看读写权限和角色位置，o_s = operator service
+	havepower, position, o_s := d.getAreaPowerAndRolePosition(o_send.User, ds.Area, ds.Id, true)
+	if havepower == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "", nil)
+		return
+	}
+	if position == ROLE_POSITION_IN_LOCAL {
+		if tran == nil {
+			err = d.trule.CreateContext(ds.Area, ds.Id, ds.Context)
+		} else {
+			err = tran.tran.CreateContext(ds.Area, ds.Id, ds.Context)
+		}
+		if err != nil {
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+	} else {
+		var errd operator.DRuleError
+		erra := make([]string, 0)
+		if tran == nil {
+			for _, one := range o_s {
+				if _, find := d.operators[one]; find == false {
+					erra = append(erra, "Can not find remote operator "+one)
+					continue
+				}
+				errd = d.operators[one].CreateContext(ds.Area, ds.Id, ds.Context)
+				if errd.IsError() != nil {
+					erra = append(erra, errd.String())
+				}
+			}
+		} else {
+			for _, one := range o_s {
+				if _, find := tran.operators[one]; find == false {
+					erra = append(erra, "Can not find remote operator "+one)
+					continue
+				}
+				errd = tran.operators[one].CreateContext(ds.Area, ds.Id, ds.Context)
+				if errd.IsError() != nil {
+					erra = append(erra, errd.String())
+				}
+			}
+		}
+		if len(erra) != 0 {
+			errstr := strings.Join(erra, " | ")
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, errstr, nil)
+			return
+		}
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
+// 有context吗
+func (d *DRule) normalExistContext(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+	var err error
+	// 解码，ds = data struct
+	ds := operator.O_RoleAndContext{}
+	err = iendecode.BytesGobStruct(o_send.Data, &ds)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 查看读写权限和角色位置，o_s = operator service
+	havepower, position, o_s := d.getAreaPowerAndRolePosition(o_send.User, ds.Area, ds.Id, false)
+	if havepower == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "", nil)
+		return
+	}
+	if position == ROLE_POSITION_IN_LOCAL {
+		if tran == nil {
+			ds.Exist, err = d.trule.ExistContext(ds.Area, ds.Id, ds.Context)
+		} else {
+			ds.Exist, err = tran.tran.ExistContext(ds.Area, ds.Id, ds.Context)
+		}
+	} else {
+		var errd operator.DRuleError
+		if tran == nil {
+			o, f := d.randomOneOperator(o_s)
+			if f == false {
+				errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_OPERATOR_NO_EXIST, "Can not find remote operator.", nil)
+				return
+			}
+			ds.Exist, errd = o.ExistContext(ds.Area, ds.Id, ds.Context)
+		} else {
+			o, f := d.randomOneOTransaction(o_s, tran)
+			if f == false {
+				errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_OPERATOR_NO_EXIST, "Can not find remote operator.", nil)
+				return
+			}
+			ds.Exist, errd = o.ExistContext(ds.Area, ds.Id, ds.Context)
+		}
+		if errd.IsError() != nil {
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, errd.String(), nil)
+			return
+		}
+	}
+	// 编码
+	ds_b, err := iendecode.StructGobBytes(ds)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 发送
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", ds_b)
+	return
+}
+
+// 删除上下文
+func (d *DRule) normalDropContext(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+	var err error
+	// 解码，ds = data struct
+	ds := operator.O_RoleAndContext{}
+	err = iendecode.BytesGobStruct(o_send.Data, &ds)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 查看读写权限和角色位置，o_s = operator service
+	havepower, position, o_s := d.getAreaPowerAndRolePosition(o_send.User, ds.Area, ds.Id, true)
+	if havepower == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "", nil)
+		return
+	}
+	if position == ROLE_POSITION_IN_LOCAL {
+		if tran == nil {
+			err = d.trule.DropContext(ds.Area, ds.Id, ds.Context)
+		} else {
+			err = tran.tran.DropContext(ds.Area, ds.Id, ds.Context)
+		}
+		if err != nil {
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+	} else {
+		var errd operator.DRuleError
+		erra := make([]string, 0)
+		if tran == nil {
+			for _, one := range o_s {
+				if _, find := d.operators[one]; find == false {
+					erra = append(erra, "Can not find remote operator "+one)
+					continue
+				}
+				errd = d.operators[one].DropContext(ds.Area, ds.Id, ds.Context)
+				if errd.IsError() != nil {
+					erra = append(erra, errd.String())
+				}
+			}
+		} else {
+			for _, one := range o_s {
+				if _, find := tran.operators[one]; find == false {
+					erra = append(erra, "Can not find remote operator "+one)
+					continue
+				}
+				errd = tran.operators[one].DropContext(ds.Area, ds.Id, ds.Context)
+				if errd.IsError() != nil {
+					erra = append(erra, errd.String())
+				}
+			}
+		}
+		if len(erra) != 0 {
+			errstr := strings.Join(erra, " | ")
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, errstr, nil)
+			return
+		}
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}

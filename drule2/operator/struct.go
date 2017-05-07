@@ -153,6 +153,8 @@ type O_RoleAndContext struct {
 	UpOrDown roles.ContextUpDown
 	// 要操作的绑定角色的ID
 	BindRole string
+	// 存在否
+	Exist bool
 }
 
 // 角色的全部上下文
