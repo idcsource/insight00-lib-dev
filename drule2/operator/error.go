@@ -87,6 +87,8 @@ func (errs *DRuleError) CodeString() (s string) {
 		s = "User already exist"
 	case DATA_USER_NO_EXIST:
 		s = "User not exist"
+	case DATA_USER_PASSWORD_WRONG:
+		s = "User password wrong."
 	case DATA_USER_NO_AUTHORITY:
 		s = "User not have authority"
 	case DATA_USER_NO_AREA_AUTHORITY:

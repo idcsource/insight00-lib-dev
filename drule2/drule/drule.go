@@ -217,6 +217,10 @@ func (d *DRule) getUserAuthority(username, unid string) (authoriy operator.UserA
 	return
 }
 
+func (d *DRule) GetUserAuthority(username, unid string) (authoriy operator.UserAuthority, login bool) {
+	return d.getUserAuthority(username, unid)
+}
+
 // 查看用户一般权限，也就是针对area的权限,wr为true则检查是否可写，否则为是否可读
 func (d *DRule) checkUserNormalPower(username, areaname string, wr bool) (have bool) {
 	// 找到loginuser中的权限项目

@@ -84,6 +84,8 @@ const (
 	DATA_USER_EXIST
 	// 用户不存在
 	DATA_USER_NO_EXIST
+	// 用户密码错误
+	DATA_USER_PASSWORD_WRONG
 	// 用户没有权限
 	DATA_USER_NO_AUTHORITY
 	// 用户没有区域权限
