@@ -91,6 +91,7 @@ func (d *DRule) Start() (err error) {
 		err = fmt.Errorf("drule[DRule]Start: DRule already started.")
 		return
 	}
+	d.trule.Start()
 	// 准备远端operator数据
 	d.operators = make(map[string]*operator.Operator)
 	if d.dmode == operator.DRULE_OPERATE_MODE_MASTER {
@@ -157,7 +158,6 @@ func (d *DRule) Start() (err error) {
 		}
 		d.areas[arearole.AreaName] = arearole
 	}
-	d.trule.Start()
 	d.closed = false
 	return
 }
