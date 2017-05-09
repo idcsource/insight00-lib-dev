@@ -15,6 +15,16 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
+// 工作状态
+func (d *DRule) WorkStatus() (status bool) {
+	if d.closed == true {
+		status = false
+	} else {
+		status = true
+	}
+	return
+}
+
 // 登录
 func (d *DRule) UserLogin(username, password string) (unid string, authority operator.UserAuthority, errs operator.DRuleError) {
 	var err error

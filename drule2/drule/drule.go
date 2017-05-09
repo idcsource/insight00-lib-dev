@@ -189,7 +189,7 @@ func (d *DRule) checkUserLogin(username, unid string) (yes bool) {
 		return
 	}
 	// 时间超时
-	if login_time.Unix()+operator.USER_ALIVE_TIME > time.Now().Unix() {
+	if login_time.Unix()+operator.USER_ALIVE_TIME < time.Now().Unix() {
 		delete(login.unid, unid)
 		// 如果没有活跃的登陆信息了，就把用户的这一条删掉
 		if len(login.unid) == 0 {
