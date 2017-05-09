@@ -26,7 +26,7 @@ func NewDRuleError() (err DRuleError) {
 // 返回错误
 func (errs *DRuleError) IsError() (err error) {
 	if errs.Err == nil || len(errs.Err.Error()) == 0 {
-		if errs.Code == DATA_ALL_OK {
+		if errs.Code == DATA_ALL_OK || errs.Code == DATA_NO_RETRUN {
 			err = nil
 			return
 		} else {

@@ -133,7 +133,7 @@ func (d *DRule) man_userEmail(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "", nil)
 		return
 	}
-	// 修改密码
+	// 修改邮箱
 	userid := USER_PREFIX + theuser.UserName
 	err = d.trule.WriteData(INSIDE_DMZ, userid, "Email", theuser.Email)
 	if err != nil {
@@ -146,7 +146,6 @@ func (d *DRule) man_userEmail(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 
 // 删除用户
 func (d *DRule) man_userDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
-	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
 	if login == false {
@@ -158,38 +157,18 @@ func (d *DRule) man_userDel(conn_exec *nst.ConnExec, o_send *operator.O_Operator
 		return
 	}
 	// 解码
-	var username string
-	err = iendecode.BytesGobStruct(o_send.Data, &username)
-	if err != nil {
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		return
-	}
+	username := string(o_send.Data)
 	// 检查是否为可以删除的
 	if username == ROOT_USER || username == o_send.User {
 		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AUTHORITY, "Can not delete this user.", nil)
 		return
 	}
-	userid := USER_PREFIX + username
-
-	tran, _ := d.trule.Begin()
-	err = tran.DeleteRole(INSIDE_DMZ, userid)
-	if err != nil {
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		tran.Rollback()
-		return
+	errd := d.UserDelete(username)
+	if errd.IsError() != nil {
+		errs = d.sendReceipt(conn_exec, errd.Code, errd.String(), nil)
+	} else {
+		errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	}
-	err = tran.DeleteChild(INSIDE_DMZ, USER_PREFIX+ROOT_USER, userid)
-	if err != nil {
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		tran.Rollback()
-		return
-	}
-	err = tran.Commit()
-	if err != nil {
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		return
-	}
-	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	return
 }
 
@@ -199,6 +178,7 @@ func (d *DRule) man_userLogout(conn_exec *nst.ConnExec, o_send *operator.O_Opera
 	_, login := d.getUserAuthority(o_send.User, o_send.Unid)
 	if login == false {
 		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return
 	}
 	// 删除相应登陆的信息
 	delete(d.loginuser[o_send.User].unid, o_send.Unid)
@@ -223,38 +203,11 @@ func (d *DRule) man_userList(conn_exec *nst.ConnExec, o_send *operator.O_Operato
 		return
 	}
 
-	list := make([]operator.O_DRuleUser, 0)
-
-	tran, _ := d.trule.Begin()
-	children, err := tran.ReadChildren(INSIDE_DMZ, USER_PREFIX+ROOT_USER)
-	if err != nil {
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		tran.Rollback()
+	list, errd := d.UserList()
+	if errd.IsError() != nil {
+		errs = d.sendReceipt(conn_exec, errd.Code, errd.String(), nil)
 		return
 	}
-	for _, child := range children {
-		one := operator.O_DRuleUser{}
-		err = tran.ReadData(INSIDE_DMZ, child, "UserName", &one.UserName)
-		if err != nil {
-			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-			tran.Rollback()
-			return
-		}
-		err = tran.ReadData(INSIDE_DMZ, child, "Email", &one.Email)
-		if err != nil {
-			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-			tran.Rollback()
-			return
-		}
-		err = tran.ReadData(INSIDE_DMZ, child, "Authority", &one.Authority)
-		if err != nil {
-			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-			tran.Rollback()
-			return
-		}
-		list = append(list, one)
-	}
-	tran.Commit()
 	// 编码
 	list_b, err := iendecode.StructGobBytes(list)
 	if err != nil {
@@ -432,51 +385,10 @@ func (d *DRule) man_areaAndUser(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
 		return
 	}
-	// 查看是否有这个用户
-	userid := USER_PREFIX + au.UserName
-	if have := d.trule.ExistRole(INSIDE_DMZ, userid); have == false {
-		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_EXIST, "user not exist.", nil)
+	errd := d.AreaAddUser(au.UserName, au.Area, au.Add, au.WRable)
+	if errd.IsError() != nil {
+		d.sendReceipt(conn_exec, errd.Code, errd.String(), nil)
 		return
-	}
-	// 查看是否有这个区域
-	if have := d.trule.AreaExist(au.Area); have == false {
-		errs = d.sendReceipt(conn_exec, operator.DATA_AREA_NO_EXIST, "area not exist.", nil)
-		return
-	}
-	// 查看用户是不是root级别
-	var user_auth operator.UserAuthority
-	err = d.trule.ReadData(INSIDE_DMZ, userid, "Authority", &user_auth)
-	if err != nil {
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		return
-	}
-	// 是root就直接返回，不需要加什么
-	if user_auth == operator.USER_AUTHORITY_ROOT {
-		errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
-		return
-	}
-	// 读取用户的权限表
-	wrable := make(map[string]bool)
-	err = d.trule.ReadData(INSIDE_DMZ, userid, "WRable", &wrable)
-	if err != nil {
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		return
-	}
-	// 查看是删除还是添加
-	if au.Add == true {
-		wrable[au.Area] = au.WRable
-	} else {
-		delete(wrable, au.Area)
-	}
-	// 重新写进去
-	err = d.trule.WriteData(INSIDE_DMZ, userid, "WRable", wrable)
-	if err != nil {
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		return
-	}
-	// 看有没有正在登录的，有的话就改
-	if _, find := d.loginuser[au.UserName]; find == true {
-		d.loginuser[au.UserName].wrable = wrable
 	}
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	return
@@ -507,40 +419,11 @@ func (d *DRule) man_operatorSet(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
 		return
 	}
-	// id
-	odo_id := OPERATOR_PREFIX + odo.Name
-	odo_r := &DRuleOperator{
-		Name:     odo.Name,
-		Address:  odo.Address,
-		ConnNum:  odo.ConnNum,
-		TLS:      odo.TLS,
-		Username: odo.Username,
-		Password: odo.Password,
-	}
-	odo_r.New(odo_id)
-	// 开始保存
-	tran, _ := d.trule.Begin()
-	err = tran.StoreRole(INSIDE_DMZ, odo_r)
-	if err != nil {
-		tran.Rollback()
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+	errd := d.OperatorSet(&odo)
+	if errd.IsError() != nil {
+		d.sendReceipt(conn_exec, errd.Code, errd.String(), nil)
 		return
 	}
-	have, err := tran.ExistChild(INSIDE_DMZ, OPERATOR_ROOT, odo_id)
-	if err != nil {
-		tran.Rollback()
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		return
-	}
-	if have == false {
-		err = tran.WriteChild(INSIDE_DMZ, OPERATOR_ROOT, odo_id)
-		if err != nil {
-			tran.Rollback()
-			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-			return
-		}
-	}
-	tran.Commit()
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	return
 }
@@ -552,7 +435,6 @@ func (d *DRule) man_operatorDel(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 		return
 	}
 
-	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
 	if login == false {
@@ -565,25 +447,11 @@ func (d *DRule) man_operatorDel(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 	}
 
 	name := string(o_send.Data)
-	odo_id := OPERATOR_PREFIX + name
-	// 开始执行
-	tran, _ := d.trule.Begin()
-	have := tran.ExistRole(INSIDE_DMZ, odo_id)
-	if have == true {
-		err = tran.DeleteRole(INSIDE_DMZ, odo_id)
-		if err != nil {
-			tran.Rollback()
-			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-			return
-		}
-		err = tran.DeleteChild(INSIDE_DMZ, OPERATOR_ROOT, odo_id)
-		if err != nil {
-			tran.Rollback()
-			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-			return
-		}
+	errd := d.OperatorDelete(name)
+	if errd.IsError() != nil {
+		d.sendReceipt(conn_exec, errd.Code, errd.String(), nil)
+		return
 	}
-	tran.Commit()
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	return
 }
@@ -602,28 +470,12 @@ func (d *DRule) man_operatorList(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 		return
 	}
 
-	children, err := d.trule.ReadChildren(INSIDE_DMZ, OPERATOR_ROOT)
-	if err != nil {
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+	list, errd := d.OperatorList()
+	if errd.IsError() != nil {
+		d.sendReceipt(conn_exec, errd.Code, errd.String(), nil)
 		return
 	}
-	list := make([]operator.O_DRuleOperator, 0)
-	for _, child := range children {
-		one := &DRuleOperator{}
-		err = d.trule.ReadRole(INSIDE_DMZ, child, one)
-		if err != nil {
-			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-			return
-		}
-		onel := operator.O_DRuleOperator{
-			Name:     one.Name,
-			Address:  one.Address,
-			ConnNum:  one.ConnNum,
-			TLS:      one.TLS,
-			Username: one.Username,
-		}
-		list = append(list, onel)
-	}
+
 	// 编码
 	list_b, err := iendecode.StructGobBytes(list)
 	if err != nil {
@@ -660,38 +512,13 @@ func (d *DRule) man_areaRouterSet(conn_exec *nst.ConnExec, o_send *operator.O_Op
 		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
 		return
 	}
-	ars_id := AREA_DRULE_PREFIX + ars.AreaName
-	// 开始
-	tran, _ := d.trule.Begin()
-	ars_r := &AreasRouter{
-		AreaName: ars.AreaName,
-		Mirror:   ars.Mirror,
-		Mirrors:  ars.Mirrors,
-		Chars:    ars.Chars,
-	}
-	ars_r.New(ars_id)
-	err = tran.StoreRole(INSIDE_DMZ, ars_r)
-	if err != nil {
-		tran.Rollback()
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+
+	errd := d.AreaRouterSet(&ars)
+	if errd.IsError() != nil {
+		d.sendReceipt(conn_exec, errd.Code, errd.String(), nil)
 		return
 	}
-	have, err := tran.ExistChild(INSIDE_DMZ, AREA_DRULE_ROOT, ars_id)
-	if err != nil {
-		tran.Rollback()
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		return
-	}
-	if have == false {
-		err = tran.WriteChild(INSIDE_DMZ, AREA_DRULE_ROOT, ars_id)
-		if err != nil {
-			tran.Rollback()
-			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-			return
-		}
-	}
-	tran.Commit()
-	d.areas[ars.AreaName] = ars_r
+
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	return
 }
@@ -703,7 +530,6 @@ func (d *DRule) man_areaRouterDel(conn_exec *nst.ConnExec, o_send *operator.O_Op
 		return
 	}
 
-	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
 	if login == false {
@@ -716,21 +542,13 @@ func (d *DRule) man_areaRouterDel(conn_exec *nst.ConnExec, o_send *operator.O_Op
 	}
 
 	areaname := string(o_send.Data)
-	tran, _ := d.trule.Begin()
-	err = tran.DeleteRole(INSIDE_DMZ, AREA_DRULE_PREFIX+areaname)
-	if err != nil {
-		tran.Rollback()
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+
+	errd := d.AreaRouterDelete(areaname)
+	if errd.IsError() != nil {
+		d.sendReceipt(conn_exec, errd.Code, errd.String(), nil)
 		return
 	}
-	err = tran.DeleteChild(INSIDE_DMZ, AREA_DRULE_ROOT, AREA_DRULE_PREFIX+areaname)
-	if err != nil {
-		tran.Rollback()
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-		return
-	}
-	tran.Commit()
-	delete(d.areas, areaname)
+
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	return
 }
@@ -749,35 +567,14 @@ func (d *DRule) man_areaRouterList(conn_exec *nst.ConnExec, o_send *operator.O_O
 		return
 	}
 
-	tran, _ := d.trule.Begin()
-	children, err := tran.ReadChildren(INSIDE_DMZ, AREA_DRULE_ROOT)
-	if err != nil {
-		tran.Rollback()
-		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+	list, errd := d.AreaRouterList()
+	if errd.IsError() != nil {
+		d.sendReceipt(conn_exec, errd.Code, errd.String(), nil)
 		return
 	}
-	list := make([]operator.O_AreasRouter, 0)
-	for _, child := range children {
-		one_r := &AreasRouter{}
-		err = tran.ReadRole(INSIDE_DMZ, child, one_r)
-		if err != nil {
-			tran.Rollback()
-			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
-			return
-		}
-		one := operator.O_AreasRouter{
-			AreaName: one_r.AreaName,
-			Mirror:   one_r.Mirror,
-			Mirrors:  one_r.Mirrors,
-			Chars:    one_r.Chars,
-		}
-		list = append(list, one)
-	}
-	tran.Commit()
 	// 编码
 	list_b, err := iendecode.StructGobBytes(list)
 	if err != nil {
-		tran.Rollback()
 		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
 		return
 	}
