@@ -174,6 +174,11 @@ func (d *DRule) Close() {
 	d.trule.Pause()
 }
 
+// 返回工作模式,master或slave
+func (d *DRule) WorkMode() (mode operator.DRuleOperateMode) {
+	return d.dmode
+}
+
 // 查看用户是否登陆，如果登陆了就续期
 func (d *DRule) checkUserLogin(username, unid string) (yes bool) {
 	login, find := d.loginuser[username]
