@@ -100,6 +100,13 @@ func (d *DRule) UserAdd(newuser *operator.O_DRuleUser) (errs operator.DRuleError
 
 	user_id := USER_PREFIX + newuser.UserName
 
+	// 查看是否有重名
+	if have := d.trule.ExistRole(INSIDE_DMZ, user_id); have == true {
+		errs.Code = operator.DATA_USER_EXIST
+		errs.Err = fmt.Errorf("user already exist.")
+		return
+	}
+
 	user_role := &DRuleUser{
 		UserName:  newuser.UserName,
 		Password:  newuser.Password,
