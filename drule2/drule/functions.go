@@ -220,6 +220,41 @@ func (d *DRule) UserLogout(o_send *operator.O_OperatorSend) (errs operator.DRule
 	return
 }
 
+// 当前用户
+func (d *DRule) UserNow(username string) (user operator.O_DRuleUser, errs operator.DRuleError) {
+	var err error
+	errs = operator.NewDRuleError()
+	user = operator.O_DRuleUser{}
+
+	user_id := USER_PREFIX + username
+
+	tran, _ := d.trule.Begin()
+	err = tran.ReadData(INSIDE_DMZ, user_id, "UserName", &user.UserName)
+	if err != nil {
+		tran.Rollback()
+		errs.Code = operator.DATA_RETURN_ERROR
+		errs.Err = err
+		return
+	}
+	err = tran.ReadData(INSIDE_DMZ, user_id, "Email", &user.Email)
+	if err != nil {
+		tran.Rollback()
+		errs.Code = operator.DATA_RETURN_ERROR
+		errs.Err = err
+		return
+	}
+	err = tran.ReadData(INSIDE_DMZ, user_id, "Authority", &user.Authority)
+	if err != nil {
+		tran.Rollback()
+		errs.Code = operator.DATA_RETURN_ERROR
+		errs.Err = err
+		return
+	}
+	tran.Commit()
+	errs.Code = operator.DATA_ALL_OK
+	return
+}
+
 // 用户列表（没有权限验证）
 func (d *DRule) UserList() (list []operator.O_DRuleUser, errs operator.DRuleError) {
 	list = make([]operator.O_DRuleUser, 0)

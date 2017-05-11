@@ -207,12 +207,14 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			// 将这个角色保存或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
 				t.local_store.RoleStoreMiddleData(rolec.area, *rolec.role)
+				rolec.tran_id = ""
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
 				t.local_store.RoleDelete(rolec.area, rolec.role.Version.Id)
 				// 将这个角色从缓存中移除
 				t.tran_service.role_cache[cacheid] = nil
 				delete(t.tran_service.role_cache, cacheid)
 			}
+			rolec.lock.Unlock()
 		} else {
 			alreadyhave := true
 			// 替换本尊或删除
