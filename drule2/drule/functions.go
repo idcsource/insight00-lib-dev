@@ -324,7 +324,11 @@ func (d *DRule) AreaAdd(areaname string) (errs operator.DRuleError) {
 func (d *DRule) AreaDelete(areaname string) (errs operator.DRuleError) {
 	var err error
 	errs = operator.NewDRuleError()
-
+	if areaname == INSIDE_DMZ {
+		errs.Code = operator.DATA_USER_NO_AUTHORITY
+		errs.Err = fmt.Errorf("cannot delete this area.")
+		return
+	}
 	err = d.trule.AreaDelete(areaname)
 	if err != nil {
 		errs.Code = operator.DATA_RETURN_ERROR
@@ -339,6 +343,11 @@ func (d *DRule) AreaDelete(areaname string) (errs operator.DRuleError) {
 func (d *DRule) AreaRename(areaname string, newname string) (errs operator.DRuleError) {
 	var err error
 	errs = operator.NewDRuleError()
+	if areaname == INSIDE_DMZ {
+		errs.Code = operator.DATA_USER_NO_AUTHORITY
+		errs.Err = fmt.Errorf("cannot rename this area.")
+		return
+	}
 
 	err = d.trule.AreaReName(areaname, newname)
 	if err != nil {
@@ -369,10 +378,41 @@ func (d *DRule) AreaList() (list []string, errs operator.DRuleError) {
 	return
 }
 
+// 用户区域列出（没有权限验证）
+func (d *DRule) AreaUserList(username string) (rw map[string]bool, errs operator.DRuleError) {
+	var err error
+	errs = operator.NewDRuleError()
+
+	// 查看是否有这个用户
+	userid := USER_PREFIX + username
+	if have := d.trule.ExistRole(INSIDE_DMZ, userid); have == false {
+		errs.Code = operator.DATA_USER_NO_EXIST
+		errs.Err = fmt.Errorf("user not exist.")
+		return
+	}
+
+	// 读取用户的权限表
+	rw = make(map[string]bool)
+	err = d.trule.ReadData(INSIDE_DMZ, userid, "WRable", &rw)
+	if err != nil {
+		errs.Code = operator.DATA_RETURN_ERROR
+		errs.Err = err
+		return
+	}
+	errs.Code = operator.DATA_ALL_OK
+	return
+}
+
 // 用户增加区域（没有权限验证）
 func (d *DRule) AreaAddUser(username, areaname string, add, wrable bool) (errs operator.DRuleError) {
 	var err error
 	errs = operator.NewDRuleError()
+
+	if areaname == INSIDE_DMZ {
+		errs.Code = operator.DATA_USER_NO_AUTHORITY
+		errs.Err = fmt.Errorf("cannot operate this area.")
+		return
+	}
 
 	// 查看是否有这个用户
 	userid := USER_PREFIX + username
@@ -402,8 +442,9 @@ func (d *DRule) AreaAddUser(username, areaname string, add, wrable bool) (errs o
 	}
 	// 读取用户的权限表
 	wrable_a := make(map[string]bool)
-	err = d.trule.ReadData(INSIDE_DMZ, userid, "WRable", &wrable)
+	err = d.trule.ReadData(INSIDE_DMZ, userid, "WRable", &wrable_a)
 	if err != nil {
+		fmt.Println("这里吗")
 		errs.Code = operator.DATA_RETURN_ERROR
 		errs.Err = err
 		return
@@ -415,7 +456,7 @@ func (d *DRule) AreaAddUser(username, areaname string, add, wrable bool) (errs o
 		delete(wrable_a, areaname)
 	}
 	// 重新写进去
-	err = d.trule.WriteData(INSIDE_DMZ, userid, "WRable", wrable)
+	err = d.trule.WriteData(INSIDE_DMZ, userid, "WRable", wrable_a)
 	if err != nil {
 		errs.Code = operator.DATA_RETURN_ERROR
 		errs.Err = err
