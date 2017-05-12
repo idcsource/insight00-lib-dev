@@ -16,13 +16,13 @@ import (
 // TCP发送接收数据结构。发送数据的方法必须使用对应类型的接收方法进行接收
 type TCP struct {
 	tls     bool
-	tcp     *net.TCPConn
+	tcp     net.Conn
 	tcp_tls *tls.Conn
 	buf     int
 }
 
 // 新建TCP的发送接收
-func NewTCP(tcp *net.TCPConn) *TCP {
+func NewTCP(tcp net.Conn) *TCP {
 	return &TCP{tls: false, tcp: tcp, buf: 1024}
 }
 
@@ -195,9 +195,9 @@ func (t *TCP) GetBytes(len uint64) (returnByte []byte, err error) {
 }
 
 // 设置长连接模式
-func (t *TCP) SetKeepAlive(keepalive bool) error {
-	return t.tcp.SetKeepAlive(keepalive)
-}
+//func (t *TCP) SetKeepAlive(keepalive bool) error {
+//	return t.tcp.SetKeepAlive(keepalive)
+//}
 
 // 关闭连接
 func (t *TCP) Close() (err error) {
