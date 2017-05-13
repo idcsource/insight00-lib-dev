@@ -488,13 +488,61 @@ func (d *DRule) OperatorSet(odo *operator.O_DRuleOperator) (errs operator.DRuleE
 	odo_r.New(odo_id)
 	// 开始保存
 	tran, _ := d.trule.Begin()
-	err = tran.StoreRole(INSIDE_DMZ, odo_r)
-	if err != nil {
-		tran.Rollback()
-		errs.Code = operator.DATA_RETURN_ERROR
-		errs.Err = err
-		return
+	if have := tran.ExistRole(INSIDE_DMZ, odo_id); have == false {
+		err = tran.StoreRole(INSIDE_DMZ, odo_r)
+		if err != nil {
+			tran.Rollback()
+			errs.Code = operator.DATA_RETURN_ERROR
+			errs.Err = err
+			return
+		}
+	} else {
+		err = tran.WriteData(INSIDE_DMZ, odo_id, "Name", odo.Name)
+		if err != nil {
+			tran.Rollback()
+			errs.Code = operator.DATA_RETURN_ERROR
+			errs.Err = err
+			return
+		}
+		err = tran.WriteData(INSIDE_DMZ, odo_id, "Address", odo.Address)
+		if err != nil {
+			tran.Rollback()
+			errs.Code = operator.DATA_RETURN_ERROR
+			errs.Err = err
+			return
+		}
+		err = tran.WriteData(INSIDE_DMZ, odo_id, "ConnNum", odo.ConnNum)
+		if err != nil {
+			tran.Rollback()
+			errs.Code = operator.DATA_RETURN_ERROR
+			errs.Err = err
+			return
+		}
+		err = tran.WriteData(INSIDE_DMZ, odo_id, "TLS", odo.TLS)
+		if err != nil {
+			tran.Rollback()
+			errs.Code = operator.DATA_RETURN_ERROR
+			errs.Err = err
+			return
+		}
+		err = tran.WriteData(INSIDE_DMZ, odo_id, "Username", odo.Username)
+		if err != nil {
+			tran.Rollback()
+			errs.Code = operator.DATA_RETURN_ERROR
+			errs.Err = err
+			return
+		}
+		if len(odo.Password) != 0 {
+			err = tran.WriteData(INSIDE_DMZ, odo_id, "Password", odo.Password)
+			if err != nil {
+				tran.Rollback()
+				errs.Code = operator.DATA_RETURN_ERROR
+				errs.Err = err
+				return
+			}
+		}
 	}
+
 	have, err := tran.ExistChild(INSIDE_DMZ, OPERATOR_ROOT, odo_id)
 	if err != nil {
 		tran.Rollback()
