@@ -31,8 +31,6 @@ func NewOperator(selfname string, addr string, conn_num int, username, password 
 		tcpconn:  drule_conn,
 	}
 
-	// 自动登陆
-	err = o.autoLogin()
 	if err != nil {
 		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
 		return
@@ -48,7 +46,11 @@ func NewOperator(selfname string, addr string, conn_num int, username, password 
 		login:       false,
 		logs:        log,
 	}
-
+	// 自动登陆
+	err = o.autoLogin()
+	if err != nil {
+		return
+	}
 	// 事务信号监控
 	go o.transactionSignalHandle()
 
@@ -74,8 +76,6 @@ func NewOperatorTLS(selfname string, addr string, conn_num int, username, passwo
 		tcpconn:  drule_conn,
 	}
 
-	// 自动登陆
-	err = o.autoLogin()
 	if err != nil {
 		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
 		return
@@ -91,7 +91,11 @@ func NewOperatorTLS(selfname string, addr string, conn_num int, username, passwo
 		login:       false,
 		logs:        log,
 	}
-
+	// 自动登陆
+	err = o.autoLogin()
+	if err != nil {
+		return
+	}
 	// 事务信号监控
 	go o.transactionSignalHandle()
 
@@ -177,10 +181,10 @@ func (o *Operator) keepLifeOnec() (err error) {
 }
 
 func (o *Operator) operatorSend(process *nst.ProgressData, areaid, roleid string, oz OperateZone, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {
-	if o.login == false {
-		err = fmt.Errorf("Not login to the DRule server.")
-		return
-	}
+	//	if o.login == false {
+	//		err = fmt.Errorf("Not login to the DRule server.")
+	//		return
+	//	}
 	thestat := O_OperatorSend{
 		OperatorName:  o.selfname,
 		OperateZone:   oz,

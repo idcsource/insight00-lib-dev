@@ -627,6 +627,33 @@ func (d *DRule) OperatorList() (list []operator.O_DRuleOperator, errs operator.D
 	return
 }
 
+// 是否存在这个operator
+func (d *DRule) OperatorExist(o string) (exist bool, set operator.O_DRuleOperator, errs operator.DRuleError) {
+	var err error
+	errs = operator.NewDRuleError()
+
+	oname := OPERATOR_PREFIX + o
+	exist = d.trule.ExistRole(INSIDE_DMZ, oname)
+
+	if exist == true {
+		one := &DRuleOperator{}
+		err = d.trule.ReadRole(INSIDE_DMZ, oname, one)
+		if err != nil {
+			errs.Code = operator.DATA_RETURN_ERROR
+			errs.Err = err
+			return
+		}
+		set = operator.O_DRuleOperator{
+			Name:     one.Name,
+			Address:  one.Address,
+			ConnNum:  one.ConnNum,
+			TLS:      one.TLS,
+			Username: one.Username,
+		}
+	}
+	return
+}
+
 // 区域路由设置（没有权限验证）
 func (d *DRule) AreaRouterSet(ars *operator.O_AreasRouter) (errs operator.DRuleError) {
 	var err error

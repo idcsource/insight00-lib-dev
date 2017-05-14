@@ -20,8 +20,9 @@ func StructToJson(e interface{}) (str string, err error) {
 	if err != nil {
 		return
 	}
-	j_b := j_buff.Bytes() //bytes.buffer转[]byte
-	str = string(j_b)
+	//j_b := j_buff.Bytes() //bytes.buffer转[]byte
+
+	str = j_buff.String()
 	return
 }
 
