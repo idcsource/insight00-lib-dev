@@ -206,7 +206,10 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			// 如果没有等待队列
 			// 将这个角色保存或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
-				t.local_store.RoleStoreMiddleData(rolec.area, *rolec.role)
+				if rolec.be_change == true {
+					t.local_store.RoleStoreMiddleData(rolec.area, *rolec.role)
+					rolec.be_change = false
+				}
 				rolec.tran_id = ""
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
 				t.local_store.RoleDelete(rolec.area, rolec.role.Version.Id)
@@ -220,6 +223,10 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			// 替换本尊或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
 				rolec.role_store = *rolec.role
+				if rolec.be_change == true {
+					t.local_store.RoleStoreMiddleData(rolec.area, *rolec.role)
+					rolec.be_change = false
+				}
 				// 删除占用标记
 				rolec.tran_id = ""
 				// 得到第一个等待的队列
@@ -312,6 +319,9 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 			// 重置删除标记
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
 				rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
+			}
+			if rolec.be_change == true {
+				rolec.be_change = false
 			}
 			// 删除占用标记
 			rolec.tran_id = ""

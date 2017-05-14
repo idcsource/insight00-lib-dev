@@ -108,6 +108,7 @@ func (t *Transaction) StoreRole(area string, role roles.Roleer) (err error) {
 		}
 		t.tran_cache[roleid] = rolec
 	}
+	rolec.be_change = true
 	return nil
 }
 
@@ -131,6 +132,7 @@ func (t *Transaction) StoreRoleFromMiddleData(area string, mid roles.RoleMiddleD
 		}
 		t.tran_cache[roleid] = rolec
 	}
+	rolec.be_change = true
 	return nil
 }
 
@@ -159,6 +161,7 @@ func (t *Transaction) StoreRoleByte(area string, b []byte) (err error) {
 		}
 		t.tran_cache[roleid] = rolec
 	}
+	rolec.be_change = true
 	return nil
 }
 
@@ -190,6 +193,7 @@ func (t *Transaction) WriteFather(area, id, father string) (err error) {
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
 	rolec.role.Relation.Father = father
+	rolec.be_change = true
 	return
 }
 
@@ -244,6 +248,7 @@ func (t *Transaction) WriteChildren(area, id string, children []string) (err err
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
 	rolec.role.SetChildren(children)
+	rolec.be_change = true
 	return
 }
 
@@ -267,6 +272,7 @@ func (t *Transaction) WriteChild(area, id, child string) (err error) {
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
 	rolec.role.AddChild(child)
+	rolec.be_change = true
 	return
 }
 
@@ -284,6 +290,7 @@ func (t *Transaction) DeleteChild(area, id, child string) (err error) {
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
 	rolec.role.DeleteChild(child)
+	rolec.be_change = true
 	return
 }
 
@@ -332,6 +339,7 @@ func (t *Transaction) WriteFriends(area, id string, friends map[string]roles.Sta
 		return
 	}
 	rolec.role.SetFriends(friends)
+	rolec.be_change = true
 	return
 }
 
@@ -365,6 +373,7 @@ func (t *Transaction) WriteFriendStatus(area, id, friend string, bindbit int, va
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteFriendStatus: %v", err)
 	}
+	rolec.be_change = true
 	return
 }
 
@@ -400,6 +409,7 @@ func (t *Transaction) DeleteFriend(area, id, friend string) (err error) {
 		return
 	}
 	rolec.role.DeleteFriend(friend)
+	rolec.be_change = true
 	return
 }
 
@@ -419,6 +429,7 @@ func (t *Transaction) CreateContext(area, id, contextname string) (err error) {
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]CreateContext: %v", err)
 	}
+	rolec.be_change = true
 	return
 }
 
@@ -451,6 +462,7 @@ func (t *Transaction) DropContext(area, id, contextname string) (err error) {
 		return
 	}
 	rolec.role.DelContext(contextname)
+	rolec.be_change = true
 	return
 }
 
@@ -489,6 +501,7 @@ func (t *Transaction) DeleteContextBind(area, id, contextname string, upordown r
 	} else {
 		err = fmt.Errorf("drule[Transaction]DeleteContextBind: Must CONTEXT_UP or CONTEXT_DOWN.")
 	}
+	rolec.be_change = true
 	return
 }
 
@@ -546,6 +559,7 @@ func (t *Transaction) WriteContextStatus(area, id, contextname string, upordown 
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteContextStatus: %v", err)
 	}
+	rolec.be_change = true
 	return
 }
 
@@ -581,6 +595,7 @@ func (t *Transaction) WriteContexts(area, id string, contexts map[string]roles.C
 		return
 	}
 	rolec.role.SetContexts(contexts)
+	rolec.be_change = true
 	return
 }
 
@@ -622,6 +637,7 @@ func (t *Transaction) WriteData(area, id, name string, data interface{}) (err er
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteData: %v", err)
 	}
+	rolec.be_change = true
 	return
 }
 
@@ -641,6 +657,7 @@ func (t *Transaction) WriteDataFromByte(area, id, name string, data_b []byte) (e
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
 	}
+	rolec.be_change = true
 	return
 }
 

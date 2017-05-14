@@ -98,6 +98,8 @@ type roleCache struct {
 	role_store roles.RoleMiddleData
 	// 被删除
 	be_delete uint8
+	// 被修改
+	be_change bool
 	// 占用的事务id
 	tran_id string
 	// 被事务的占用开始时间
