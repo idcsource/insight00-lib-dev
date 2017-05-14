@@ -14,7 +14,6 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
 // 创建一个操作者，自己的名字，远程地址，连接数，用户名，密码，日志
@@ -123,7 +122,8 @@ func (o *Operator) transactionSignalHandle() {
 func (o *Operator) autoLogin() (err error) {
 	login := O_DRuleUser{
 		UserName: o.drule.username,
-		Password: random.GetSha1Sum(o.drule.password),
+		//Password: random.GetSha1Sum(o.drule.password),
+		Password: o.drule.password,
 	}
 	// 编码
 	login_b, err := iendecode.StructGobBytes(login)

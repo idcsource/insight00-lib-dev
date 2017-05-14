@@ -91,13 +91,54 @@ func (o *Operator) UserDel(username string) (errs DRuleError) {
 	return
 }
 
+// 用户登录（sha1password）
+func (o *Operator) UserLoginSha1(username, password string) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+
+	o.drule.username = username
+	o.drule.password = password
+	login := O_DRuleUser{
+		UserName: username,
+		Password: password,
+	}
+	// 编码
+	login_b, err := iendecode.StructGobBytes(login)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogin: %v", err)
+		return
+	}
+	// 发送
+	cprocess := o.drule.tcpconn.OpenProgress()
+	defer cprocess.Close()
+	drule_r, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_LOGIN, login_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogin: %v", err)
+		return
+	}
+	errs.Code = drule_r.DataStat
+	if drule_r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogin: %v", drule_r.Error)
+	}
+	// 解码
+	err = iendecode.BytesGobStruct(login_b, &login)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]UserLogin: %v", err)
+		return
+	}
+	o.login = true
+	o.drule.unid = login.Unid
+
+	return
+}
+
 // 用户登陆
 func (o *Operator) UserLogin(username, password string) (errs DRuleError) {
 	var err error
 	errs = NewDRuleError()
 
 	o.drule.username = username
-	o.drule.password = password
+	o.drule.password = random.GetSha1Sum(password)
 	login := O_DRuleUser{
 		UserName: username,
 		Password: random.GetSha1Sum(password),
