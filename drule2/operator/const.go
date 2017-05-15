@@ -7,6 +7,14 @@
 
 package operator
 
+const (
+	// 运行状态
+	OPERATOR_RUN_NO       = iota // 未指定
+	OPERATOR_RUN_RUNNING         // 正在运行
+	OPERATOR_RUN_CLOSEING        // 正在停止
+	OPERATOR_RUN_CLOSED          // 已经停止
+)
+
 // 用户权限
 type UserAuthority uint8
 

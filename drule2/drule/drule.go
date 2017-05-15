@@ -165,13 +165,20 @@ func (d *DRule) Start() (err error) {
 // 暂停，管理级别的操作还可以进行，这个模式主要是用来调整比如路由策略
 func (d *DRule) Pause() {
 	d.closed = true
-	//d.trule.Pause()
+	d.closeOperators()
 }
 
 // 停止，真正的停止，没有远程命令可以恢复
 func (d *DRule) Close() {
 	d.closed = true
+	d.closeOperators()
 	d.trule.Pause()
+}
+
+func (d *DRule) closeOperators() {
+	for key, _ := range d.operators {
+		d.operators[key].Close()
+	}
 }
 
 // 返回工作模式,master或slave

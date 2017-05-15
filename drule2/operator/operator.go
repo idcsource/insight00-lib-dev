@@ -9,6 +9,7 @@ package operator
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
@@ -38,12 +39,16 @@ func NewOperator(selfname string, addr string, conn_num int, username, password 
 		tran_signal: make(chan tranService, 10),
 	}
 	o = &Operator{
-		selfname:    selfname,
-		drule:       drule,
-		service:     operatorS,
-		transaction: make(map[string]*OTransaction),
-		login:       false,
-		logs:        log,
+		selfname:        selfname,
+		drule:           drule,
+		service:         operatorS,
+		transaction:     make(map[string]*OTransaction),
+		login:           false,
+		logs:            log,
+		runstatus:       OPERATOR_RUN_RUNNING,
+		closeing_signal: make(chan bool),
+		closed_signal:   make(chan bool),
+		tran_wait:       &sync.WaitGroup{},
 	}
 	// 自动登陆
 	err = o.autoLogin()
@@ -52,7 +57,8 @@ func NewOperator(selfname string, addr string, conn_num int, username, password 
 	}
 	// 事务信号监控
 	go o.transactionSignalHandle()
-
+	// 关闭信号处理
+	go o.closeSignalHandle()
 	return
 }
 
@@ -83,12 +89,16 @@ func NewOperatorTLS(selfname string, addr string, conn_num int, username, passwo
 		tran_signal: make(chan tranService, 10),
 	}
 	o = &Operator{
-		selfname:    selfname,
-		drule:       drule,
-		service:     operatorS,
-		transaction: make(map[string]*OTransaction),
-		login:       false,
-		logs:        log,
+		selfname:        selfname,
+		drule:           drule,
+		service:         operatorS,
+		transaction:     make(map[string]*OTransaction),
+		login:           false,
+		logs:            log,
+		runstatus:       OPERATOR_RUN_RUNNING,
+		closeing_signal: make(chan bool),
+		closed_signal:   make(chan bool),
+		tran_wait:       &sync.WaitGroup{},
 	}
 	// 自动登陆
 	err = o.autoLogin()
@@ -97,8 +107,31 @@ func NewOperatorTLS(selfname string, addr string, conn_num int, username, passwo
 	}
 	// 事务信号监控
 	go o.transactionSignalHandle()
-
+	// 关闭信号处理
+	go o.closeSignalHandle()
 	return
+}
+
+// 关闭
+func (o *Operator) Close() {
+	o.runstatus = OPERATOR_RUN_CLOSEING
+	o.closeing_signal <- true
+	// 开始等closed_signal
+	<-o.closed_signal
+	o.runstatus = OPERATOR_RUN_CLOSED
+	o.drule.tcpconn.Close()
+	return
+}
+
+func (o *Operator) closeSignalHandle() {
+	for {
+		// 等待暂停中信号
+		<-o.closeing_signal
+		// 等待waiting的信号
+		o.tran_wait.Wait()
+		// 发送已经暂停信号
+		o.closed_signal <- true
+	}
 }
 
 // 事务信号监控
@@ -113,6 +146,7 @@ func (o *Operator) transactionSignalHandle() {
 		case TRANSACTION_ASKFOR_END:
 			if _, find := o.transaction[tran_signal.unid]; find == true {
 				delete(o.transaction, tran_signal.unid)
+				o.tran_wait.Done()
 			}
 		}
 	}

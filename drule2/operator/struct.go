@@ -9,6 +9,7 @@
 package operator
 
 import (
+	"sync"
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
@@ -27,12 +28,16 @@ type operatorService struct {
 
 // 这叫做“操作机”，是用来远程连接DRule的。
 type Operator struct {
-	selfname    string                   // 自己的名字
-	drule       *druleInfo               // 服务器端
-	login       bool                     // 是否在登陆状态，如果不是则是false
-	service     *operatorService         // 操作者服务
-	transaction map[string]*OTransaction // 事务列表，time是事务的活跃时间
-	logs        *ilogs.Logs              // 日志
+	selfname        string                   // 自己的名字
+	drule           *druleInfo               // 服务器端
+	login           bool                     // 是否在登陆状态，如果不是则是false
+	service         *operatorService         // 操作者服务
+	transaction     map[string]*OTransaction // 事务列表，time是事务的活跃时间
+	logs            *ilogs.Logs              // 日志
+	runstatus       uint8                    // 运行状态，OPERATOR_RUN_*
+	closeing_signal chan bool                // 正在停止信号
+	closed_signal   chan bool                // 已经停止信号
+	tran_wait       *sync.WaitGroup          // 事务等待计数
 }
 
 // 操作机事务
