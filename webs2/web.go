@@ -14,6 +14,8 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule"
+	drule2 "github.com/idcsource/Insight-0-0-lib/drule2/operator"
+	trule2 "github.com/idcsource/Insight-0-0-lib/drule2/trule"
 	"github.com/idcsource/Insight-0-0-lib/idb"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/pubfunc"
@@ -94,6 +96,16 @@ func (web *Web) RegTRule(t *drule.TRule) {
 	web.trule = t
 }
 
+// 注册TRule2
+func (web *Web) RegTRule2(t *trule2.TRule) {
+	web.trule2 = t
+}
+
+// 注册DRule2
+func (web *Web) RegDRule2(d *drule2.Operator) {
+	web.drule2 = d
+}
+
 // 获得DRule，如果没有注册则返回错误
 func (web *Web) GetDRule() (d *drule.Operator, err error) {
 	if web.drule == nil {
@@ -110,6 +122,24 @@ func (web *Web) GetTRule() (d *drule.TRule, err error) {
 		return
 	}
 	return web.trule, nil
+}
+
+// 获得TRule2，如果没有注册则返回错误
+func (web *Web) GetTRule2() (t *trule2.TRule, err error) {
+	if web.trule2 == nil {
+		err = fmt.Errorf("webs2[Web]GetDRule: The TRule Operator not registered.")
+		return
+	}
+	return web.trule2, nil
+}
+
+// 获得DRule2，如果没有注册则返回错误
+func (web *Web) GetDRule2() (d *drule2.Operator, err error) {
+	if web.drule2 == nil {
+		err = fmt.Errorf("webs2[Web]GetDRule: The TRule Operator not registered.")
+		return
+	}
+	return web.drule2, nil
 }
 
 // 创建路由，设置根节点，并返回根结点，之后所有的对节点的添加操作均是*NodeTree提供的方法

@@ -14,6 +14,8 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule"
+	drule2 "github.com/idcsource/Insight-0-0-lib/drule2/operator"
+	trule2 "github.com/idcsource/Insight-0-0-lib/drule2/trule"
 	"github.com/idcsource/Insight-0-0-lib/idb"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 )
@@ -41,6 +43,8 @@ type Web struct {
 	database    *idb.DB                // 主数据库连接
 	drule       *drule.Operator        // 对DRule分布式存储的支持（也就是operator分布式控制器）
 	trule       *drule.TRule           // 对TRule事务存储的支持
+	drule2      *drule2.Operator       // drule2的支持
+	trule2      *trule2.TRule          // drule2中trule的支持
 	multiDB     map[string]*idb.DB     // 扩展多数据库准备
 	ext         map[string]interface{} // Extension扩展数据（功能）
 	execpoint   map[string]ExecPointer // 执行点
