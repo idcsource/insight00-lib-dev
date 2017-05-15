@@ -91,7 +91,7 @@ func (d *DRule) Start() (err error) {
 		err = fmt.Errorf("drule[DRule]Start: DRule already started.")
 		return
 	}
-	d.trule.Start()
+	//d.trule.Start()
 	// 准备远端operator数据
 	d.operators = make(map[string]*operator.Operator)
 	if d.dmode == operator.DRULE_OPERATE_MODE_MASTER {
@@ -172,13 +172,14 @@ func (d *DRule) Pause() {
 func (d *DRule) Close() {
 	d.closed = true
 	d.closeOperators()
-	d.trule.Pause()
 }
 
 func (d *DRule) closeOperators() {
 	for key, _ := range d.operators {
 		d.operators[key].Close()
+		d.operators[key] = nil
 	}
+	d.operators = make(map[string]*operator.Operator)
 }
 
 // 返回工作模式,master或slave

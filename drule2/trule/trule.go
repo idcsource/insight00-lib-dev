@@ -35,7 +35,7 @@ func NewTRule(local_store *hardstorage.HardStorage) (t *TRule, err error) {
 		max_transaction:    TRAN_MAX_COUNT,
 		pausing_signal:     make(chan bool),
 		paused_signal:      make(chan bool),
-		work_status:        TRULE_RUN_PAUSED,
+		work_status:        TRULE_RUN_RUNNING,
 		tran_wait:          &sync.WaitGroup{},
 	}
 	go t.tranSignalHandle()
@@ -44,19 +44,13 @@ func NewTRule(local_store *hardstorage.HardStorage) (t *TRule, err error) {
 	return
 }
 
-// 启动
-func (t *TRule) Start() {
-	t.work_status = TRULE_RUN_RUNNING
-}
-
 // 暂停
-func (t *TRule) Pause() {
+func (t *TRule) Close() {
 	t.work_status = TRULE_RUN_PAUSEING
 	t.pausing_signal <- true
 	// 开始等paused_signal
 	<-t.paused_signal
 	t.work_status = TRULE_RUN_PAUSED
-	return
 }
 
 // 查看工作状态
@@ -70,20 +64,24 @@ func (t *TRule) TransactionCount() (count int) {
 }
 
 func (t *TRule) pauseSignalHandle() {
-	for {
-		// 等待暂停中信号
-		<-t.pausing_signal
-		// 等待waiting的信号
-		t.tran_wait.Wait()
-		// 发送已经暂停信号
-		t.paused_signal <- true
-	}
+	// 等待暂停中信号
+	<-t.pausing_signal
+	// 等待waiting的信号
+	t.tran_wait.Wait()
+	// 发送已经暂停信号
+	t.paused_signal <- true
 }
 
 // 处理事务超时的监控
 func (t *TRule) tranTimeOutMonitor() {
 	for {
+		if t.work_status == TRULE_RUN_PAUSED {
+			return
+		}
 		time.Sleep(time.Duration(t.tran_timeout_check) * time.Second)
+		if t.work_status == TRULE_RUN_PAUSED {
+			return
+		}
 		t.tranTimeOutMonitorToDo()
 	}
 }
@@ -161,6 +159,9 @@ func (t *TRule) tranTimeOutMonitorToOneRoleC(rolec *roleCache) (del bool) {
 // 处理事务的信号
 func (t *TRule) tranSignalHandle() {
 	for {
+		if t.work_status == TRULE_RUN_PAUSED {
+			return
+		}
 		signal := <-t.tran_commit_signal
 		switch signal.ask {
 		case TRAN_COMMIT_ASK_COMMIT:

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
@@ -120,24 +121,30 @@ func (o *Operator) Close() {
 	<-o.closed_signal
 	o.runstatus = OPERATOR_RUN_CLOSED
 	o.drule.tcpconn.Close()
-	return
+	o.drule.tcpconn = nil
+	o.drule = nil
 }
 
 func (o *Operator) closeSignalHandle() {
-	for {
-		// 等待暂停中信号
-		<-o.closeing_signal
-		// 等待waiting的信号
-		o.tran_wait.Wait()
-		// 发送已经暂停信号
-		o.closed_signal <- true
-	}
+	// 等待暂停中信号
+	<-o.closeing_signal
+	// 等待waiting的信号
+	o.tran_wait.Wait()
+	// 发送已经暂停信号
+	o.closed_signal <- true
 }
 
 // 事务信号监控
 func (o *Operator) transactionSignalHandle() {
+	go o.tranTimeOutMonitor()
 	for {
+		if o.runstatus == OPERATOR_RUN_CLOSED {
+			return
+		}
 		tran_signal := <-o.service.tran_signal
+		if o.runstatus == OPERATOR_RUN_CLOSED {
+			return
+		}
 		switch tran_signal.askfor {
 		case TRANSACTION_ASKFOR_KEEPLIVE:
 			if _, find := o.transaction[tran_signal.unid]; find == true {
@@ -147,6 +154,24 @@ func (o *Operator) transactionSignalHandle() {
 			if _, find := o.transaction[tran_signal.unid]; find == true {
 				delete(o.transaction, tran_signal.unid)
 				o.tran_wait.Done()
+			}
+		}
+	}
+}
+
+// 事务超时处理
+func (o *Operator) tranTimeOutMonitor() {
+	for {
+		if o.runstatus == OPERATOR_RUN_CLOSED {
+			return
+		}
+		time.Sleep(time.Duration(trule.TRAN_TIME_OUT_CHECK) * time.Second)
+		if o.runstatus == OPERATOR_RUN_CLOSED {
+			return
+		}
+		for key, _ := range o.transaction {
+			if o.transaction[key].activetime.Unix()+trule.TRAN_TIME_OUT < time.Now().Unix() {
+				o.transaction[key].Commit()
 			}
 		}
 	}

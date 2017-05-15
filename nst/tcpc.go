@@ -32,6 +32,7 @@ type TcpClient struct {
 	alloc_count int                 // 连接分配计数
 	lock        *sync.RWMutex       // 连接分配计数的锁
 	tls         bool                // 是否tls加密
+	closed      bool                // 是否关闭
 }
 
 // 进程的数据队列
@@ -77,6 +78,7 @@ func NewTcpClient(addr string, count int, logs *ilogs.Logs) (tc *TcpClient, err 
 		alloc_count: 0,
 		lock:        new(sync.RWMutex),
 		tls:         false,
+		closed:      false,
 	}
 	tc.setBridgeBind()
 	ipAdrr, err := net.ResolveTCPAddr("tcp", tc.addr)
@@ -106,6 +108,9 @@ func NewTcpClient(addr string, count int, logs *ilogs.Logs) (tc *TcpClient, err 
 func (tc *TcpClient) checkConnRe() {
 	for {
 		time.Sleep(30 * time.Second)
+		if tc.closed == true {
+			return
+		}
 		for i := 0; i < tc.ccount; i++ {
 			tc.checkOneConn(i)
 		}
@@ -298,11 +303,14 @@ func (tc *TcpClient) SendAndReturn(data []byte) (returndata []byte, err error) {
 }
 
 // 关闭连接
-func (tc *TcpClient) Close() (err error) {
+func (tc *TcpClient) Close() {
+	tc.closed = true
 	for i := 0; i < tc.ccount; i++ {
-		err = tc.tcpc[i].tcp.Close()
+		//err = tc.tcpc[i].tcp.Close()
+		tc.tcpc[i].tcp.Close()
 		tc.tcpc[i] = nil
 	}
+	tc = nil
 	return
 }
 

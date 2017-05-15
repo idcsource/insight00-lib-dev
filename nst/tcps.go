@@ -115,13 +115,19 @@ func (ts *TcpServer) doConn(conn *net.TCPConn) {
 			var err error
 			if erri != nil {
 				err = erri.(error)
-				ts.logerr(err)
+				if err != nil {
+					if fmt.Sprint(err) != "EOF" {
+						ts.logs.ErrLog("nst[TcpServer]doConn: ", err)
+					}
+					return
+				}
+				//ts.logerr(err)
 			}
-			if fmt.Sprint(err) == "EOF" {
-				tcp.Close()
-				ts.logs.RunLog("nst[TcpServer]doConn: Connect Closed.")
-				return
-			}
+			//			if fmt.Sprint(err) == "EOF" {
+			//				tcp.Close()
+			//				ts.logs.RunLog("nst[TcpServer]doConn: Connect Closed.")
+			//				return
+			//			}
 		}
 	}
 }
