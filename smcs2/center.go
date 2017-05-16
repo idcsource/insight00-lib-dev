@@ -13,42 +13,49 @@ import (
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/drule"
+	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 )
 
 // 新建一个中央蔓延点，这里的name也将作为配置节点的名称前缀
-func NewCenterSmcs(name string, store *drule.TRule) (center *CenterSmcs, err error) {
+func NewCenterSmcs(name, area string, store *trule.TRule) (center *CenterSmcs, err error) {
+	if store.AreaExist(area) == false {
+		err = fmt.Errorf("Please check local store set.")
+		return
+	}
 	center = &CenterSmcs{
 		name:  name,
 		node:  make(map[string]*sendAndReceive),
 		store: store,
+		area:  area,
 	}
 	root_id := name + "_" + ROLE_ROOT
 	center.root_id = root_id
 	// 查看是否存在这个root
-	have := center.store.ExistRole(root_id)
+	have := center.store.ExistRole(area, root_id)
 	if have == false {
-		newroot := &NodeConfig{}
+		newroot := &NodeConfig{
+			Disname:  "Root Point",
+			Code:     "Root Point",
+			Name:     ROLE_ROOT,
+			RoleType: ROLE_TYPE_GROUP,
+		}
 		newroot.New(root_id)
-		newroot.Disname = "Root Point"
-		newroot.Name = ROLE_ROOT
-		newroot.RoleType = ROLE_TYPE_GROUP
-		err = center.store.StoreRole(newroot)
+		err = center.store.StoreRole(area, newroot)
 		if err != nil {
 			return nil, err
 		}
 		center.root = newroot
 	} else {
 		newroot := &NodeConfig{}
-		err = center.store.ReadRole(root_id, newroot)
+		err = center.store.ReadRole(area, root_id, newroot)
 		center.root = newroot
 	}
 	return center, nil
 }
 
 // 添加一个节点，types见ROLE_TYPE_*，group为所在分组
-func (c *CenterSmcs) AddNode(nodename, disname string, types uint8, groupname string) (err error) {
+func (c *CenterSmcs) AddNode(nodename, disname, code string, types uint8, groupname string) (err error) {
 	var group_id string
 	if groupname == "" {
 		// 根的名字
@@ -58,12 +65,12 @@ func (c *CenterSmcs) AddNode(nodename, disname string, types uint8, groupname st
 	}
 	node_id := c.name + "_" + nodename
 	tran, _ := c.store.Begin()
-	haverole := tran.ExistRole(node_id)
+	haverole := tran.ExistRole(c.area, node_id)
 	if haverole == true {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: The Node " + nodename + " is exist.")
 	}
-	have, err := tran.ExistChild(group_id, node_id)
+	have, err := tran.ExistChild(c.area, group_id, node_id)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
@@ -75,16 +82,17 @@ func (c *CenterSmcs) AddNode(nodename, disname string, types uint8, groupname st
 	node := &NodeConfig{}
 	node.New(node_id)
 	node.Name = nodename
+	node.Code = code
 	node.Disname = disname
 	node.RoleType = types
-	node.ConfigStatus = CONFIG_NO
+	node.ConfigStatus = CONFIG_STATUS_NO
 	node.SetFather(group_id)
-	err = tran.StoreRole(node)
+	err = tran.StoreRole(c.area, node)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
 	}
-	err = tran.WriteChild(group_id, node_id)
+	err = tran.WriteChild(c.area, group_id, node_id)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: %v", err)
@@ -98,7 +106,7 @@ func (c *CenterSmcs) DelNode(nodename string) (err error) {
 	node_id := c.name + "_" + nodename
 	tran, _ := c.store.Begin()
 	// 获取是否有子节点
-	children, err := tran.ReadChildren(node_id)
+	children, err := tran.ReadChildren(c.area, node_id)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
@@ -108,17 +116,17 @@ func (c *CenterSmcs) DelNode(nodename string) (err error) {
 		return fmt.Errorf("smcs[CenterSmcs]DelNode: The Node %v has child node.", nodename)
 	}
 	// 获取father
-	father, err := tran.ReadFather(node_id)
+	father, err := tran.ReadFather(c.area, node_id)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
 	}
-	err = tran.DeleteChild(father, node_id)
+	err = tran.DeleteChild(c.area, father, node_id)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
 	}
-	err = tran.DeleteRole(node_id)
+	err = tran.DeleteRole(c.area, node_id)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]DelNode: %v", err)
@@ -132,17 +140,17 @@ func (c *CenterSmcs) SetNodeConfig(nodename string, config *cpool.ConfigPool) (e
 	node_id := c.name + "_" + nodename
 	poolEncode := config.EncodePool()
 	tran, _ := c.store.Begin()
-	err = tran.WriteData(node_id, "Config", poolEncode)
+	err = tran.WriteData(c.area, node_id, "Config", poolEncode)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfig: %v", err)
 	}
-	err = tran.WriteData(node_id, "ConfigStatus", uint8(CONFIG_NOT_READY))
+	err = tran.WriteData(c.area, node_id, "ConfigStatus", CONFIG_STATUS_NOT_READY)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfig: %v", err)
 	}
-	err = tran.WriteData(node_id, "NewConfig", true)
+	err = tran.WriteData(c.area, node_id, "NewConfig", true)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfig: %v", err)
@@ -155,17 +163,17 @@ func (c *CenterSmcs) SetNodeConfig(nodename string, config *cpool.ConfigPool) (e
 func (c *CenterSmcs) SetNodeConfigEncode(nodename string, config *cpool.PoolEncode) (err error) {
 	node_id := c.name + "_" + nodename
 	tran, _ := c.store.Begin()
-	err = tran.WriteData(node_id, "Config", config)
+	err = tran.WriteData(c.area, node_id, "Config", config)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigCode: %v", err)
 	}
-	err = tran.WriteData(node_id, "ConfigStatusCode", uint8(CONFIG_NOT_READY))
+	err = tran.WriteData(c.area, node_id, "ConfigStatusCode", CONFIG_STATUS_NOT_READY)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigCode: %v", err)
 	}
-	err = tran.WriteData(node_id, "NewConfig", true)
+	err = tran.WriteData(c.area, node_id, "NewConfig", true)
 	if err != nil {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigCode: %v", err)
@@ -178,7 +186,7 @@ func (c *CenterSmcs) SetNodeConfigEncode(nodename string, config *cpool.PoolEnco
 func (c *CenterSmcs) GetNodeConfig(nodename string) (config *cpool.ConfigPool, err error) {
 	node_id := c.name + "_" + nodename
 	poolEncode := cpool.PoolEncode{}
-	err = c.store.ReadData(node_id, "Config", &poolEncode)
+	err = c.store.ReadData(c.area, node_id, "Config", &poolEncode)
 	if err != nil {
 		return nil, fmt.Errorf("smcs[CenterSmcs]GetNodeConfig: %v", err)
 	}
@@ -191,7 +199,7 @@ func (c *CenterSmcs) GetNodeConfig(nodename string) (config *cpool.ConfigPool, e
 func (c *CenterSmcs) GetNodeConfigEncode(nodename string) (config cpool.PoolEncode, err error) {
 	node_id := c.name + "_" + nodename
 	config = cpool.PoolEncode{}
-	err = c.store.ReadData(node_id, "Config", &config)
+	err = c.store.ReadData(c.area, node_id, "Config", &config)
 	if err != nil {
 		return config, fmt.Errorf("smcs[CenterSmcs]GetNodeConfigCode: %v", err)
 	}
@@ -199,9 +207,9 @@ func (c *CenterSmcs) GetNodeConfigEncode(nodename string) (config cpool.PoolEnco
 }
 
 // 设置节点下一个工作状态，workset为WORK_SET_*
-func (c *CenterSmcs) SetNodeWorkSet(nodename string, workset uint8) (err error) {
+func (c *CenterSmcs) SetNodeWorkSet(nodename string, workset WorkSet) (err error) {
 	node_id := c.name + "_" + nodename
-	err = c.store.WriteData(node_id, "NextWorkSet", workset)
+	err = c.store.WriteData(c.area, node_id, "NextWorkSet", workset)
 	if err != nil {
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeWorkSet: %v", err)
 	}
@@ -209,9 +217,9 @@ func (c *CenterSmcs) SetNodeWorkSet(nodename string, workset uint8) (err error) 
 }
 
 // 获取节点的下一个工作状态
-func (c *CenterSmcs) GetNodeWorkSet(nodename string) (workset uint8, err error) {
+func (c *CenterSmcs) GetNodeWorkSet(nodename string) (workset WorkSet, err error) {
 	node_id := c.name + "_" + nodename
-	err = c.store.ReadData(node_id, "NextWorkSet", &workset)
+	err = c.store.ReadData(c.area, node_id, "NextWorkSet", &workset)
 	if err != nil {
 		return 0, fmt.Errorf("smcs[CenterSmcs]GetNodeWorkSet: %v", err)
 	}
@@ -219,9 +227,9 @@ func (c *CenterSmcs) GetNodeWorkSet(nodename string) (workset uint8, err error) 
 }
 
 // 设置节点的配置状态,status为CONFIG_*，也就是如果被设置成CONFIG_ALL_READY，则系统将在下次发送更新的配置。这个设置一定要是所有配置信息以及工作状态都调整好之后再执行。
-func (c *CenterSmcs) SetNodeConfigStatus(nodename string, status uint8) (err error) {
+func (c *CenterSmcs) SetNodeConfigStatus(nodename string, status ConfigStatus) (err error) {
 	node_id := c.name + "_" + nodename
-	err = c.store.WriteData(node_id, "ConfigStatus", status)
+	err = c.store.WriteData(c.area, node_id, "ConfigStatus", status)
 	if err != nil {
 		return fmt.Errorf("smcs[CenterSmcs]SetNodeConfigStatus: %v", err)
 	}
@@ -229,9 +237,9 @@ func (c *CenterSmcs) SetNodeConfigStatus(nodename string, status uint8) (err err
 }
 
 // 获取节点的配置状态
-func (c *CenterSmcs) GetNodeConfigStatus(nodename string) (status uint8, err error) {
+func (c *CenterSmcs) GetNodeConfigStatus(nodename string) (status ConfigStatus, err error) {
 	node_id := c.name + "_" + nodename
-	err = c.store.ReadData(node_id, "ConfigStatus", &status)
+	err = c.store.ReadData(c.area, node_id, "ConfigStatus", &status)
 	if err != nil {
 		return 0, fmt.Errorf("smcs[CenterSmcs]GetNodeConfigStatus: %v", err)
 	}
@@ -241,7 +249,7 @@ func (c *CenterSmcs) GetNodeConfigStatus(nodename string) (status uint8, err err
 // 获取节点所有的错误日志
 func (c *CenterSmcs) GetNodeErrLog(nodename string) (errlog []string, err error) {
 	node_id := c.name + "_" + nodename
-	err = c.store.ReadData(node_id, "ErrLog", &errlog)
+	err = c.store.ReadData(c.area, node_id, "ErrLog", &errlog)
 	if err != nil {
 		err = fmt.Errorf("smcs[CenterSmcs]GetNodeErrLog: %v", err)
 	}
@@ -251,7 +259,7 @@ func (c *CenterSmcs) GetNodeErrLog(nodename string) (errlog []string, err error)
 // 获取节点所有的运行日志
 func (c *CenterSmcs) GetNodeRunLog(nodename string) (runlog []string, err error) {
 	node_id := c.name + "_" + nodename
-	err = c.store.ReadData(node_id, "RunLog", &runlog)
+	err = c.store.ReadData(c.area, node_id, "RunLog", &runlog)
 	if err != nil {
 		err = fmt.Errorf("smcs[CenterSmcs]GetNodeRunLog: %v", err)
 	}
@@ -262,7 +270,7 @@ func (c *CenterSmcs) GetNodeRunLog(nodename string) (runlog []string, err error)
 func (c *CenterSmcs) EmptyNodeErrLog(nodename string) (err error) {
 	node_id := c.name + "_" + nodename
 	errlog := make([]string, 0)
-	err = c.store.WriteData(node_id, "ErrLog", errlog)
+	err = c.store.WriteData(c.area, node_id, "ErrLog", errlog)
 	if err != nil {
 		err = fmt.Errorf("smcs[CenterSmcs]EmptyNodeErrLog %v", err)
 	}
@@ -273,7 +281,7 @@ func (c *CenterSmcs) EmptyNodeErrLog(nodename string) (err error) {
 func (c *CenterSmcs) EmptyNodeRunLog(nodename string) (err error) {
 	node_id := c.name + "_" + nodename
 	runlog := make([]string, 0)
-	err = c.store.WriteData(node_id, "RunLog", runlog)
+	err = c.store.WriteData(c.area, node_id, "RunLog", runlog)
 	if err != nil {
 		err = fmt.Errorf("smcs[CenterSmcs]EmptyNodeRunLog: %v", err)
 	}
@@ -281,7 +289,7 @@ func (c *CenterSmcs) EmptyNodeRunLog(nodename string) (err error) {
 }
 
 // 获取节点状态，返回的是上次记录的时间到目前的间隔
-func (c *CenterSmcs) GetNodeRunStatus(node_id string) (leave int64, workstatus uint8, err error) {
+func (c *CenterSmcs) GetNodeRunStatus(node_id string) (leave int64, workstatus WorkSet, err error) {
 	node, find := c.node[node_id]
 	if find == false {
 		err = fmt.Errorf("smcs2[CenterSmcs]GetNodeRunStatus: Can not find the node.")
@@ -303,22 +311,22 @@ func (c *CenterSmcs) GetNodeTree() (nodetree NodeTree, err error) {
 
 // 返回节点树的内部使用
 func (c *CenterSmcs) getNodeTree(node_id string) (nodetree NodeTree, err error) {
-	children, err := c.store.ReadChildren(node_id)
+	children, err := c.store.ReadChildren(c.area, node_id)
 	if err != nil {
 		return
 	}
 	var name string
-	err = c.store.ReadData(node_id, "Name", &name)
+	err = c.store.ReadData(c.area, node_id, "Name", &name)
 	if err != nil {
 		return
 	}
 	var disname string
-	err = c.store.ReadData(node_id, "Disname", &disname)
+	err = c.store.ReadData(c.area, node_id, "Disname", &disname)
 	if err != nil {
 		return
 	}
 	var roletype uint8
-	err = c.store.ReadData(node_id, "RoleType", &roletype)
+	err = c.store.ReadData(c.area, node_id, "RoleType", &roletype)
 	if err != nil {
 		return
 	}
@@ -376,9 +384,19 @@ func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
 	}
 	// 开始找寻有没有这个节点
 	node_id := c.name + "_" + node_send.Name
-	have := c.store.ExistRole(node_id)
+	have := c.store.ExistRole(c.area, node_id)
 	if have == false {
 		c.sendError(ce, "Can't found the Node set: "+node_send.Name)
+		return
+	}
+	var code string
+	err = c.store.ReadData(c.area, node_id, "Code", &code)
+	if err != nil {
+		c.sendError(ce, err.Error())
+		return
+	}
+	if code != node_send.Code {
+		c.sendError(ce, "Node code wrong.")
 		return
 	}
 	// 在c.node里找到，找不到就新建
@@ -395,14 +413,14 @@ func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
 	// 更新错误日志和运行日志
 	log := make([]string, 0)
 	if len(node_send.RunLog) != 0 {
-		err = tran.ReadData(node_id, "RunLog", &log)
+		err = tran.ReadData(c.area, node_id, "RunLog", &log)
 		if err != nil {
 			tran.Rollback()
 			c.sendError(ce, "Update node log error.")
 			return
 		}
 		log = append(log, node_send.RunLog...)
-		err = tran.WriteData(node_id, "RunLog", log)
+		err = tran.WriteData(c.area, node_id, "RunLog", log)
 		if err != nil {
 			tran.Rollback()
 			c.sendError(ce, "Update node log error.")
@@ -410,14 +428,14 @@ func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
 		}
 	}
 	if len(node_send.ErrLog) != 0 {
-		err = tran.ReadData(node_id, "ErrLog", &log)
+		err = tran.ReadData(c.area, node_id, "ErrLog", &log)
 		if err != nil {
 			tran.Rollback()
 			c.sendError(ce, "Update node log error.")
 			return
 		}
 		log = append(log, node_send.ErrLog...)
-		err = tran.WriteData(node_id, "ErrLog", log)
+		err = tran.WriteData(c.area, node_id, "ErrLog", log)
 		if err != nil {
 			tran.Rollback()
 			c.sendError(ce, "Update node log error.")
@@ -430,31 +448,31 @@ func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
 	tran, _ = c.store.Begin()
 	// 构建发送机制
 	center_send := CenterSend{}
-	err = tran.ReadData(node_id, "NextWorkSet", &center_send.NextWorkSet)
+	err = tran.ReadData(c.area, node_id, "NextWorkSet", &center_send.NextWorkSet)
 	if err != nil {
 		tran.Rollback()
 		c.sendError(ce, "Build CenterSend error.")
 		return
 	}
-	err = tran.ReadData(node_id, "ConfigStatus", &center_send.ConfigStatus)
+	err = tran.ReadData(c.area, node_id, "ConfigStatus", &center_send.ConfigStatus)
 	if err != nil {
 		tran.Rollback()
 		c.sendError(ce, "Build CenterSend error.")
 		return
 	}
-	err = tran.ReadData(node_id, "Config", &center_send.Config)
+	err = tran.ReadData(c.area, node_id, "Config", &center_send.Config)
 	if err != nil {
 		tran.Rollback()
 		c.sendError(ce, "Build CenterSend error.")
 		return
 	}
-	err = tran.ReadData(node_id, "NewConfig", &center_send.NewConfig)
+	err = tran.ReadData(c.area, node_id, "NewConfig", &center_send.NewConfig)
 	if err != nil {
 		tran.Rollback()
 		c.sendError(ce, "Build CenterSend error.")
 		return
 	}
-	err = tran.WriteData(node_id, "NewConfig", false)
+	err = tran.WriteData(c.area, node_id, "NewConfig", false)
 	if err != nil {
 		tran.Rollback()
 		c.sendError(ce, "Build CenterSend error.")

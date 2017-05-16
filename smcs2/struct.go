@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/drule"
+	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
 	"github.com/idcsource/Insight-0-0-lib/roles"
@@ -29,25 +29,31 @@ const (
 	SLEEP_TIME  = 60          // 每隔多长间隔发送一次，单位为秒
 )
 
-const (
-	NODE_STATUS_NO_CONFIG  = iota // 节点状态，没有配置文件
-	NODE_STATUS_OK                // 一切OK
-	NODE_STATUS_BUSY              // 忙碌
-	NODE_STATUS_IDLE              // 闲置
-	NODE_STATUS_STORE_FULL        // 存储满
-)
+type NodeStatus uint8
 
 const (
-	CONFIG_NO        = iota // 配置信息空状态
-	CONFIG_NOT_READY        // 配置没有准备好（在这种状态下，不发送配置文件，配合WORK_SET_GOON）
-	CONFIG_ALL_READY        // 配置准备妥当（将会在下次同步时发送）
+	NODE_STATUS_NO_CONFIG  NodeStatus = iota // 节点状态，没有配置文件
+	NODE_STATUS_OK                           // 一切OK
+	NODE_STATUS_BUSY                         // 忙碌
+	NODE_STATUS_IDLE                         // 闲置
+	NODE_STATUS_STORE_FULL                   // 存储满
 )
 
+type ConfigStatus uint8
+
 const (
-	WORK_SET_NO    = iota // 没有这个节点
-	WORK_SET_GOON         // 节点的工作设置，继续之前
-	WORK_SET_START        // 开始工作
-	WORK_SET_STOP         // 停止工作
+	CONFIG_STATUS_NO        ConfigStatus = iota // 配置信息空状态
+	CONFIG_STATUS_NOT_READY                     // 配置没有准备好（在这种状态下，不发送配置文件，配合WORK_SET_GOON）
+	CONFIG_STATUS_ALL_READY                     // 配置准备妥当（将会在下次同步时发送）
+)
+
+type WorkSet uint8
+
+const (
+	WORK_SET_NO    WorkSet = iota // 没有这个节点
+	WORK_SET_GOON                 // 节点的工作设置，继续之前
+	WORK_SET_START                // 开始工作
+	WORK_SET_STOP                 // 停止工作
 )
 
 const (
@@ -62,7 +68,7 @@ type NodeTree struct {
 	Id       string              // 角色id
 	RoleType uint8               // 角色类型，是分组还是具体的，ROLE_TYPE_*
 	Alive    bool                // 是否活着，60秒内有反映
-	Working  uint8               // 是否在工作，看NodeSend的WorkSet,WORK_SET_*
+	Working  WorkSet             // 是否在工作，看NodeSend的WorkSet,WORK_SET_*
 	Tree     map[string]NodeTree // 节点树
 }
 
@@ -70,9 +76,10 @@ type NodeTree struct {
 type NodeConfig struct {
 	roles.Role                    // 角色
 	Name         string           // 名称
+	Code         string           // 身份码
 	Disname      string           // 显示名称
-	ConfigStatus uint8            // 配置的状态，配合CONFIG_*
-	NextWorkSet  uint8            // 下一个工作状态设置，WORK_SET_*
+	ConfigStatus ConfigStatus     // 配置的状态，配合CONFIG_*
+	NextWorkSet  WorkSet          // 下一个工作状态设置，WORK_SET_*
 	RoleType     uint8            // 角色类型，是分组还是具体的，ROLE_TYPE_*
 	Config       cpool.PoolEncode // 配置信息
 	NewConfig    bool             // 是否有新配置文件
@@ -82,18 +89,19 @@ type NodeConfig struct {
 
 // 节点发送给中心的数据结构
 type NodeSend struct {
-	CenterName string   // 中央的名字，用来做身份验证
-	Name       string   // 节点的名称
-	Status     uint8    // 节点状态，NODE_STATUS_*
-	WorkSet    uint8    // 当前工作状态，WORK_SET_*
-	RunLog     []string // 要发送出去的运行日志
-	ErrLog     []string // 要发送出去的错误日志
+	CenterName string     // 中央的名字，用来做身份验证
+	Name       string     // 节点的名称
+	Code       string     // 身份码
+	Status     NodeStatus // 节点状态，NODE_STATUS_*
+	WorkSet    WorkSet    // 当前工作状态，WORK_SET_*
+	RunLog     []string   // 要发送出去的运行日志
+	ErrLog     []string   // 要发送出去的错误日志
 }
 
 // 中心发送给节点的数据结构
 type CenterSend struct {
-	NextWorkSet  uint8            // 下一个工作状态设置，WORK_SET_*
-	ConfigStatus uint8            // 配置的状态，配合CONFIG_*
+	NextWorkSet  WorkSet          // 下一个工作状态设置，WORK_SET_*
+	ConfigStatus ConfigStatus     // 配置的状态，配合CONFIG_*
 	SetStartTime int64            // 下一个工作状态的开始时间
 	NewConfig    bool             // 是否有新配置文件
 	Config       cpool.PoolEncode // 配置文件
@@ -112,7 +120,8 @@ type sendAndReceive struct {
 type CenterSmcs struct {
 	name    string                     // 自己的名字，用来做身份验证
 	node    map[string]*sendAndReceive // 中心将要发送走的信息，string为节点的名称
-	store   *drule.TRule               // 存储配置信息的方法，使用drule的TRule进行存储管理
+	store   *trule.TRule               // 存储配置信息的方法，使用drule的TRule进行存储管理
+	area    string                     // trule的存储区域
 	root_id string                     // 中央节点的ID
 	root    roles.Roleer               // 中央节点，这是一个roles.Role类型
 }
@@ -120,6 +129,7 @@ type CenterSmcs struct {
 // 节点的蔓延数据类型，也就是节点的服务器
 type NodeSmcs struct {
 	name       string         // 节点的名字
+	code       string         // 身份码
 	centername string         // 中央的名称
 	tcpc       *nst.TcpClient // TCP连接
 	runtimeid  string         // 运行时UNID
