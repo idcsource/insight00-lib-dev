@@ -25,6 +25,7 @@ type TcpServer struct {
 	tls        bool             // 是否tls加密
 	tls_config *tls.Config      // tls配置
 	listen     *net.TCPListener // 监听
+	closed     bool             // 是否关闭
 }
 
 // 新建一个TCP的监听，使用TLS加密。注册一个*TcpServer。
@@ -42,10 +43,11 @@ func TcpServerTLS(ts *TcpServer, pem, key string) (err error) {
 // 新建一个Tcp的监听。注册一个符合ConnExecer接口的执行者负责真正的处理接口。
 func NewTcpServer(role ConnExecer, port string, logs *ilogs.Logs) (ts *TcpServer, err error) {
 	ts = &TcpServer{
-		role: reflect.ValueOf(role),
-		logs: logs,
-		port: port,
-		tls:  false,
+		role:   reflect.ValueOf(role),
+		logs:   logs,
+		port:   port,
+		tls:    false,
+		closed: false,
 	}
 
 	theport := ":" + ts.port
@@ -66,6 +68,7 @@ func NewTcpServer(role ConnExecer, port string, logs *ilogs.Logs) (ts *TcpServer
 
 // 关闭TCPServer
 func (ts *TcpServer) Close() (err error) {
+	ts.closed = true
 	return ts.listen.Close()
 }
 
@@ -74,6 +77,9 @@ func (ts *TcpServer) startServer() {
 	var err error
 	var connecter *net.TCPConn
 	for {
+		if ts.closed == true {
+			return
+		}
 		connecter, err = ts.listen.AcceptTCP()
 
 		if err != nil {
