@@ -55,10 +55,11 @@
 package nst
 
 const (
-	HEART_BEAT = iota
-	NORMAL_DATA
-	DATA_GOON
-	DATA_CLOSE
+	HEART_BEAT  = iota // 心跳
+	NORMAL_DATA        // 普通数据
+	CONN_CLOSE         // 连接断开
+	DATA_GOON          // 数据继续
+	DATA_CLOSE         // 数据关闭
 )
 
 // TcpServer的转交方法所需要符合的接口

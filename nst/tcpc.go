@@ -306,8 +306,21 @@ func (tc *TcpClient) SendAndReturn(data []byte) (returndata []byte, err error) {
 func (tc *TcpClient) Close() {
 	tc.closed = true
 	for i := 0; i < tc.ccount; i++ {
-		//err = tc.tcpc[i].tcp.Close()
-		tc.tcpc[i].tcp.Close()
+		tc.tcpc[i].tcp.SendStat(CONN_CLOSE)
+		status, err := tc.tcpc[i].tcp.GetStat()
+		if err != nil {
+			err = tc.tcpc[i].tcp.Close()
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+		if status == CONN_CLOSE {
+			err := tc.tcpc[i].tcp.Close()
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+		//tc.tcpc[i].tcp.Close()
 		tc.tcpc[i] = nil
 	}
 	tc = nil

@@ -116,18 +116,22 @@ func (ts *TcpServer) doConn(conn *net.TCPConn) {
 			if erri != nil {
 				err = erri.(error)
 				if err != nil {
-					if fmt.Sprint(err) != "EOF" {
-						ts.logs.ErrLog("nst[TcpServer]doConn: ", err)
+					if err.Error() == "DATA_CLOSE" {
+						continue
+					} else {
+						fmt.Println(tcp.Close())
+						if fmt.Sprint(err) != "EOF" {
+							ts.logs.ErrLog("nst[TcpServer]doConn: ", err)
+						}
+						return
 					}
-					return
+
 				}
-				//ts.logerr(err)
 			}
-			//			if fmt.Sprint(err) == "EOF" {
-			//				tcp.Close()
-			//				ts.logs.RunLog("nst[TcpServer]doConn: Connect Closed.")
-			//				return
-			//			}
+		} else if stat == CONN_CLOSE {
+			tcp.SendStat(CONN_CLOSE)
+			fmt.Println("tcp close:", tcp.Close())
+			return
 		}
 	}
 }
@@ -205,7 +209,7 @@ func (ce *ConnExec) SendData(data []byte) (err error) {
 
 // 发送关闭连接的处理
 func (ce *ConnExec) SendClose() (err error) {
-	err = ce.tcp.SendStat(DATA_CLOSE)
+	err = ce.tcp.SendStat(CONN_CLOSE)
 	if fmt.Sprint(err) == "EOF" {
 		return err
 	} else if err != nil {
