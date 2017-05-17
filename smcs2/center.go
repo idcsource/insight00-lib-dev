@@ -20,7 +20,7 @@ import (
 // 新建一个中央蔓延点，这里的name也将作为配置节点的名称前缀
 func NewCenterSmcs(name, area string, store *trule.TRule) (center *CenterSmcs, err error) {
 	if store.AreaExist(area) == false {
-		err = fmt.Errorf("Please check local store set.")
+		err = fmt.Errorf("smcs2[CenterSmcs]NewCentermcs: Please check local store set.")
 		return
 	}
 	center = &CenterSmcs{
@@ -315,21 +315,26 @@ func (c *CenterSmcs) getNodeTree(node_id string) (nodetree NodeTree, err error) 
 	if err != nil {
 		return
 	}
+	tran, _ := c.store.Begin()
 	var name string
-	err = c.store.ReadData(c.area, node_id, "Name", &name)
+	err = tran.ReadData(c.area, node_id, "Name", &name)
 	if err != nil {
+		tran.Rollback()
 		return
 	}
 	var disname string
-	err = c.store.ReadData(c.area, node_id, "Disname", &disname)
+	err = tran.ReadData(c.area, node_id, "Disname", &disname)
 	if err != nil {
+		tran.Rollback()
 		return
 	}
 	var roletype uint8
-	err = c.store.ReadData(c.area, node_id, "RoleType", &roletype)
+	err = tran.ReadData(c.area, node_id, "RoleType", &roletype)
 	if err != nil {
+		tran.Rollback()
 		return
 	}
+	tran.Commit()
 	lifetime, workstatus, err := c.GetNodeRunStatus(node_id)
 	var alive bool
 	if err != nil {

@@ -8,6 +8,7 @@
 package webs2
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -82,6 +83,41 @@ type StaticFields map[string]*FieldConfig
 // 运行时字段设置
 type RuntimeFields map[string]*FieldConfig
 
+type FormData struct {
+	FieldsConfig RuntimeFields
+	R            *http.Request
+	Ip           *pubfunc.InputProcessor
+}
+type OneFormData struct {
+	Int    int64
+	Float  float64
+	String string
+	Bool   bool
+	Null   bool
+}
+
+// 准备运行时字段设置
+//
+// fields是所有在运行时使用到的字段，bool为true则是可以为null。
+// config是针对某个网站节点的特有字段设定，主要是那些启用那些启用，以及名字什么的。
+// sfc则是unit设定的所有字段信息。
+// 三个会做交集。
+func NewFormData(config *cpool.Section, sfc StaticFields, r *http.Request) (fd *FormData, err error) {
+	fd = &FormData{
+		R:  r,
+		Ip: pubfunc.NewInputProcessor(),
+	}
+	afc, err := fd.prepareRuntimeFields(config, sfc)
+	if err != nil {
+		return
+	}
+	fd.FieldsConfig = afc
+	if fd.R.PostForm == nil {
+		fd.R.ParseMultipartForm(defaultMaxMemory)
+	}
+	return
+}
+
 // 准备运行时字段设置
 //
 // fields是所有在运行时使用到的字段，bool为true则是可以为null。
@@ -94,6 +130,7 @@ func (fd *FormData) prepareRuntimeFields(config *cpool.Section, sfc StaticFields
 	for k, sf := range sfc {
 		cf, errs := config.GetEnum(k)
 		if errs != nil {
+			fmt.Println(errs)
 			sf.UseIt = false
 		} else {
 			err = fd.getOneFieldConfig(sf, cf)
@@ -147,41 +184,6 @@ func (fd *FormData) getOneFieldConfig(field *FieldConfig, config []string) (err 
 	return
 }
 
-type FormData struct {
-	FieldsConfig RuntimeFields
-	R            *http.Request
-	Ip           *pubfunc.InputProcessor
-}
-type OneFormData struct {
-	Int    int64
-	Float  float64
-	String string
-	Bool   bool
-	Null   bool
-}
-
-// 准备运行时字段设置
-//
-// fields是所有在运行时使用到的字段，bool为true则是可以为null。
-// config是针对某个网站节点的特有字段设定，主要是那些启用那些启用，以及名字什么的。
-// sfc则是unit设定的所有字段信息。
-// 三个会做交集。
-func NewFormData(config *cpool.Section, sfc StaticFields, r *http.Request) (fd *FormData, err error) {
-	fd = &FormData{
-		R:  r,
-		Ip: pubfunc.NewInputProcessor(),
-	}
-	afc, err := fd.prepareRuntimeFields(config, sfc)
-	if err != nil {
-		return
-	}
-	fd.FieldsConfig = afc
-	if fd.R.PostForm == nil {
-		fd.R.ParseMultipartForm(defaultMaxMemory)
-	}
-	return
-}
-
 // 获取一个的值
 func (fd *FormData) Get(field string, cannull bool) (fdata OneFormData, check CheckStatus) {
 	f, have := fd.FieldsConfig[field]
@@ -228,7 +230,7 @@ func (fd *FormData) Fields(fields map[string]bool) (data map[string]OneFormData,
 	data = make(map[string]OneFormData)
 	for name, cannull := range fields {
 		data[name], check = fd.Get(name, cannull)
-		if check != CHECK_STATUS_OK || check != CHECK_STATUS_NULL {
+		if check != CHECK_STATUS_OK && check != CHECK_STATUS_NULL {
 			return
 		}
 	}
