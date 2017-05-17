@@ -323,6 +323,8 @@ func (fd *FormData) checkOne(s []string, i int, fc *FieldConfig, cannull bool) (
 		now.String, ec = fd.Ip.Password(s[i], cannull)
 	case FIELD_FORM_PASSWORD_TWO:
 		now.String, ec = fd.Ip.PasswordTwo(s[i], s[i+1], cannull)
+	case FIELD_FORM_ENUM_STRING:
+		now.String, ec = fd.Ip.StringEnum(s[i], cannull, fc.EnumString)
 	}
 	if ec != 0 {
 		check = CHECK_STATUS_NO

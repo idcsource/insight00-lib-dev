@@ -362,3 +362,26 @@ func (ip *InputProcessor) PasswordTwo(text, text2 string, cannull bool) (textc s
 	textc = text
 	return
 }
+
+// 字符串枚举
+func (ip *InputProcessor) StringEnum(text string, canull bool, enum []string) (textc string, err int) {
+	err = 1
+	textc = ""
+	text = strings.TrimSpace(text)
+	textLen := len(text)
+	if canull == false && textLen == 0 {
+		err = 1
+		return
+	}
+	if textLen == 0 {
+		err = 0
+		return
+	}
+	for _, one := range enum {
+		if one == text {
+			err = 0
+			return
+		}
+	}
+	return
+}
