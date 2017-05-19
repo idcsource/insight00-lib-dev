@@ -8,7 +8,6 @@
 package webs2
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -99,10 +98,10 @@ type OneFormData struct {
 // 准备运行时字段设置
 //
 // fields是所有在运行时使用到的字段，bool为true则是可以为null。
-// config是针对某个网站节点的特有字段设定，主要是那些启用那些启用，以及名字什么的。
+// config是针对某个节点的特有字段设定，主要是哪些启用，以及名字什么的。
 // sfc则是unit设定的所有字段信息。
-// 三个会做交集。
-func NewFormData(config *cpool.Section, sfc StaticFields, r *http.Request) (fd *FormData, err error) {
+// sfc会根据config调整运行时的配置。
+func NewFormData(config *cpool.Section, sfc StaticFields, r *http.Request, maxmemory int64) (fd *FormData, err error) {
 	fd = &FormData{
 		R:  r,
 		Ip: pubfunc.NewInputProcessor(),
@@ -113,24 +112,22 @@ func NewFormData(config *cpool.Section, sfc StaticFields, r *http.Request) (fd *
 	}
 	fd.FieldsConfig = afc
 	if fd.R.PostForm == nil {
-		fd.R.ParseMultipartForm(defaultMaxMemory)
+		if maxmemory == 0 {
+			fd.R.ParseMultipartForm(defaultMaxMemory)
+		} else {
+			fd.R.ParseMultipartForm(maxmemory << 20)
+		}
 	}
 	return
 }
 
 // 准备运行时字段设置
-//
-// fields是所有在运行时使用到的字段，bool为true则是可以为null。
-// config是针对某个网站节点的特有字段设定，主要是那些启用那些启用，以及名字什么的。
-// sfc则是unit设定的所有字段信息。
-// 三个会做交集。
 func (fd *FormData) prepareRuntimeFields(config *cpool.Section, sfc StaticFields) (rfc RuntimeFields, err error) {
 	rfc = make(map[string]*FieldConfig)
 
 	for k, sf := range sfc {
 		cf, errs := config.GetEnum(k)
 		if errs != nil {
-			fmt.Println(errs)
 			sf.UseIt = false
 		} else {
 			err = fd.getOneFieldConfig(sf, cf)
@@ -184,32 +181,50 @@ func (fd *FormData) getOneFieldConfig(field *FieldConfig, config []string) (err 
 	return
 }
 
-// 获取一个的值
+// 获取一个的值。
+// 任何不符合要求的输入值，check都会返回CHECK_STATUS_ERROR或CHECK_STATUS_NO（包括输入为空但不允许为空的时候）。
+// 任何符合要求的输入，check会返回CHECK_STATUS_OK。
+// 如果允许为空，且实际也为空，则会返回CHECK_STATUS_NULL。
+// 如果字段在运行时标注为不使用，则check不做检查直接返回CHECK_STATUS_OK,通过fdata可以取得各类型的默认值。
 func (fd *FormData) Get(field string, cannull bool) (fdata OneFormData, check CheckStatus) {
 	f, have := fd.FieldsConfig[field]
 	if have == false {
 		check = CHECK_STATUS_ERROR
 		return
 	}
+	if f.UseIt == false {
+		fdata = OneFormData{}
+		check = CHECK_STATUS_OK
+		return
+	}
 	formd, find := fd.R.PostForm[field]
 	if find == false {
-		check = CHECK_STATUS_ERROR2
+		check = CHECK_STATUS_ERROR
 		return
 	}
 	fdata, check = fd.checkOne(formd, 0, f, cannull)
 	return
 }
 
-// 获取一个的值
+// 获取一个的值的集合（post的同名情况）
+// 任何不符合要求的输入值，check都会返回CHECK_STATUS_ERROR或CHECK_STATUS_NO（包括输入为空但不允许为空的时候）。
+// 任何符合要求的输入，check会返回CHECK_STATUS_OK。
+// 如果允许为空，且实际也为空，则会返回CHECK_STATUS_NULL。
+// 如果字段在运行时标注为不使用，则check不做检查直接返回CHECK_STATUS_OK,通过data可以获得一项默认的数值。
 func (fd *FormData) GetAll(field string, cannull bool) (data []OneFormData, check CheckStatus) {
 	f, have := fd.FieldsConfig[field]
 	if have == false {
 		check = CHECK_STATUS_ERROR
 		return
 	}
+	if f.UseIt == false {
+		data = []OneFormData{OneFormData{}}
+		check = CHECK_STATUS_OK
+		return
+	}
 	formd, find := fd.R.PostForm[field]
 	if find == false {
-		check = CHECK_STATUS_ERROR2
+		check = CHECK_STATUS_ERROR
 		return
 	}
 	data = make([]OneFormData, len(formd))
@@ -225,7 +240,10 @@ func (fd *FormData) GetAll(field string, cannull bool) (data []OneFormData, chec
 	return
 }
 
-// 获取全部
+// 获取fields指定的全部字段的值。
+// fields的map中，string为字段名，bool为是否可为空（cannull）。
+// 内部使用Get方法而不是GetAll方法。
+// 只要有一个输入不符合要求，check就会返回CHECK_STATUS_ERROR或CHECK_STATUS_NO。
 func (fd *FormData) Fields(fields map[string]bool) (data map[string]OneFormData, check CheckStatus) {
 	data = make(map[string]OneFormData)
 	for name, cannull := range fields {
@@ -283,6 +301,10 @@ func (fd *FormData) Fields(fields map[string]bool) (data map[string]OneFormData,
 func (fd *FormData) checkOne(s []string, i int, fc *FieldConfig, cannull bool) (now OneFormData, check CheckStatus) {
 	now = OneFormData{}
 	s1 := strings.TrimSpace(s[i])
+	if fc.UseIt == false {
+		check = CHECK_STATUS_OK
+		return
+	}
 	if len(s1) == 0 {
 		if cannull == true {
 			check = CHECK_STATUS_NULL
