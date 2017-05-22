@@ -1,0 +1,19 @@
+// Copyright 2016-2017
+// CoderG the 2016 project
+// Insight 0+0 [ 洞悉 0+0 ]
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
+// Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
+// Use of this source code is governed by GNU LGPL v3 license
+
+package reladb
+
+import (
+	"github.com/idcsource/Insight-0-0-lib/roles"
+)
+
+// 一个表的总角色
+type TableMain struct {
+	roles.Role
+	TableName  string // 表名
+	IndexCount uint64 // 索引计数
+}
