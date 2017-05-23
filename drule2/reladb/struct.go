@@ -13,46 +13,45 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
-// 表管理，目前来说就是一个用child记录表名的功能 id:TABLE_CONTROL_NAME
+// The tables control Role. id:TABLE_CONTROL_NAME
 type TablesControl struct {
 	roles.Role
 }
 
-// 一个表的总角色 id:TABLE_NAME_PREFIX + tablename
+// A table's main Role. id:TABLE_NAME_PREFIX + tablename
 type TableMain struct {
 	roles.Role
-	TableName      string   // 表名
-	Prototype      string   // 角色原型的名称，使用反射得到
-	IncrementCount uint64   // 增量计数（增量到哪里了）
-	IndexField     []string // 需要索引的字符串
+	TableName      string   // Table's name
+	Prototype      string   // Role's prototype name
+	IncrementCount uint64   // Auto increment's count
+	IndexField     []string // The Fields whitch need be index
 }
 
-// 自增字段的管理 id:TABLE_NAME_PREFIX + tablename + TABLE_AUTOINCREMENT_NAME + 数字（指明这个索引开始的数字是什么）
+// The auto increment Role. id:TABLE_NAME_PREFIX + tablename + TABLE_AUTOINCREMENT_NAME + count
 type TableAutoIncrement struct {
 	roles.Role
 	Index map[string]string
 }
 
-type IndexGather []uint64 // 索引的合集
+type IndexGather []uint64 // The index id(increment) gather
 
-// 管理索引的角色 id:TABLE_NAME_PREFIX + tablename + TABLE_INDEX_PREFIX + fieldname
-// 目前只提供对string、int64、float64、bool、time.Time类型的索引
+// The index field Role. id:TABLE_NAME_PREFIX + tablename + TABLE_INDEX_PREFIX + fieldname
 type TableIndex struct {
 	roles.Role
-	FieldName string                 // 索引字段的名字
-	FieldType FieldType              // 字符串类型
-	Index     map[string]IndexGather // 索引，[string]为索引的内容值
+	FieldName string                 // The field name.
+	FieldType FieldType              // The field's data type.
+	Index     map[string]IndexGather // The index, [string] is index's value
 }
 
-// 关系型数据服务
+// The RelaDB's service
 type reladbService struct {
-	dtype    DRule2Type         // 使用trule还是operator连接远程服务器
-	trule    *trule.TRule       // 如果使用trule
-	drule    *operator.Operator // 如果使用drule
-	areaname string             // 涉及到的区域名称（在这里区域就类似于数据库了）
+	dtype    DRule2Type         // Use trule or operator
+	trule    *trule.TRule       // if use trule
+	drule    *operator.Operator // if use drule
+	areaname string             // the area name, like database name
 }
 
-// 关系型数据
+// RelaDb
 type RelaDB struct {
-	service *reladbService // 服务
+	service *reladbService // the reladb's service
 }

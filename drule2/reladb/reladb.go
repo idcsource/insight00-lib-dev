@@ -18,7 +18,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
-// 使用trule新建关系型数据
+// Use TRule to create new relational database.
 func NewRelaDBWithTRule(areaname string, instance *trule.TRule) (rdb *RelaDB, err error) {
 	if instance == nil {
 		err = fmt.Errorf("The TRule can not nil.")
@@ -47,7 +47,7 @@ func NewRelaDBWithTRule(areaname string, instance *trule.TRule) (rdb *RelaDB, er
 	return
 }
 
-// 使用drule新建关系型数据
+// Use DRule (in fact is drule2/operator) to create new relational database.
 func NewRelaDBWithDRule(areaname string, instance *operator.Operator) (rdb *RelaDB, err error) {
 	if instance == nil {
 		err = fmt.Errorf("The DRule can not nil.")
@@ -87,7 +87,8 @@ func NewRelaDBWithDRule(areaname string, instance *operator.Operator) (rdb *Rela
 	return
 }
 
-// 新建table 表明，角色原型，需要索引的字段
+// Create new table.
+// The fields is what fields need to index.
 func (rdb *RelaDB) NewTable(tablename string, prototype roles.Roleer, fields ...string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -209,7 +210,7 @@ func (rdb *RelaDB) NewTable(tablename string, prototype roles.Roleer, fields ...
 	return
 }
 
-// 是否存在一个table
+// Check if the table exist.
 func (rdb *RelaDB) TableExist(tablename string) (exist bool, err error) {
 	tableid := TABLE_NAME_PREFIX + tablename
 	if rdb.service.dtype == DRULE2_USE_TRULE {
@@ -228,7 +229,7 @@ func (rdb *RelaDB) TableExist(tablename string) (exist bool, err error) {
 	return
 }
 
-// 插入一条信息（注意：会改写掉角色的id）
+// Insert one Role to table. (Notice: the Role's id will be change.)
 func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 	// 查看有无这个表
 	var have bool
@@ -408,7 +409,7 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 	return
 }
 
-// 返回最大计数
+// Return the max count.
 func (rdb *RelaDB) Count(tablename string) (count uint64, err error) {
 	// 查看有无这个表
 	var have bool
