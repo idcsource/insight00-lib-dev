@@ -14,6 +14,7 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
+	"github.com/idcsource/Insight-0-0-lib/iendecode"
 	"github.com/idcsource/Insight-0-0-lib/pubfunc"
 	"github.com/idcsource/Insight-0-0-lib/random"
 	"github.com/idcsource/Insight-0-0-lib/roles"
@@ -866,5 +867,176 @@ func (rdb *RelaDB) SelectFields(tablename string, id uint64, fields ...interface
 		}
 		tran.Commit()
 	}
+	return
+}
+
+// check if have the id's column
+func (rdb *RelaDB) Exist(tablename string, id uint64) (exist bool, err error) {
+	// check the table if exist.
+	var have bool
+	have, err = rdb.TableExist(tablename)
+	if err != nil {
+		return
+	}
+	if have == false {
+		err = fmt.Errorf("The table %v not exist.", tablename)
+		return
+	}
+
+	realid := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(id, 10)
+
+	if rdb.service.dtype == DRULE2_USE_TRULE {
+		db := rdb.service.trule
+		exist = db.ExistRole(rdb.service.areaname, realid)
+		return
+	} else {
+		db := rdb.service.drule
+		var errd operator.DRuleError
+		exist, errd = db.ExistRole(rdb.service.areaname, realid)
+		if errd.IsError() != nil {
+			err = errd.IsError()
+		}
+		return
+	}
+}
+
+// Find all equal the request parameter's id gather(collection).
+func (rdb *RelaDB) FindOr(tablename string, request ...interface{}) (gather IndexGather, err error) {
+	allgather, err := rdb.find(tablename, request)
+	if err != nil {
+		err = fmt.Errorf("reladb[RelaDB]FindOr: %v", err)
+		return
+	}
+	gather = make([]uint64, 0)
+	for i := range allgather {
+		rdb.slicesCollection(&gather, &(allgather[i]))
+	}
+	return
+}
+
+// Find all equal the request parameter's id gather(intersection).
+func (rdb *RelaDB) FindAnd(tablename string, request ...interface{}) (gather IndexGather, err error) {
+	allgather, err := rdb.find(tablename, request)
+	if err != nil {
+		err = fmt.Errorf("reladb[RelaDB]FindAnd: %v", err)
+		return
+	}
+	fmt.Println(allgather)
+	for i := 0; i < len(allgather)-1; i++ {
+		if i == 0 {
+			gather = rdb.slicesIntersection(&(allgather[i]), &(allgather[i+1]))
+			i++
+		} else {
+			gather2 := rdb.slicesIntersection(&gather, &(allgather[i]))
+			gather = gather2
+		}
+		//rdb.slicesIntersection(&(allgather[i]), &(allgather[i+1]))
+	}
+	//gather = allgather[len(allgather)-1]
+	return
+}
+
+// find all equal the request parameter's id gather.
+func (rdb *RelaDB) find(tablename string, request []interface{}) (gather []IndexGather, err error) {
+	// check the table if exist.
+	var have bool
+	have, err = rdb.TableExist(tablename)
+	if err != nil {
+		return
+	}
+	if have == false {
+		err = fmt.Errorf("The table %v not exist.", tablename)
+		return
+	}
+
+	fieldslen := len(request)
+	if pubfunc.IsOdd(fieldslen) == true {
+		err = fmt.Errorf("The fields parameter is wrong.")
+		return
+	}
+
+	gather = make([]IndexGather, fieldslen/2)
+	j := 0
+	for i := range request {
+		// range the request and opreate all even number
+		if i == 0 || pubfunc.IsOdd(i) == false {
+			indexid := TABLE_NAME_PREFIX + tablename + TABLE_INDEX_PREFIX + request[i].(string)
+			if rdb.service.dtype == DRULE2_USE_TRULE {
+				have := rdb.service.trule.ExistRole(rdb.service.areaname, indexid)
+				if have == false {
+					err = fmt.Errorf("The field %v not be index.", request[i].(string))
+					return
+				}
+			} else {
+				have, errd := rdb.service.drule.ExistRole(rdb.service.areaname, indexid)
+				if errd.IsError() != nil {
+					err = errd.IsError()
+					return
+				}
+				if have == false {
+					err = fmt.Errorf("The field %v not be index.", request[i].(string))
+					return
+				}
+			}
+			var vb []byte
+			vb, err = iendecode.StructGobBytes(request[i+1])
+			if err != nil {
+				return
+			}
+			vbsha1 := random.GetSha1SumBytes(vb)
+			var allindex map[string]IndexGather
+			if rdb.service.dtype == DRULE2_USE_TRULE {
+				err = rdb.service.trule.ReadData(rdb.service.areaname, indexid, "Index", &allindex)
+				if err != nil {
+					return
+				}
+			} else {
+				errd := rdb.service.drule.ReadData(rdb.service.areaname, indexid, "Index", &allindex)
+				if errd.IsError() != nil {
+					err = errd.IsError()
+					return
+				}
+			}
+			one, find := allindex[vbsha1]
+			if find == true {
+				gather[j] = one
+			} else {
+				gather[j] = make([]uint64, 0)
+			}
+			j++
+		}
+	}
+	return
+}
+
+// Two slices' collection, and the gather1 is the result.
+func (rdb *RelaDB) slicesCollection(gather1, gather2 *IndexGather) {
+	for gi := range *gather2 {
+		have := false
+		for gj := range *gather1 {
+			if (*gather1)[gj] == (*gather2)[gi] {
+				have = true
+				break
+			}
+		}
+		if have == false {
+			*gather1 = append(*gather1, (*gather2)[gi])
+		}
+	}
+	return
+}
+
+// Two slices' intersection, and the gather2 is the result.
+func (rdb *RelaDB) slicesIntersection(gather1, gather2 *IndexGather) (gather IndexGather) {
+	//var gather IndexGather
+	gather = make([]uint64, 0)
+	for gi := range *gather2 {
+		for gj := range *gather1 {
+			if (*gather1)[gj] == (*gather2)[gi] {
+				gather = append(gather, (*gather2)[gi])
+			}
+		}
+	}
+	//gather2 = &gather
 	return
 }
