@@ -14,6 +14,7 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
+	"github.com/idcsource/Insight-0-0-lib/pubfunc"
 	"github.com/idcsource/Insight-0-0-lib/random"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
@@ -566,6 +567,85 @@ func (rdb *RelaDB) Select(tablename string, id uint64, therole roles.Roleer) (er
 		}
 		tran.Commit()
 		return
+	}
+	return
+}
+
+// Select the given fields' value.
+func (rdb *RelaDB) SelectFields(tablename string, id uint64, fields ...interface{}) (err error) {
+	// check the table if exist.
+	var have bool
+	have, err = rdb.TableExist(tablename)
+	if err != nil {
+		return
+	}
+	if have == false {
+		err = fmt.Errorf("The table %v not exist.", tablename)
+		return
+	}
+
+	fieldslen := len(fields)
+	if pubfunc.IsOdd(fieldslen) == true {
+		err = fmt.Errorf("reladb[RelaDB]SelectFields: The fields parameter is wrong.")
+		return
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("reladb[RelaDB]SelectFields: %v", e)
+		}
+	}()
+
+	//tableid := TABLE_NAME_PREFIX + tablename
+	rolesid := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(id, 10)
+
+	// If use TRule
+	if rdb.service.dtype == DRULE2_USE_TRULE {
+		db := rdb.service.trule
+		tran, _ := db.Begin()
+		for i := range fields {
+			tname := reflect.TypeOf(fields[i]).String()
+			// 0 or even number, is field name.
+			if i == 0 || pubfunc.IsOdd(i) == false {
+				if tname != "string" {
+					tran.Rollback()
+					err = fmt.Errorf("reladb[RelaDB]SelectFields: The fields parameter is wrong.")
+					return
+				}
+				err = tran.ReadData(rdb.service.areaname, rolesid, fields[i].(string), fields[i+1])
+				if err != nil {
+					tran.Rollback()
+					return
+				}
+			}
+		}
+		tran.Commit()
+	} else {
+		db := rdb.service.drule
+		errd := operator.NewDRuleError()
+		tran, errd := db.Begin()
+		if errd.IsError() != nil {
+			err = errd.IsError()
+			return
+		}
+		for i := range fields {
+			tname := reflect.TypeOf(fields[i]).String()
+			// 0 or even number, is field name.
+			if i == 0 || pubfunc.IsOdd(i) == false {
+				if tname != "string" {
+					tran.Rollback()
+					err = fmt.Errorf("reladb[RelaDB]SelectFields: The fields parameter is wrong.")
+					return
+				}
+				errd = tran.ReadData(rdb.service.areaname, rolesid, fields[i].(string), fields[i+1])
+				if errd.IsError() != nil {
+					tran.Rollback()
+					err = errd.IsError()
+					return
+				}
+			}
+		}
+		tran.Commit()
 	}
 	return
 }
