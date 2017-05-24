@@ -109,3 +109,11 @@ func SplitUrl(url string) (urla []string, parameter map[string]string) {
 	}
 	return
 }
+
+// Is odd number
+func IsOdd(num int) bool {
+	if num%2 == 0 {
+		return false
+	}
+	return true
+}
