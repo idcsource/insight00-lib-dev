@@ -241,6 +241,16 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 		err = fmt.Errorf("The table %v not exist.", tablename)
 		return
 	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("reladb[RelaDB]Insert: %v", e)
+		}
+	}()
+
+	valuer := reflect.Indirect(reflect.ValueOf(instance))
+	tname := valuer.Type().String()
+
 	tableid := TABLE_NAME_PREFIX + tablename
 	// 查看用什么连接的
 	if rdb.service.dtype == DRULE2_USE_TRULE {
@@ -250,6 +260,18 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 		err = tran.LockRole(rdb.service.areaname, tableid)
 		if err != nil {
 			tran.Rollback()
+			return
+		}
+		// 获取类型
+		var ptype string
+		err = tran.ReadData(rdb.service.areaname, tableid, "Prototype", &ptype)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		if ptype != tname {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Insert: The table's type is  %v but you give .", ptype, tname)
 			return
 		}
 		// 获取自增
@@ -331,6 +353,19 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 		if errd.IsError() != nil {
 			tran.Rollback()
 			err = errd.IsError()
+			return
+		}
+		// 获取类型
+		var ptype string
+		errd = tran.ReadData(rdb.service.areaname, tableid, "Prototype", &ptype)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		if ptype != tname {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Insert: The table's type is  %v but you give .", ptype, tname)
 			return
 		}
 		// 获取自增
@@ -435,6 +470,102 @@ func (rdb *RelaDB) Count(tablename string) (count uint64, err error) {
 			err = errd.IsError()
 			return
 		}
+	}
+	return
+}
+
+// Select one Role use the id
+func (rdb *RelaDB) Select(tablename string, id uint64, therole roles.Roleer) (err error) {
+	// check the table if exist.
+	var have bool
+	have, err = rdb.TableExist(tablename)
+	if err != nil {
+		return
+	}
+	if have == false {
+		err = fmt.Errorf("The table %v not exist.", tablename)
+		return
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("reladb[RelaDB]Select: %v", e)
+		}
+	}()
+
+	valuer := reflect.Indirect(reflect.ValueOf(therole))
+	tname := valuer.Type().String()
+
+	tableid := TABLE_NAME_PREFIX + tablename
+	rolesid := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(id, 10)
+
+	// If use TRule
+	if rdb.service.dtype == DRULE2_USE_TRULE {
+		db := rdb.service.trule
+		tran, _ := db.Begin()
+		var tabletype string
+		err = tran.ReadData(rdb.service.areaname, tableid, "Prototype", &tabletype)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		if tabletype != tname {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Select: The table's type is  %v but you give .", tabletype, tname)
+			return
+		}
+		exist := db.ExistRole(rdb.service.areaname, rolesid)
+		if exist == false {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Select: Can not find the id %v.", id)
+			return
+		}
+		err = db.ReadRole(rdb.service.areaname, rolesid, therole)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		tran.Commit()
+		return
+	} else {
+		db := rdb.service.drule
+		errd := operator.NewDRuleError()
+		tran, errd := db.Begin()
+		if errd.IsError() != nil {
+			err = errd.IsError()
+			return
+		}
+		var tabletype string
+		errd = tran.ReadData(rdb.service.areaname, tableid, "Prototype", &tabletype)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		if tabletype != tname {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Select: The table's type is  %v but you give .", tabletype, tname)
+			return
+		}
+		exist, errd := db.ExistRole(rdb.service.areaname, rolesid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		if exist == false {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Select: Can not find the id %v.", id)
+			return
+		}
+		errd = db.ReadRole(rdb.service.areaname, rolesid, therole)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		tran.Commit()
+		return
 	}
 	return
 }
