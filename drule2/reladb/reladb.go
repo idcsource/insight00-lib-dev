@@ -211,6 +211,225 @@ func (rdb *RelaDB) NewTable(tablename string, prototype roles.Roleer, fields ...
 	return
 }
 
+// Drop table if the table exist.
+func (rdb *RelaDB) DropTable(tablename string) (err error) {
+	// check if have the table, if table not exist, just return.
+	var have bool
+	have, err = rdb.TableExist(tablename)
+	if err != nil {
+		return
+	}
+	if have == false {
+		return
+	}
+
+	tableid := TABLE_NAME_PREFIX + tablename
+
+	if rdb.service.dtype == DRULE2_USE_TRULE {
+		db := rdb.service.trule
+		tran, _ := db.Begin()
+		// log the table Role
+		err = tran.LockRole(rdb.service.areaname, tableid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// read the index fields name
+		var indexfields []string
+		err = tran.ReadData(rdb.service.areaname, tableid, "IndexField", &indexfields)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// read the max increment
+		var max_count uint64
+		err = tran.ReadData(rdb.service.areaname, tableid, "IncrementCount", &max_count)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// travel the increment id and delete
+		for i := uint64(0); i <= max_count; i++ {
+			id := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(i, 10)
+			existid := tran.ExistRole(rdb.service.areaname, id)
+			if existid == true {
+				err = tran.DeleteRole(rdb.service.areaname, id)
+				if err != nil {
+					tran.Rollback()
+					return
+				}
+			}
+		}
+		// travel index fields and delete
+		for i := range indexfields {
+			id := TABLE_NAME_PREFIX + tablename + TABLE_INDEX_PREFIX + indexfields[i]
+			existid := tran.ExistRole(rdb.service.areaname, id)
+			if existid == true {
+				err = tran.DeleteRole(rdb.service.areaname, id)
+				if err != nil {
+					tran.Rollback()
+					return
+				}
+			}
+		}
+		// delete table's main Role
+		err = tran.DeleteRole(rdb.service.areaname, tableid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// delete the child in TablesControl
+		err = tran.DeleteChild(rdb.service.areaname, TABLE_CONTROL_NAME, tableid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		tran.Commit()
+	} else {
+		db := rdb.service.drule
+		var errd operator.DRuleError
+		tran, errd := db.Begin()
+		if errd.IsError() != nil {
+			err = errd.IsError()
+			return
+		}
+		// log the table Role
+		errd = tran.LockRole(rdb.service.areaname, tableid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// read the index fields name
+		var indexfields []string
+		errd = tran.ReadData(rdb.service.areaname, tableid, "IndexField", &indexfields)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// read the max increment
+		var max_count uint64
+		errd = tran.ReadData(rdb.service.areaname, tableid, "IncrementCount", &max_count)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// travel the increment id and delete
+		for i := uint64(0); i <= max_count; i++ {
+			id := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(i, 10)
+			existid, errd := tran.ExistRole(rdb.service.areaname, id)
+			if errd.IsError() != nil {
+				tran.Rollback()
+				err = errd.IsError()
+				return
+			}
+			if existid == true {
+				errd = tran.DeleteRole(rdb.service.areaname, id)
+				if errd.IsError() != nil {
+					tran.Rollback()
+					err = errd.IsError()
+					return
+				}
+			}
+		}
+		// travel index fields and delete
+		for i := range indexfields {
+			id := TABLE_NAME_PREFIX + tablename + TABLE_INDEX_PREFIX + indexfields[i]
+			existid, errd := tran.ExistRole(rdb.service.areaname, id)
+			if errd.IsError() != nil {
+				tran.Rollback()
+				err = errd.IsError()
+				return
+			}
+			if existid == true {
+				errd = tran.DeleteRole(rdb.service.areaname, id)
+				if errd.IsError() != nil {
+					tran.Rollback()
+					err = errd.IsError()
+					return
+				}
+			}
+		}
+		// delete table's main Role
+		errd = tran.DeleteRole(rdb.service.areaname, tableid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// delete the child in TablesControl
+		errd = tran.DeleteChild(rdb.service.areaname, TABLE_CONTROL_NAME, tableid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		tran.Commit()
+	}
+
+	return
+}
+
+// Drop table if the table exist. It's alias of the DropTable.
+func (rdb *RelaDB) DeleteTable(tablename string) (err error) {
+	return rdb.DropTable(tablename)
+}
+
+// List all tables' name.
+func (rdb *RelaDB) TableList() (list []string, err error) {
+	if rdb.service.dtype == DRULE2_USE_TRULE {
+		db := rdb.service.trule
+		tran, _ := db.Begin()
+		var list_id []string
+		list_id, err = tran.ReadChildren(rdb.service.areaname, TABLE_CONTROL_NAME)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		list = make([]string, len(list_id))
+		for i := range list_id {
+			var list1 string
+			err = tran.ReadData(rdb.service.areaname, list_id[i], "TableName", &list1)
+			if err != nil {
+				tran.Rollback()
+				return
+			}
+			list[i] = list1
+		}
+		tran.Commit()
+	} else {
+		db := rdb.service.drule
+		var errd operator.DRuleError
+		tran, errd := db.Begin()
+		if errd.IsError() != nil {
+			err = errd.IsError()
+			return
+		}
+		var list_id []string
+		list_id, errd = tran.ReadChildren(rdb.service.areaname, TABLE_CONTROL_NAME)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		list = make([]string, len(list_id))
+		for i := range list_id {
+			var list1 string
+			errd = tran.ReadData(rdb.service.areaname, list_id[i], "TableName", &list1)
+			if errd.IsError() != nil {
+				tran.Rollback()
+				err = errd.IsError()
+				return
+			}
+			list[i] = list1
+		}
+		tran.Commit()
+	}
+	return
+}
+
 // Check if the table exist.
 func (rdb *RelaDB) TableExist(tablename string) (exist bool, err error) {
 	tableid := TABLE_NAME_PREFIX + tablename
