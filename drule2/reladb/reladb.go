@@ -1040,3 +1040,169 @@ func (rdb *RelaDB) slicesIntersection(gather1, gather2 *IndexGather) (gather Ind
 	//gather2 = &gather
 	return
 }
+
+// Delete the column if it exist
+func (rdb *RelaDB) Delete(tablename string, id uint64) (err error) {
+	// check the table if exist.
+	var have bool
+	have, err = rdb.TableExist(tablename)
+	if err != nil {
+		return
+	}
+	if have == false {
+		err = fmt.Errorf("reladb[RelaDb]Delete: The table %v not exist.", tablename)
+		return
+	}
+
+	tableid := TABLE_NAME_PREFIX + tablename
+	rolesid := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(id, 10)
+
+	// If use TRule
+	if rdb.service.dtype == DRULE2_USE_TRULE {
+		tran, _ := rdb.service.trule.Begin()
+		err = tran.LockRole(rdb.service.areaname, tableid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		exist := tran.ExistRole(rdb.service.areaname, rolesid)
+		if exist == false {
+			return
+		}
+		// get the Role's middle data
+		var mid roles.RoleMiddleData
+		mid, err = tran.ReadRoleMiddleData(rdb.service.areaname, rolesid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// get the index from table main Role.
+		var indexfields []string
+		err = tran.ReadData(rdb.service.areaname, tableid, "IndexField", &indexfields)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// operate the index field
+		for _, onefield := range indexfields {
+			var thea string
+			thea = random.GetSha1SumBytes(mid.Data.Point[onefield])
+			indexid := TABLE_NAME_PREFIX + tablename + TABLE_INDEX_PREFIX + onefield
+			// get the index
+			var indexc map[string]IndexGather
+			err = tran.ReadData(rdb.service.areaname, indexid, "Index", &indexc)
+			if err != nil {
+				tran.Rollback()
+				return
+			}
+			// find if have the index value
+			gather, find := indexc[thea]
+			if find == true {
+				var count int
+				for i, v := range gather {
+					if v == id {
+						count = i
+						break
+					}
+				}
+				gather = append(gather[:count], gather[count+1:]...)
+			}
+			indexc[thea] = gather
+			// restore the gather
+			err = tran.WriteData(rdb.service.areaname, indexid, "Index", indexc)
+			if err != nil {
+				tran.Rollback()
+				return
+			}
+		}
+		// delete the column
+		err = tran.DeleteRole(rdb.service.areaname, rolesid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		tran.Commit()
+	} else {
+		var errd operator.DRuleError
+		tran, errd := rdb.service.drule.Begin()
+		if errd.IsError() != nil {
+			err = errd.IsError()
+			return
+		}
+		errd = tran.LockRole(rdb.service.areaname, tableid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		exist, errd := tran.ExistRole(rdb.service.areaname, rolesid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		if exist == false {
+			return
+		}
+		// get the Role's middle data
+		var mid roles.RoleMiddleData
+		mid, errd = tran.ReadRoleToMiddleData(rdb.service.areaname, rolesid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// get the index from table main Role.
+		var indexfields []string
+		errd = tran.ReadData(rdb.service.areaname, tableid, "IndexField", &indexfields)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// operate the index field
+		for _, onefield := range indexfields {
+			var thea string
+			thea = random.GetSha1SumBytes(mid.Data.Point[onefield])
+			indexid := TABLE_NAME_PREFIX + tablename + TABLE_INDEX_PREFIX + onefield
+			// get the index
+			var indexc map[string]IndexGather
+			errd = tran.ReadData(rdb.service.areaname, indexid, "Index", &indexc)
+			if errd.IsError() != nil {
+				tran.Rollback()
+				err = errd.IsError()
+				return
+			}
+			// find if have the index value
+			gather, find := indexc[thea]
+			if find == true {
+				var count int
+				for i, v := range gather {
+					if v == id {
+						count = i
+						break
+					}
+				}
+				gather = append(gather[:count], gather[count+1:]...)
+			}
+			indexc[thea] = gather
+			// restore the gather
+			errd = tran.WriteData(rdb.service.areaname, indexid, "Index", indexc)
+			if errd.IsError() != nil {
+				tran.Rollback()
+				err = errd.IsError()
+				return
+			}
+		}
+		// delete the column
+		errd = tran.DeleteRole(rdb.service.areaname, rolesid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		tran.Commit()
+	}
+
+	return
+}
