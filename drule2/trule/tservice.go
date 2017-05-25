@@ -109,10 +109,6 @@ func (t *tranService) addRole(tran_id, area string, mid roles.RoleMiddleData) (r
 
 	if find == false {
 		// 找不到
-		if err != nil {
-			t.lock.RUnlock()
-			return nil, err
-		}
 		rolec = &roleCache{
 			area:       area,
 			role:       &mid,
@@ -129,28 +125,41 @@ func (t *tranService) addRole(tran_id, area string, mid roles.RoleMiddleData) (r
 		return rolec, nil
 	} else {
 		// 找到
-		// 构造等待队列
-		wait := &tranAskGetRole{
-			tran_id:  tran_id,
-			ask_time: time.Now(),
-			approved: make(chan bool),
+		if rolec.tran_id == "" || rolec.tran_id == tran_id {
+			// can self
+			rolec.tran_id = tran_id
+			rolec.tran_time = time.Now()
+			rolec.role = &mid
+			rolec.be_change = true
+			t.lock.Unlock()
+			return rolec, nil
+		} else {
+			// 构造等待队列
+			wait := &tranAskGetRole{
+				tran_id:  tran_id,
+				ask_time: time.Now(),
+				approved: make(chan bool),
+			}
+			// 加入等待队列
+			rolec.addWait(wait)
+			// 主动解锁
+			t.lock.Unlock()
+			// 等待回音
+			fmt.Println("Tran log ", tran_id, "等待", id)
+			<-wait.approved
+			fmt.Println("Tran log ", tran_id, "等到了", id)
+			// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以就把角色的主体改了吧
+			rolec.role = &mid
+			rolec.tran_time = time.Now()
+			rolec.tran_id = tran_id
+			rolec.be_change = true
+			// 如果被确认删除了还就很麻烦的
+			if rolec.be_delete != TRAN_ROLE_BE_DELETE_NO {
+				rolec.role_store = mid
+				rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
+			}
+			return rolec, nil
 		}
-		// 加入等待队列
-		rolec.addWait(wait)
-		// 主动解锁
-		t.lock.Unlock()
-		// 等待回音
-		fmt.Println("Tran log ", tran_id, "等待", id)
-		<-wait.approved
-		fmt.Println("Tran log ", tran_id, "等到了", id)
-		// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以就把角色的主体改了吧
-		rolec.role = &mid
-		// 如果被确认删除了还就很麻烦的
-		if rolec.be_delete != TRAN_ROLE_BE_DELETE_NO {
-			rolec.role_store = mid
-			rolec.be_delete = TRAN_ROLE_BE_DELETE_NO
-		}
-		return rolec, nil
 	}
 }
 

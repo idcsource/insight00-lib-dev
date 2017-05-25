@@ -203,11 +203,11 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 		// 检查等待队列
 		wait_count := len(rolec.wait_line)
 		if wait_count == 0 {
-			fmt.Println("Tran log, 写入 ", rolec.role.ReturnId())
 			// 如果没有等待队列
 			// 将这个角色保存或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
 				if rolec.be_change == true {
+					fmt.Println("Tran log, 真写入 ", rolec.role.ReturnId())
 					t.local_store.RoleStoreMiddleData(rolec.area, *rolec.role)
 					rolec.be_change = false
 				}
@@ -225,6 +225,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
 				rolec.role_store = *rolec.role
 				if rolec.be_change == true {
+					fmt.Println("Tran log, 真写入 ", rolec.role.ReturnId())
 					t.local_store.RoleStoreMiddleData(rolec.area, *rolec.role)
 					rolec.be_change = false
 				}
