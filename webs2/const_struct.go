@@ -35,22 +35,34 @@ const (
 	NODE_IS_EMPTY         // 空
 )
 
+type PolymerSwitch uint8 // The Polymer Switch
+
+const (
+	POLYMER_NO     PolymerSwitch = iota // Not to make polymer
+	POLYMER_TYPE_1                      // Use type 1 to make polymer
+	POLYMER_TYPE_2                      // Use type 2 to make polymer
+	POLYMER_TYPE_3                      // Use type 3 to make polymer
+	POLYMER_TYPE_4                      // Use type 4 to make polymer
+	POLYMER_TYPE_5                      // Use type 5 to make polymer
+)
+
 // Web的数据结构
 type Web struct {
-	local       string                 // 本地路径
-	static      string                 // 静态资源路径
-	config      *cpool.Section         // 自身的配置文件
-	database    *idb.DB                // 主数据库连接
-	drule       *drule.Operator        // 对DRule分布式存储的支持（也就是operator分布式控制器）
-	trule       *drule.TRule           // 对TRule事务存储的支持
-	drule2      *drule2.Operator       // drule2的支持
-	trule2      *trule2.TRule          // drule2中trule的支持
-	multiDB     map[string]*idb.DB     // 扩展多数据库准备
-	ext         map[string]interface{} // Extension扩展数据（功能）
-	execpoint   map[string]ExecPointer // 执行点
-	router      *Router                // 路由器
-	log         *ilogs.Logs            // 运行日志
-	max_routine chan bool              // 最大并发
+	local       string                       // 本地路径
+	static      string                       // 静态资源路径
+	config      *cpool.Section               // 自身的配置文件
+	database    *idb.DB                      // 主数据库连接
+	drule       *drule.Operator              // 对DRule分布式存储的支持（也就是operator分布式控制器）
+	trule       *drule.TRule                 // 对TRule事务存储的支持
+	drule2      *drule2.Operator             // drule2的支持
+	trule2      *trule2.TRule                // drule2中trule的支持
+	multiDB     map[string]*idb.DB           // 扩展多数据库准备
+	ext         map[string]interface{}       // Extension扩展数据（功能）
+	execpoint   map[string]ExecPointer       // 执行点
+	viewpolymer map[string]ViewPolymerExecer // view polymer's interface
+	router      *Router                      // 路由器
+	log         *ilogs.Logs                  // 运行日志
+	max_routine chan bool                    // 最大并发
 }
 
 // 路由器基本类型
@@ -87,6 +99,8 @@ type Runtime struct {
 type FloorInterface interface {
 	InitHTTP(w http.ResponseWriter, r *http.Request, b *Web, rt Runtime)
 	ExecHTTP()
+	ViewPolymer() (switchs PolymerSwitch, order []string)
+	ViewStream() string
 }
 
 //控制器原型的数据类型
@@ -107,4 +121,9 @@ type FloorDoorInterface interface {
 // 执行点的接口定义
 type ExecPointer interface {
 	ExecPoint(w http.ResponseWriter, r *http.Request, b *Web, rt Runtime) (err error)
+}
+
+// View Polymer's Execer
+type ViewPolymerExecer interface {
+	Exec(switchs PolymerSwitch, rt Runtime, stream string) (newstream string, newswitchs PolymerSwitch)
 }

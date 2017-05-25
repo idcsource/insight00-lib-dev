@@ -27,13 +27,14 @@ func NewWeb(config *cpool.Section, db *idb.DB, log *ilogs.Logs) (web *Web) {
 		log, _ = ilogs.NewLog("", "", "Web")
 	}
 	web = &Web{
-		local:     pubfunc.LocalPath(""),
-		config:    config,
-		database:  db,
-		ext:       make(map[string]interface{}),
-		execpoint: make(map[string]ExecPointer),
-		log:       log,
-		router:    newRouter(log),
+		local:       pubfunc.LocalPath(""),
+		config:      config,
+		database:    db,
+		ext:         make(map[string]interface{}),
+		execpoint:   make(map[string]ExecPointer),
+		viewpolymer: make(map[string]ViewPolymerExecer),
+		log:         log,
+		router:      newRouter(log),
 	}
 	// 检查静态资源地址是不是有
 	static, err := web.config.GetConfig("static")
@@ -243,7 +244,29 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 
 	//开始执行
 	runfloor.InitHTTP(httpw, httpr, web, rt)
-	runfloor.ExecHTTP()
+	switchs, order := runfloor.ViewPolymer()
+	if switchs == POLYMER_NO {
+		runfloor.ExecHTTP()
+	} else {
+		var stream string
+		if order == nil || len(order) == 0 {
+			stream = runfloor.ViewStream()
+		} else {
+			stream := runfloor.ViewStream()
+			for _, onename := range order {
+				oneexec, have := web.viewpolymer[onename]
+				if have == false {
+					fmt.Fprint(httpw, "The ViewPolymer set is wrong, cannot find %v.", onename)
+					return
+				}
+				stream, switchs = oneexec.Exec(switchs, rt, stream)
+				if switchs == POLYMER_NO {
+					break
+				}
+			}
+		}
+		fmt.Fprint(httpw, stream)
+	}
 	return
 }
 

@@ -27,6 +27,15 @@ func (f *Floor) ExecHTTP() {
 
 }
 
+func (f *Floor) ViewPolymer() (switchs PolymerSwitch, order []string) {
+	switchs = POLYMER_NO
+	return
+}
+
+func (f *Floor) ViewStream() (stream string) {
+	return
+}
+
 // 无法找到页面的系统内默认处理手段
 type NotFoundFloor struct {
 	Floor
