@@ -1067,6 +1067,7 @@ func (rdb *RelaDB) Delete(tablename string, id uint64) (err error) {
 		}
 		exist := tran.ExistRole(rdb.service.areaname, rolesid)
 		if exist == false {
+			tran.Rollback()
 			return
 		}
 		// get the Role's middle data
@@ -1106,8 +1107,8 @@ func (rdb *RelaDB) Delete(tablename string, id uint64) (err error) {
 					}
 				}
 				gather = append(gather[:count], gather[count+1:]...)
+				indexc[thea] = gather
 			}
-			indexc[thea] = gather
 			// restore the gather
 			err = tran.WriteData(rdb.service.areaname, indexid, "Index", indexc)
 			if err != nil {
@@ -1142,6 +1143,7 @@ func (rdb *RelaDB) Delete(tablename string, id uint64) (err error) {
 			return
 		}
 		if exist == false {
+			tran.Rollback()
 			return
 		}
 		// get the Role's middle data
@@ -1184,8 +1186,8 @@ func (rdb *RelaDB) Delete(tablename string, id uint64) (err error) {
 					}
 				}
 				gather = append(gather[:count], gather[count+1:]...)
+				indexc[thea] = gather
 			}
-			indexc[thea] = gather
 			// restore the gather
 			errd = tran.WriteData(rdb.service.areaname, indexid, "Index", indexc)
 			if errd.IsError() != nil {
@@ -1204,5 +1206,161 @@ func (rdb *RelaDB) Delete(tablename string, id uint64) (err error) {
 		tran.Commit()
 	}
 
+	return
+}
+
+// Update fields data.
+func (rdb *RelaDB) UpdateFields(tablename string, id uint64, parameter ...interface{}) (err error) {
+	// check the table if exist.
+	var have bool
+	have, err = rdb.TableExist(tablename)
+	if err != nil {
+		return
+	}
+	if have == false {
+		err = fmt.Errorf("The table %v not exist.", tablename)
+		return
+	}
+	// check the fields parameter's number.
+	fieldslen := len(parameter)
+	if pubfunc.IsOdd(fieldslen) == true {
+		err = fmt.Errorf("reladb[RelaDB]UpdateFields: The parameter is wrong.")
+		return
+	}
+	// recover panic
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("reladb[RelaDB]UpdateFields: %v", e)
+		}
+	}()
+	tableid := TABLE_NAME_PREFIX + tablename
+	rolesid := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(id, 10)
+	if rdb.service.dtype == DRULE2_USE_TRULE {
+		tran, _ := rdb.service.trule.Begin()
+		// lock the table Role.
+		err = tran.LockRole(rdb.service.areaname, tableid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// check if the id exist
+		have := tran.ExistRole(rdb.service.areaname, rolesid)
+		if have == false {
+			err = fmt.Errorf("The id %v not exist.", id)
+			return
+		}
+		// get all the index fields name.
+		var indexfields []string
+		err = tran.ReadData(rdb.service.areaname, tableid, "IndexField", &indexfields)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// get the Role's middle data.
+		var mid roles.RoleMiddleData
+		mid, err = tran.ReadRoleMiddleData(rdb.service.areaname, rolesid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// for range parameter
+		for i := range parameter {
+			tname := reflect.TypeOf(parameter[i]).String()
+			if i == 0 || pubfunc.IsOdd(i) == false {
+				if tname != "string" {
+					tran.Rollback()
+					err = fmt.Errorf("reladb[RelaDB]UpdateFields: The fields parameter is wrong.")
+					return
+				}
+				fieldname := parameter[i].(string)
+				// check if the column Role have the field
+				old_valb, have := mid.Data.Point[fieldname]
+				if have == false {
+					tran.Rollback()
+					err = fmt.Errorf("reladb[RelaDB]UpdateFields: The fields parameter is wrong.")
+					return
+				}
+				var new_valb []byte
+				new_valb, err = iendecode.StructGobBytes(parameter[i+1])
+				if err != nil {
+					tran.Rollback()
+					return
+				}
+				// check if the field be index
+				if rdb.stringInSlice(indexfields, fieldname) == true {
+					// change the index
+					err = rdb.changeOneFieldIndexTRule(tran, tablename, id, fieldname, old_valb, new_valb)
+					if err != nil {
+						tran.Rollback()
+						return
+					}
+				}
+				// change the field's value
+				mid.Data.Point[fieldname] = new_valb
+			}
+		}
+		// restore the column Role.
+		err = tran.StoreRoleFromMiddleData(rdb.service.areaname, mid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		tran.Commit()
+	} else {
+
+	}
+	return
+}
+
+// check if the string in the slice.
+func (rdb *RelaDB) stringInSlice(slice []string, one string) (yes bool) {
+	yes = false
+	for _, s := range slice {
+		if s == one {
+			yes = true
+			return
+		}
+	}
+	return
+}
+
+// change one field's index
+func (rdb *RelaDB) changeOneFieldIndexTRule(tran *trule.Transaction, tablename string, id uint64, fieldname string, oldb, newb []byte) (err error) {
+	indexid := TABLE_NAME_PREFIX + tablename + TABLE_INDEX_PREFIX + fieldname
+	olda := random.GetSha1SumBytes(oldb)
+	newa := random.GetSha1SumBytes(newb)
+	// read the index
+	var indexc map[string]IndexGather
+	err = tran.ReadData(rdb.service.areaname, indexid, "Index", &indexc)
+	if err != nil {
+		return
+	}
+	// delete index from old value
+	oldi, have := indexc[olda]
+	if have == true {
+		var count int
+		for i, v := range oldi {
+			if v == id {
+				count = i
+				break
+			}
+		}
+		oldi = append(oldi[:count], oldi[count+1:]...)
+		indexc[olda] = oldi
+	}
+	// add index from new value
+	newi, have := indexc[newa]
+	if have == true {
+		newi = append(newi, id)
+		indexc[newa] = newi
+	} else {
+		newi = []uint64{id}
+		indexc[newa] = newi
+	}
+	// restore the index
+	err = tran.WriteData(rdb.service.areaname, indexid, "Index", indexc)
+	if err != nil {
+		return
+	}
 	return
 }
