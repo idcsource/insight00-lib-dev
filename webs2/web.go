@@ -73,6 +73,11 @@ func (web *Web) GetExt(name string) (ext interface{}, err error) {
 	return web.ext[name], nil
 }
 
+// Reg View Polymer Execer
+func (web *Web) ViewPolymer(name string, execer ViewPolymerExecer) {
+	web.viewpolymer[name] = execer
+}
+
 // 注册执行点
 func (web *Web) RegExecPoint(name string, point ExecPointer) {
 	web.execpoint[name] = point
