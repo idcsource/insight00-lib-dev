@@ -27,12 +27,13 @@ func (f *Floor) ExecHTTP() {
 
 }
 
-func (f *Floor) ViewPolymer() (switchs PolymerSwitch, order []string) {
+func (f *Floor) ViewPolymer() (switchs PolymerSwitch) {
 	switchs = POLYMER_NO
 	return
 }
 
-func (f *Floor) ViewStream() (stream string) {
+// order is the View Polymer Execer's name witch will exec next step.
+func (f *Floor) ViewStream() (stream string, order string) {
 	return
 }
 

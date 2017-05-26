@@ -99,8 +99,8 @@ type Runtime struct {
 type FloorInterface interface {
 	InitHTTP(w http.ResponseWriter, r *http.Request, b *Web, rt Runtime)
 	ExecHTTP()
-	ViewPolymer() (switchs PolymerSwitch, order []string)
-	ViewStream() string
+	ViewPolymer() (switchs PolymerSwitch)
+	ViewStream() (stream string, order string)
 }
 
 //控制器原型的数据类型
@@ -125,5 +125,5 @@ type ExecPointer interface {
 
 // View Polymer's Execer
 type ViewPolymerExecer interface {
-	Exec(switchs PolymerSwitch, rt Runtime, stream string) (newstream string, newswitchs PolymerSwitch)
+	Exec(switchs PolymerSwitch, rt Runtime, stream string) (newstream string, newswitchs PolymerSwitch, neworder string)
 }

@@ -249,25 +249,25 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 
 	//开始执行
 	runfloor.InitHTTP(httpw, httpr, web, rt)
-	switchs, order := runfloor.ViewPolymer()
+	switchs := runfloor.ViewPolymer()
 	if switchs == POLYMER_NO {
 		runfloor.ExecHTTP()
 	} else {
-		var stream string
-		if order == nil || len(order) == 0 {
-			stream = runfloor.ViewStream()
-		} else {
-			stream := runfloor.ViewStream()
-			for _, onename := range order {
-				oneexec, have := web.viewpolymer[onename]
-				if have == false {
-					fmt.Fprint(httpw, "The ViewPolymer set is wrong, cannot find %v.", onename)
-					return
-				}
-				stream, switchs = oneexec.Exec(switchs, rt, stream)
-				if switchs == POLYMER_NO {
-					break
-				}
+		var stream, order string
+		stream, order = runfloor.ViewStream()
+		if order == "" {
+			fmt.Fprint(httpw, stream)
+			return
+		}
+		for {
+			oneexec, have := web.viewpolymer[order]
+			if have == false {
+				fmt.Fprint(httpw, "The ViewPolymer set is wrong, cannot find %v.", order)
+				return
+			}
+			stream, switchs, order = oneexec.Exec(switchs, rt, stream)
+			if switchs == POLYMER_NO {
+				break
 			}
 		}
 		fmt.Fprint(httpw, stream)
