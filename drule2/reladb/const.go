@@ -5,6 +5,10 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
+// The RelaDB is a simulation of relational database.
+//
+// The lower layer, you can use drule2/trule or drule2/operator.
+// It does not support SQL, only provides some simple functions. Include create table, index fields, insert, select, update, delete...
 package reladb
 
 const (

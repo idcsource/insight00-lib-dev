@@ -90,7 +90,8 @@ func NewRelaDBWithDRule(areaname string, instance *operator.Operator) (rdb *Rela
 }
 
 // Create new table.
-// The fields is what fields need to index.
+// The prototype parameter is set what type the table can store.
+// The fields parameter is set what fields need to index.
 func (rdb *RelaDB) NewTable(tablename string, prototype roles.Roleer, fields ...string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -450,9 +451,11 @@ func (rdb *RelaDB) TableExist(tablename string) (exist bool, err error) {
 	return
 }
 
-// Insert one Role to table. (Notice: the Role's id will be change.)
-func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
-	// 查看有无这个表
+// Insert one Role to table, and return the auto increment id.
+// The instance type must same as the prototype you set when create new table.
+// Notice: the Role's id will be change to the auto increment id.
+func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (autoid uint64, err error) {
+	// check if the table exist
 	var have bool
 	have, err = rdb.TableExist(tablename)
 	if err != nil {
@@ -492,7 +495,7 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 		}
 		if ptype != tname {
 			tran.Rollback()
-			err = fmt.Errorf("reladb[RelaDB]Insert: The table's type is  %v but you give .", ptype, tname)
+			err = fmt.Errorf("reladb[RelaDB]Insert: The table's type is  %v but you give %v .", ptype, tname)
 			return
 		}
 		// 获取自增
@@ -503,6 +506,7 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 			return
 		}
 		ai = ai + 1
+		autoid = ai
 		// 写入自增
 		err = tran.WriteData(rdb.service.areaname, tableid, "IncrementCount", ai)
 		if err != nil {
@@ -586,7 +590,7 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 		}
 		if ptype != tname {
 			tran.Rollback()
-			err = fmt.Errorf("reladb[RelaDB]Insert: The table's type is  %v but you give .", ptype, tname)
+			err = fmt.Errorf("reladb[RelaDB]Insert: The table's type is  %v but you give %v .", ptype, tname)
 			return
 		}
 		// 获取自增
@@ -598,6 +602,7 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 			return
 		}
 		ai = ai + 1
+		autoid = ai
 		// 写入自增
 		errd = tran.WriteData(rdb.service.areaname, tableid, "IncrementCount", ai)
 		if errd.IsError() != nil {
@@ -665,7 +670,7 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (err error) {
 	return
 }
 
-// Return the max count.
+// Return the current auto increment count.
 func (rdb *RelaDB) Count(tablename string) (count uint64, err error) {
 	// 查看有无这个表
 	var have bool
@@ -695,8 +700,8 @@ func (rdb *RelaDB) Count(tablename string) (count uint64, err error) {
 	return
 }
 
-// Select one Role use the id
-func (rdb *RelaDB) Select(tablename string, id uint64, therole roles.Roleer) (err error) {
+// Get the Role where is the id.
+func (rdb *RelaDB) Select(tablename string, id uint64, instance roles.Roleer) (err error) {
 	// check the table if exist.
 	var have bool
 	have, err = rdb.TableExist(tablename)
@@ -714,7 +719,7 @@ func (rdb *RelaDB) Select(tablename string, id uint64, therole roles.Roleer) (er
 		}
 	}()
 
-	valuer := reflect.Indirect(reflect.ValueOf(therole))
+	valuer := reflect.Indirect(reflect.ValueOf(instance))
 	tname := valuer.Type().String()
 
 	tableid := TABLE_NAME_PREFIX + tablename
@@ -741,7 +746,7 @@ func (rdb *RelaDB) Select(tablename string, id uint64, therole roles.Roleer) (er
 			err = fmt.Errorf("reladb[RelaDB]Select: Can not find the id %v.", id)
 			return
 		}
-		err = db.ReadRole(rdb.service.areaname, rolesid, therole)
+		err = db.ReadRole(rdb.service.areaname, rolesid, instance)
 		if err != nil {
 			tran.Rollback()
 			return
@@ -779,7 +784,7 @@ func (rdb *RelaDB) Select(tablename string, id uint64, therole roles.Roleer) (er
 			err = fmt.Errorf("reladb[RelaDB]Select: Can not find the id %v.", id)
 			return
 		}
-		errd = db.ReadRole(rdb.service.areaname, rolesid, therole)
+		errd = db.ReadRole(rdb.service.areaname, rolesid, instance)
 		if errd.IsError() != nil {
 			tran.Rollback()
 			err = errd.IsError()
@@ -792,6 +797,7 @@ func (rdb *RelaDB) Select(tablename string, id uint64, therole roles.Roleer) (er
 }
 
 // Select the given fields' value.
+// For example : rdb.SelectFields("tablename",12,"field1", &field1value, "field2", &field2value)
 func (rdb *RelaDB) SelectFields(tablename string, id uint64, fields ...interface{}) (err error) {
 	// check the table if exist.
 	var have bool
@@ -870,7 +876,7 @@ func (rdb *RelaDB) SelectFields(tablename string, id uint64, fields ...interface
 	return
 }
 
-// check if have the id's column
+// check if have the id
 func (rdb *RelaDB) Exist(tablename string, id uint64) (exist bool, err error) {
 	// check the table if exist.
 	var have bool
@@ -1041,7 +1047,7 @@ func (rdb *RelaDB) slicesIntersection(gather1, gather2 *IndexGather) (gather Ind
 	return
 }
 
-// Delete the column if it exist
+// Delete the column if it exist.
 func (rdb *RelaDB) Delete(tablename string, id uint64) (err error) {
 	// check the table if exist.
 	var have bool
@@ -1210,6 +1216,7 @@ func (rdb *RelaDB) Delete(tablename string, id uint64) (err error) {
 }
 
 // Update fields data.
+// For example : rdb.UpdateFields("tablename",12,"field1", field1value, "field2", field2value)
 func (rdb *RelaDB) UpdateFields(tablename string, id uint64, parameter ...interface{}) (err error) {
 	// check the table if exist.
 	var have bool
@@ -1385,6 +1392,186 @@ func (rdb *RelaDB) UpdateFields(tablename string, id uint64, parameter ...interf
 			}
 		}
 		// restore the column Role.
+		errd = tran.StoreRoleFromMiddleData(rdb.service.areaname, mid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		tran.Commit()
+	}
+	return
+}
+
+// Update a id(column).
+// The instance type must same as the prototype you set when create new table.
+func (rdb *RelaDB) Update(tablename string, id uint64, instance roles.Roleer) (err error) {
+	// check the table if exist.
+	var have bool
+	have, err = rdb.TableExist(tablename)
+	if err != nil {
+		return
+	}
+	if have == false {
+		err = fmt.Errorf("The table %v not exist.", tablename)
+		return
+	}
+	// recover panic
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("reladb[RelaDB]Update: %v", e)
+		}
+	}()
+	// get the Role's type.
+	valuer := reflect.Indirect(reflect.ValueOf(instance))
+	tname := valuer.Type().String()
+
+	tableid := TABLE_NAME_PREFIX + tablename
+	colunmnid := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(id, 10)
+
+	if rdb.service.dtype == DRULE2_USE_TRULE {
+		tran, _ := rdb.service.trule.Begin()
+		// check if the column exist
+		exist := tran.ExistRole(rdb.service.areaname, colunmnid)
+		if exist == false {
+			tran.Rollback()
+			err = fmt.Errorf("The id %v not exist.", id)
+			return
+		}
+		// lock the table's main Role
+		err = tran.LockRole(rdb.service.areaname, tableid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// get the prototype.
+		var ptype string
+		err = tran.ReadData(rdb.service.areaname, tableid, "Prototype", &ptype)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		if ptype != tname {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Update: The table's type is  %v but you give %v.", ptype, tname)
+			return
+		}
+		// the Role encode to middle data.
+		var mid roles.RoleMiddleData
+		mid, err = roles.EncodeRoleToMiddle(instance)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// change the Role's id
+		mid.Version.Id = colunmnid
+		// get the index fields name
+		var indexfields []string
+		err = tran.ReadData(rdb.service.areaname, tableid, "IndexField", &indexfields)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// change the index
+		for _, fieldname := range indexfields {
+			newb, find := mid.Data.Point[fieldname]
+			if find == true {
+				// get the old index value
+				var oldb []byte
+				oldb, err = tran.ReadDataToByte(rdb.service.areaname, colunmnid, fieldname)
+				if err != nil {
+					tran.Rollback()
+					return
+				}
+				err = rdb.changeOneFieldIndexTRule(tran, tablename, id, fieldname, oldb, newb)
+				if err != nil {
+					tran.Rollback()
+					return
+				}
+			}
+		}
+		// save the column
+		err = tran.StoreRoleFromMiddleData(rdb.service.areaname, mid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		tran.Commit()
+	} else {
+		tran, errd := rdb.service.drule.Begin()
+		if errd.IsError() != nil {
+			err = errd.IsError()
+			return
+		}
+		// check if the column exist
+		exist, errd := tran.ExistRole(rdb.service.areaname, colunmnid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		if exist == false {
+			tran.Rollback()
+			err = fmt.Errorf("The id %v not exist.", id)
+			return
+		}
+		// lock the table's main Role
+		errd = tran.LockRole(rdb.service.areaname, tableid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// get the prototype.
+		var ptype string
+		errd = tran.ReadData(rdb.service.areaname, tableid, "Prototype", &ptype)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		if ptype != tname {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Update: The table's type is  %v but you give %v.", ptype, tname)
+			return
+		}
+		// the Role encode to middle data.
+		var mid roles.RoleMiddleData
+		mid, err = roles.EncodeRoleToMiddle(instance)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// change the Role's id
+		mid.Version.Id = colunmnid
+		// get the index fields name
+		var indexfields []string
+		errd = tran.ReadData(rdb.service.areaname, tableid, "IndexField", &indexfields)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// change the index
+		for _, fieldname := range indexfields {
+			newb, find := mid.Data.Point[fieldname]
+			if find == true {
+				// get the old index value
+				var oldb []byte
+				oldb, errd = tran.ReadDataToByte(rdb.service.areaname, colunmnid, fieldname)
+				if errd.IsError() != nil {
+					tran.Rollback()
+					err = errd.IsError()
+					return
+				}
+				err = rdb.changeOneFieldIndexDRule(tran, tablename, id, fieldname, oldb, newb)
+				if err != nil {
+					tran.Rollback()
+					return
+				}
+			}
+		}
+		// save the column
 		errd = tran.StoreRoleFromMiddleData(rdb.service.areaname, mid)
 		if errd.IsError() != nil {
 			tran.Rollback()
