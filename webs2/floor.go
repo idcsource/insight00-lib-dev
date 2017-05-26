@@ -33,7 +33,7 @@ func (f *Floor) ViewPolymer() (switchs PolymerSwitch) {
 }
 
 // order is the View Polymer Execer's name witch will exec next step.
-func (f *Floor) ViewStream() (stream string, order string) {
+func (f *Floor) ViewStream() (stream string, order string, data interface{}) {
 	return
 }
 

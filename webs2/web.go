@@ -253,8 +253,10 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 	if switchs == POLYMER_NO {
 		runfloor.ExecHTTP()
 	} else {
+		// the view polymer
 		var stream, order string
-		stream, order = runfloor.ViewStream()
+		var data interface{}
+		stream, order, data = runfloor.ViewStream()
 		if order == "" {
 			fmt.Fprint(httpw, stream)
 			return
@@ -265,7 +267,7 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 				fmt.Fprint(httpw, "The ViewPolymer set is wrong, cannot find %v.", order)
 				return
 			}
-			stream, switchs, order = oneexec.Exec(switchs, rt, stream)
+			stream, switchs, order, data = oneexec.Exec(switchs, rt, stream, data)
 			if switchs == POLYMER_NO {
 				break
 			}
