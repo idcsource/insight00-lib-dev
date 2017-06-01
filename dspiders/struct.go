@@ -53,3 +53,11 @@ type PageSentences struct {
 	Sentences []SentencesIndex    // the sentences index
 	Words     map[string][]uint64 // the words index [word's text][]the index localtion
 }
+
+// The data witch transport in network
+type NetTransportData struct {
+	Name    string              // The sender's name
+	Code    string              // The sender's identity code
+	Operate NetTransportOperate // the operate code
+	Data    []byte              // the data body, it can be PageData, UrlBasic and so on.
+}
