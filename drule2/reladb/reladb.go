@@ -91,8 +91,9 @@ func NewRelaDBWithDRule(areaname string, instance *operator.Operator) (rdb *Rela
 
 // Create new table.
 // The prototype parameter is set what type the table can store.
+// The autofield is the name of field who can store the auto increment, the field type must be uint64. if you don't use the field, it can be "".
 // The fields parameter is set what fields need to index.
-func (rdb *RelaDB) NewTable(tablename string, prototype roles.Roleer, fields ...string) (err error) {
+func (rdb *RelaDB) NewTable(tablename string, prototype roles.Roleer, autofield string, fields ...string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("reladb[RelaDB]NewTable: %v", e)
@@ -109,6 +110,15 @@ func (rdb *RelaDB) NewTable(tablename string, prototype roles.Roleer, fields ...
 		}
 		valuer := reflect.Indirect(reflect.ValueOf(prototype))
 		vname := valuer.Type().String()
+		// 查看autofield
+		if len(autofield) != 0 {
+			autofieldv := valuer.FieldByName(autofield)
+			autofieldname := autofieldv.Type().String()
+			if autofieldname != "uint64" {
+				err = fmt.Errorf("The autofield %v must be uint64.", autofield)
+				return
+			}
+		}
 		// 查看索引的字段（扫一遍，如果panci了正好就弹出错误了）
 		fieldstype := make(map[string]string)
 		for _, field := range fields {
@@ -121,6 +131,7 @@ func (rdb *RelaDB) NewTable(tablename string, prototype roles.Roleer, fields ...
 			TableName:      tablename,
 			Prototype:      vname,
 			IncrementCount: 0,
+			IncrementField: autofield,
 			IndexField:     fields,
 		}
 		tablemain.New(tableid)
@@ -628,6 +639,261 @@ func (rdb *RelaDB) Insert(tablename string, instance roles.Roleer) (autoid uint6
 		// 修改角色id
 		id := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(ai, 10)
 		mid.Version.Id = id
+		// 保存
+		errd = tran.StoreRoleFromMiddleData(rdb.service.areaname, mid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// 查看索引并保存
+		for _, field := range indexfields {
+			value, find := mid.Data.Point[field]
+			if find == true {
+				// 获取索引的索引信息
+				var index map[string]IndexGather
+				errd = tran.ReadData(rdb.service.areaname, TABLE_NAME_PREFIX+tablename+TABLE_INDEX_PREFIX+field, "Index", &index)
+				if errd.IsError() != nil {
+					tran.Rollback()
+					err = errd.IsError()
+					return
+				}
+				valuestring := random.GetSha1SumBytes(value)
+				gather, have := index[valuestring]
+				// 没有这个值就新建
+				if have == false {
+					index[valuestring] = []uint64{ai}
+				} else {
+					gather = append(gather, ai)
+					index[valuestring] = gather
+				}
+				// 再存进去
+				errd = tran.WriteData(rdb.service.areaname, TABLE_NAME_PREFIX+tablename+TABLE_INDEX_PREFIX+field, "Index", &index)
+				if errd.IsError() != nil {
+					tran.Rollback()
+					err = errd.IsError()
+					return
+				}
+			}
+		}
+		tran.Commit()
+	}
+	return
+}
+
+// Insert one Role to table, and return the auto increment id.
+// The instance type must same as the prototype you set when create new table.
+// And the autofield will be change to the id.
+// Notice: the Role's id will be change to the auto increment id.
+func (rdb *RelaDB) InsertForAutoField(tablename string, instance roles.Roleer) (autoid uint64, err error) {
+	// check if the table exist
+	var have bool
+	have, err = rdb.TableExist(tablename)
+	if err != nil {
+		return
+	}
+	if have == false {
+		err = fmt.Errorf("The table %v not exist.", tablename)
+		return
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("reladb[RelaDB]Insert: %v", e)
+		}
+	}()
+
+	valuer := reflect.Indirect(reflect.ValueOf(instance))
+	tname := valuer.Type().String()
+
+	tableid := TABLE_NAME_PREFIX + tablename
+	// 查看用什么连接的
+	if rdb.service.dtype == DRULE2_USE_TRULE {
+		db := rdb.service.trule
+		tran, _ := db.Begin()
+		// 锁定表角色
+		err = tran.LockRole(rdb.service.areaname, tableid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// 获取类型
+		var ptype string
+		err = tran.ReadData(rdb.service.areaname, tableid, "Prototype", &ptype)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		if ptype != tname {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Insert: The table's type is  %v but you give %v .", ptype, tname)
+			return
+		}
+		// 获取自增
+		var ai uint64
+		err = tran.ReadData(rdb.service.areaname, tableid, "IncrementCount", &ai)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		ai = ai + 1
+		autoid = ai
+		// 写入自增
+		err = tran.WriteData(rdb.service.areaname, tableid, "IncrementCount", ai)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// 获取索引字段
+		var indexfields []string
+		err = tran.ReadData(rdb.service.areaname, tableid, "IndexField", &indexfields)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// 获取autofield
+		var autofieldname string
+		err = tran.ReadData(rdb.service.areaname, tableid, "IncrementField", &autofieldname)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// 编码角色
+		var mid roles.RoleMiddleData
+		mid, err = roles.EncodeRoleToMiddle(instance)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// 修改角色id
+		id := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(ai, 10)
+		mid.Version.Id = id
+		// 修改autofield
+		if len(autofieldname) != 0 {
+			var aib []byte
+			aib, err = iendecode.StructGobBytes(ai)
+			if err != nil {
+				tran.Rollback()
+				return
+			}
+			mid.Data.Point[autofieldname] = aib
+		}
+		// 保存
+		err = tran.StoreRoleFromMiddleData(rdb.service.areaname, mid)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// 查看索引并保存
+		for _, field := range indexfields {
+			value, find := mid.Data.Point[field]
+			if find == true {
+				// 获取索引的索引信息
+				var index map[string]IndexGather
+				err = tran.ReadData(rdb.service.areaname, TABLE_NAME_PREFIX+tablename+TABLE_INDEX_PREFIX+field, "Index", &index)
+				if err != nil {
+					tran.Rollback()
+					return
+				}
+				valuestring := random.GetSha1SumBytes(value)
+				gather, have := index[valuestring]
+				// 没有这个值就新建
+				if have == false {
+					index[valuestring] = []uint64{ai}
+				} else {
+					gather = append(gather, ai)
+					index[valuestring] = gather
+				}
+				// 再存进去
+				err = tran.WriteData(rdb.service.areaname, TABLE_NAME_PREFIX+tablename+TABLE_INDEX_PREFIX+field, "Index", &index)
+				if err != nil {
+					tran.Rollback()
+					return
+				}
+			}
+		}
+		tran.Commit()
+	} else {
+		db := rdb.service.drule
+		errd := operator.NewDRuleError()
+		tran, errd := db.Begin()
+		if errd.IsError() != nil {
+			err = errd.IsError()
+			return
+		}
+		// 锁定表角色
+		errd = tran.LockRole(rdb.service.areaname, tableid)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// 获取类型
+		var ptype string
+		errd = tran.ReadData(rdb.service.areaname, tableid, "Prototype", &ptype)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		if ptype != tname {
+			tran.Rollback()
+			err = fmt.Errorf("reladb[RelaDB]Insert: The table's type is  %v but you give %v .", ptype, tname)
+			return
+		}
+		// 获取自增
+		var ai uint64
+		errd = tran.ReadData(rdb.service.areaname, tableid, "IncrementCount", &ai)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		ai = ai + 1
+		autoid = ai
+		// 写入自增
+		errd = tran.WriteData(rdb.service.areaname, tableid, "IncrementCount", ai)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// 获取索引字段
+		var indexfields []string
+		errd = tran.ReadData(rdb.service.areaname, tableid, "IndexField", &indexfields)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// 获取autofield
+		var autofieldname string
+		errd = tran.ReadData(rdb.service.areaname, tableid, "IncrementField", &autofieldname)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		// 编码角色
+		var mid roles.RoleMiddleData
+		mid, err = roles.EncodeRoleToMiddle(instance)
+		if err != nil {
+			tran.Rollback()
+			return
+		}
+		// 修改角色id
+		id := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(ai, 10)
+		mid.Version.Id = id
+		// 修改autofield
+		if len(autofieldname) != 0 {
+			var aib []byte
+			aib, err = iendecode.StructGobBytes(ai)
+			if err != nil {
+				tran.Rollback()
+				return
+			}
+			mid.Data.Point[autofieldname] = aib
+		}
 		// 保存
 		errd = tran.StoreRoleFromMiddleData(rdb.service.areaname, mid)
 		if errd.IsError() != nil {

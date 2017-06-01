@@ -24,6 +24,7 @@ type TableMain struct {
 	TableName      string   // Table's name
 	Prototype      string   // Role's prototype name
 	IncrementCount uint64   // Auto increment's count
+	IncrementField string   // Auto increment's field
 	IndexField     []string // The Fields whitch need be index
 }
 
