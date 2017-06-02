@@ -7,10 +7,14 @@
 
 package dspiders
 
+import (
+	"fmt"
+)
+
 // The url crawl queue
 type UrlCrawlQueue struct {
 	urlchan chan UrlBasic
-	count   uint64
+	count   uint
 }
 
 // Initialize the url crawl queue, the chan's length is const URL_CRAWL_QUEUE_CAP
@@ -23,19 +27,28 @@ func NewUrlCrawlQueue() (u *UrlCrawlQueue) {
 }
 
 // Add a url basic information to the url crawl queue
-func (u *UrlCrawlQueue) Add(ub UrlBasic) {
+func (u *UrlCrawlQueue) Add(ub UrlBasic) (err error) {
+	if u.count == URL_CRAWL_QUEUE_CAP {
+		err = fmt.Errorf("The queue is full.")
+		return
+	}
 	u.urlchan <- ub
 	u.count++
+	return
 }
 
 // Get one url basic information from the url crawl queue
-func (u *UrlCrawlQueue) Get() (ub UrlBasic) {
+func (u *UrlCrawlQueue) Get() (ub UrlBasic, err error) {
+	if u.count == 0 {
+		err = fmt.Errorf("The queue is empty.")
+		return
+	}
 	ub = <-u.urlchan
 	u.count--
 	return
 }
 
 // Get the queue's length
-func (u *UrlCrawlQueue) Count() (count uint64) {
+func (u *UrlCrawlQueue) Count() (count uint) {
 	return u.count
 }

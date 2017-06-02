@@ -28,14 +28,14 @@ type UrlChannel chan UrlBasic
 type PageData struct {
 	roles.Role
 	Url         string    // The complete link address
-	Version     uint64    // the page version
+	Version     uint64    // The page version
 	UpTime      time.Time // The update time
 	UpInterval  int64     // The update time interval(will wait UpInterval second to next update.)
 	Domain      string    // The domain name.
 	Spider      string    // The spider machine's name.
 	KeyWords    []string  // The key words, from the html's header meta name=keywords
 	HeaderTitle string    // The page's title, from <header><title></title></header>
-	BodyContent string    // The page's body content, from <body></body>
+	BodyContent string    // The page's body content, from <body></body>, and is all text
 	Hash        string    // The page body content's(the field BodyConent) sha1 hash signature
 }
 
@@ -58,6 +58,7 @@ type PageSentences struct {
 type NetTransportData struct {
 	Name    string              // The sender's name
 	Code    string              // The sender's identity code
-	Operate NetTransportOperate // the operate code
-	Data    []byte              // the data body, it can be PageData, UrlBasic and so on.
+	Operate NetTransportOperate // The operate code
+	Status  NetDataStatus       // The data status
+	Data    []byte              // The data body, it can be PageData, UrlBasic and so on.
 }
