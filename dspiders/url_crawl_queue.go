@@ -14,6 +14,7 @@ import (
 // The url crawl queue
 type UrlCrawlQueue struct {
 	urlchan chan UrlBasic
+	list    map[string]bool
 	count   uint
 }
 
@@ -21,6 +22,7 @@ type UrlCrawlQueue struct {
 func NewUrlCrawlQueue() (u *UrlCrawlQueue) {
 	u = &UrlCrawlQueue{
 		urlchan: make(chan UrlBasic, URL_CRAWL_QUEUE_CAP),
+		list:    make(map[string]bool),
 		count:   0,
 	}
 	return
@@ -30,6 +32,9 @@ func NewUrlCrawlQueue() (u *UrlCrawlQueue) {
 func (u *UrlCrawlQueue) Add(ub UrlBasic) (err error) {
 	if u.count == URL_CRAWL_QUEUE_CAP {
 		err = fmt.Errorf("The queue is full.")
+		return
+	}
+	if _, find := u.list[ub.Url]; find == true {
 		return
 	}
 	u.urlchan <- ub
@@ -44,6 +49,7 @@ func (u *UrlCrawlQueue) Get() (ub UrlBasic, err error) {
 		return
 	}
 	ub = <-u.urlchan
+	delete(u.list, ub.Url)
 	u.count--
 	return
 }
@@ -51,4 +57,16 @@ func (u *UrlCrawlQueue) Get() (ub UrlBasic, err error) {
 // Get the queue's length
 func (u *UrlCrawlQueue) Count() (count uint) {
 	return u.count
+}
+
+// List all url in the queue
+func (u *UrlCrawlQueue) List() (list []string) {
+	listlen := len(u.list)
+	list = make([]string, listlen)
+	i := 0
+	for url := range u.list {
+		list[i] = url
+		i++
+	}
+	return
 }
