@@ -9,6 +9,7 @@ package dspiders
 
 import (
 	"github.com/idcsource/Insight-0-0-lib/cpool"
+	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/drule2/reladb"
 	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
 )
@@ -17,9 +18,10 @@ import (
 //
 // It operate url crawl queue's request, the page's storage, the words's index and others.
 type NetTransportHandle struct {
-	urlCrawlQueue  *UrlCrawlQueue // The url crawl queue
-	trule          *trule.TRule   // The TRule
-	reladb         *reladb.RelaDB // The RelaDB
-	identityConfig *cpool.Section // The indentity code's config, the *cpool.Section is name = code
+	urlCrawlQueue  *UrlCrawlQueue     // The url crawl queue
+	trule          *trule.TRule       // The TRule
+	drule          *operator.Operator // The DRule's operator
+	reladb         *reladb.RelaDB     // The RelaDB
+	identityConfig *cpool.Section     // The indentity code's config, the *cpool.Section is name = code
 	// TODO : Others
 }

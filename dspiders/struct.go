@@ -19,6 +19,7 @@ type UrlBasic struct {
 	Url     string // the url self
 	Hash    string // the url page last version hash
 	Version uint64 // the url page last version
+	Filter  bool   // The this is a list url, the bool is true, it will just get all the url but not store the page data.
 }
 
 // The Url's queue channel
@@ -37,6 +38,22 @@ type PageData struct {
 	HeaderTitle string    // The page's title, from <header><title></title></header>
 	BodyContent string    // The page's body content, from <body></body>, and is all text
 	Hash        string    // The page body content's(the field BodyConent) sha1 hash signature
+}
+
+// One media's data, for example css, image ...
+type MediaData struct {
+	roles.Role
+	Url        string    // The complete link address
+	Version    uint64    // The page version
+	UpTime     time.Time // The update time
+	UpInterval int64     // The update time interval(will wait UpInterval second to next update.)
+	Domain     string    // The domain name.
+	Spider     string    // The spider machine's name.
+	MediaType  int       // The media's type
+	MediaName  string    // The Media's name
+	DataSaved  bool      // If the data already be saved.
+	DataBody   []byte    // The media's data body.
+	Hash       string    // sha1 hash signature
 }
 
 // The sentences location index in one page
@@ -60,5 +77,6 @@ type NetTransportData struct {
 	Code    string              // The sender's identity code
 	Operate NetTransportOperate // The operate code
 	Status  NetDataStatus       // The data status
+	Domain  string              // The damain if it be need
 	Data    []byte              // The data body, it can be PageData, UrlBasic and so on.
 }
