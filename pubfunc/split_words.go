@@ -8,10 +8,81 @@
 package pubfunc
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/idcsource/Insight-0-0-lib/random"
 )
+
+// Split the string, if trim is true, the split with out space.
+func CommandSplit(command string, trim bool) (split []string, err error) {
+
+	command = strings.TrimSpace(command)
+
+	regexpm := make(map[string]*regexp.Regexp)
+	regexpm["space"], _ = regexp.Compile(`[^ ]+`)
+	regexpm["'b"], _ = regexp.Compile(`^'`)
+	regexpm["b'"], _ = regexp.Compile(`'$`)
+	regexpm["''"], _ = regexp.Compile(`^\'`)
+
+	crune := []rune(command)
+	//crunelen := len(crune)
+	split = make([]string, 0)
+	temprune := make([]rune, 0)
+	inquot := false // 是否在引号里
+	for i, onerune := range crune {
+		if inquot == true {
+			// 在引号里怎么处理
+			if onerune == '"' && crune[i-1] == '\\' {
+				// 转义字符 \"
+				temprune[len(temprune)-1] = '"'
+			} else if onerune == '"' {
+				// 引号结尾 "
+				split = append(split, string(temprune))
+				temprune = make([]rune, 0)
+				inquot = false
+			} else {
+				// 正常字符
+				temprune = append(temprune, onerune)
+			}
+		} else {
+			// 不在引号里
+			if onerune == '"' {
+				// 碰到引号怎么办
+				inquot = true
+			} else if onerune == ' ' && trim == false {
+				// 如果是空格
+				if len(temprune) == 0 {
+					split = append(split, string(temprune))
+					temprune = make([]rune, 0)
+				} else {
+					split = append(split, string(temprune))
+					temprune = make([]rune, 0)
+					split = append(split, string(temprune))
+				}
+			} else if onerune == ' ' {
+				if len(temprune) != 0 {
+					split = append(split, string(temprune))
+					temprune = make([]rune, 0)
+				}
+			} else {
+				// 正常字符
+				temprune = append(temprune, onerune)
+			}
+		}
+
+	}
+	if inquot == true {
+		err = fmt.Errorf("Command syntax error.")
+		return
+	}
+	if len(temprune) != 0 {
+		split = append(split, string(temprune))
+	}
+
+	return
+}
 
 // 将提供的字符串进行拆分词语处理
 func SplitWords(str string) (normal [][]string) {
