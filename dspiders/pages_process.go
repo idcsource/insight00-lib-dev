@@ -11,6 +11,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/drule2/reladb"
+	"github.com/idcsource/Insight-0-0-lib/pubfunc"
 )
 
 // Handle the store for pages when the crawler get the page.
@@ -18,12 +19,21 @@ type PagesProcess struct {
 	drule      *operator.Operator // The DRule's operator
 	config     *cpool.Block       // The PagesStore config
 	crawlQueue *UrlCrawlQueue     // The url crawl queue
-	reladb     *reladb.RelaDB     // The RelaDB
+	pagedb     *reladb.RelaDB     // The page data RelaDB
+	mediadb    *reladb.RelaDB     // The media data RelaDB
+	arounddb   *reladb.RelaDB     // The around link data RelaDB
+	urlfilter  []string           // If the url in the url filter, it will not be store
+	closed     bool               // If close the pages process, it will true
+}
+
+func (p *PagesProcess) Close() {
+	p.closed = true
 }
 
 // Add a page data to store whitch crawler get.
 func (p *PagesProcess) AddPage(page *PageData) (err error) {
 	/*
+		check if the url is in urlfilter
 		check if the url already exist.
 		if exist {
 			insert the new version.
@@ -33,6 +43,30 @@ func (p *PagesProcess) AddPage(page *PageData) (err error) {
 		}
 		send the page to words processor.
 	*/
+	if pubfunc.StringInSlice(p.urlfilter, page.Url) == true {
+		return
+	}
+	var tableexit bool
+	tableexit, err = p.pagedb.TableExist(page.Url)
+	if err != nil {
+		return
+	}
+	if tableexit == true {
+		_, err = p.pagedb.InsertForAutoField(page.Url, page)
+		if err != nil {
+			return
+		}
+	} else {
+		err = p.pagedb.NewTable(page.Url, &PageData{}, "Ver")
+		if err != nil {
+			return
+		}
+		_, err = p.pagedb.InsertForAutoField(page.Url, page)
+		if err != nil {
+			return
+		}
+	}
+	// TODO send the page to words processor.
 	return
 }
 
@@ -47,6 +81,26 @@ func (p *PagesProcess) AddMedia(media *MediaData) (err error) {
 			insert the new version.
 		}
 	*/
+	var tableexit bool
+	tableexit, err = p.mediadb.TableExist(media.Url)
+	if err != nil {
+		return
+	}
+	if tableexit == true {
+		_, err = p.mediadb.InsertForAutoField(media.Url, media)
+		if err != nil {
+			return
+		}
+	} else {
+		err = p.mediadb.NewTable(media.Url, &PageData{}, "Ver")
+		if err != nil {
+			return
+		}
+		_, err = p.mediadb.InsertForAutoField(media.Url, media)
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
@@ -78,7 +132,12 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 
 // Add all entrance url for cyclical.
 func (p *PagesProcess) addEntrUrls() {
-
+	for {
+		if p.closed == true {
+			return
+		}
+		// TODO
+	}
 }
 
 // To index the text.

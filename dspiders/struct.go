@@ -15,11 +15,12 @@ import (
 
 // The Url basic information for url queue channel
 type UrlBasic struct {
-	Domain  string // the url belonged which domain
-	Url     string // the url self
-	Hash    string // the url page last version hash
-	Version uint64 // the url page last version
-	Filter  bool   // The this is a list url, the bool is true, it will just get all the url but not store the page data.
+	Domain string // the url belonged which domain
+	Url    string // the url self
+	Text   string // the url's name
+	Hash   string // the url page last version hash
+	Ver    uint64 // the url page last version
+	Filter bool   // The this is a list url, the bool is true, it will just get all the url but not store the page data.
 }
 
 // The Url's queue channel
@@ -29,7 +30,7 @@ type UrlChannel chan UrlBasic
 type PageData struct {
 	roles.Role
 	Url         string    // The complete link address
-	Version     uint64    // The page version
+	Ver         uint64    // The page version
 	UpTime      time.Time // The update time
 	UpInterval  int64     // The update time interval(will wait UpInterval second to next update.)
 	Domain      string    // The domain name.
@@ -44,7 +45,7 @@ type PageData struct {
 type MediaData struct {
 	roles.Role
 	Url        string    // The complete link address
-	Version    uint64    // The page version
+	Ver        uint64    // The page version
 	UpTime     time.Time // The update time
 	UpInterval int64     // The update time interval(will wait UpInterval second to next update.)
 	Domain     string    // The domain name.
@@ -54,6 +55,13 @@ type MediaData struct {
 	DataSaved  bool      // If the data already be saved.
 	DataBody   []byte    // The media's data body.
 	Hash       string    // sha1 hash signature
+}
+
+// The link which not in the domain.
+type AroundLink struct {
+	roles.Role
+	Url  string // the link address
+	Text string // the link text
 }
 
 // The sentences location index in one page
@@ -66,12 +74,12 @@ type SentencesIndex struct {
 type PageSentences struct {
 	roles.Role
 	Url       string              // The complete link address
-	Version   uint64              // the page version
+	Ver       uint64              // the page version
 	Sentences []SentencesIndex    // the sentences index
 	Words     map[string][]uint64 // the words index [word's text][]the index localtion
 }
 
-// The data witch transport in network
+// The data which transport in network
 type NetTransportData struct {
 	Name    string              // The sender's name
 	Code    string              // The sender's identity code
