@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -116,4 +117,15 @@ func IsOdd(num int) bool {
 		return false
 	}
 	return true
+}
+
+func StringInSlice(list []string, s string) bool {
+	sort.Strings(list)
+	llen := len(list)
+	i := sort.SearchStrings(list, s)
+	if i < llen && list[i] == s {
+		return true
+	} else {
+		return false
+	}
 }
