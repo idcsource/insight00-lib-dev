@@ -28,3 +28,12 @@ const (
 	NET_DATA_STATUS_PAGE_UPDATE                          // The page's content was changed, and update it.
 	NET_DATA_STATUS_PAGE_NOT_UPDATE                      // The page's content was not changed, not need to update.
 )
+
+// The type which wait to index
+type WordsIndexType uint
+
+const (
+	WORDS_INDEX_TYPE_NO     WordsIndexType = iota // No Type
+	WORDS_INDEX_TYPE_PAGE                         // The type is page
+	WORDS_INDEX_TYPE_AROUND                       // The type is around link
+)

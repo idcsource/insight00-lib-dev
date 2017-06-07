@@ -21,6 +21,7 @@ import (
 type PagesProcess struct {
 	config        *cpool.Section     // The PagesStore config
 	crawlQueue    *UrlCrawlQueue     // The url crawl queue
+	indexQueue    *WordsIndexProcess // The words index queue
 	drule         *operator.Operator // The DRule2 operator
 	pagedb        *reladb.RelaDB     // The page data RelaDB
 	mediadb       *reladb.RelaDB     // The media data RelaDB
@@ -33,10 +34,11 @@ type PagesProcess struct {
 	closed        bool               // If close the pages process, it will true
 }
 
-func NewPagesProcess(config *cpool.Section, crawlQueue *UrlCrawlQueue, drule *operator.Operator) (p *PagesProcess, err error) {
+func NewPagesProcess(config *cpool.Section, crawlQueue *UrlCrawlQueue, indexQueue *WordsIndexProcess, drule *operator.Operator) (p *PagesProcess, err error) {
 	p = &PagesProcess{
 		config:     config,
 		crawlQueue: crawlQueue,
+		indexQueue: indexQueue,
 		drule:      drule,
 		closed:     true,
 	}

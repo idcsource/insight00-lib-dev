@@ -26,6 +26,15 @@ type UrlBasic struct {
 // The Url's queue channel
 type UrlChannel chan UrlBasic
 
+// One words index request
+type WordsIndexRequest struct {
+	Url        string         // The index queue url
+	Domain     string         // The Url domain
+	Type       WordsIndexType // the index type is what
+	PageData   *PageData      // the page data
+	AroundLink *AroundLink    // the around link
+}
+
 // One page's data.
 type PageData struct {
 	roles.Role
