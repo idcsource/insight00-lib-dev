@@ -150,7 +150,14 @@ func (p *PagesProcess) AddPage(page *PageData) (err error) {
 			return
 		}
 	}
-	// TODO send the page to words processor.
+	// send the page to words processor.
+	index_req := &WordsIndexRequest{
+		Url:      page.Url,
+		Domain:   page.Domain,
+		Type:     WORDS_INDEX_TYPE_PAGE,
+		PageData: page,
+	}
+	err = p.indexQueue.Add(index_req)
 	return
 }
 
@@ -256,7 +263,17 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 				err = errd.IsError()
 				return
 			}
-			// TODO text index
+			// text index
+			index_req := &WordsIndexRequest{
+				Url:        oneurl.Url,
+				Domain:     oneurl.Domain,
+				Type:       WORDS_INDEX_TYPE_AROUND,
+				AroundLink: thearound,
+			}
+			err = p.indexQueue.Add(index_req)
+			if err != nil {
+				return
+			}
 		}
 	}
 	return
@@ -271,11 +288,4 @@ func (p *PagesProcess) addEntrUrls() {
 		p.AddUrls(p.entr_url)
 		time.Sleep(time.Second * time.Duration(p.entr_cycle_in))
 	}
-}
-
-// To index the text.
-func (w *PagesProcess) DoIndex(page *PageData) (err error) {
-	// key words index
-	// content index
-	return
 }
