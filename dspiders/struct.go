@@ -84,8 +84,14 @@ type PageSentences struct {
 	roles.Role
 	Url       string              // The complete link address
 	Ver       uint64              // the page version
-	Sentences []SentencesIndex    // the sentences index
-	Words     map[string][]uint64 // the words index [word's text][]the index localtion
+	Sentences map[uint64][]string // the sentences index
+	//Sentences []SentencesIndex    // the sentences index
+	//Words     map[string][]uint64 // the words index [word's text][]the index localtion
+}
+
+// The word index Role
+type WordIndex struct {
+	roles.Role
 }
 
 // The data which transport in network
