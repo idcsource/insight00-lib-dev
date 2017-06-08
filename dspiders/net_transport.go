@@ -20,18 +20,34 @@ import (
 //
 // It operate url crawl queue's request, the page's storage, the words's index and others.
 type NetTransportHandle struct {
-	urlCrawlQueue  *UrlCrawlQueue // The url crawl queue
-	pageProcess    *PagesProcess  // The page process
-	identityConfig *cpool.Section // The indentity code's config, the *cpool.Section is name = code
+	urlCrawlQueue  *UrlCrawlQueue     // The url crawl queue
+	pageProcess    *PagesProcess      // The page process
+	wordProcess    *WordsIndexProcess // The word index process
+	identityConfig *cpool.Section     // The indentity code's config, the *cpool.Section is name = code
+	closed         bool               // if closed it will true
 	// TODO : Others
 }
 
-func NewNetTransportHandle(u *UrlCrawlQueue, p *PagesProcess, i *cpool.Section) (n *NetTransportHandle) {
+func NewNetTransportHandle(u *UrlCrawlQueue, p *PagesProcess, w *WordsIndexProcess, i *cpool.Section) (n *NetTransportHandle) {
 	return &NetTransportHandle{
 		urlCrawlQueue:  u,
 		pageProcess:    p,
+		wordProcess:    w,
 		identityConfig: i,
+		closed:         true,
 	}
+}
+
+func (n *NetTransportHandle) Start() {
+	n.wordProcess.Start()
+	n.pageProcess.Start()
+	n.closed = false
+}
+
+func (n *NetTransportHandle) Close() {
+	n.wordProcess.Close()
+	n.pageProcess.Close()
+	n.closed = true
 }
 
 func (n *NetTransportHandle) ExecTCP(ce *nst.ConnExec) (err error) {
@@ -39,6 +55,10 @@ func (n *NetTransportHandle) ExecTCP(ce *nst.ConnExec) (err error) {
 	c_send_b, err := ce.GetData()
 	if err != nil {
 		return
+	}
+	// if close
+	if n.closed == true {
+		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("The service was closed."))
 	}
 	// decode
 	c_send := NetTransportData{}
