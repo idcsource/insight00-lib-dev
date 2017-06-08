@@ -32,6 +32,17 @@ type WordsIndexProcess struct {
 	keywordname string             // The key word index area name
 }
 
+// Start the processor
+func (w *WordsIndexProcess) Start() {
+	w.closed = false
+	go w.goindex()
+}
+
+// Stop the processor
+func (w *WordsIndexProcess) Close() {
+	w.closed = true
+}
+
 // return the index wait queue
 func (w *WordsIndexProcess) ReturnQueue() chan *WordsIndexRequest {
 	return w.queue
