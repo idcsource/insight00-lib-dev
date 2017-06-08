@@ -13,25 +13,34 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	"github.com/idcsource/Insight-0-0-lib/drule2/reladb"
 	"github.com/idcsource/Insight-0-0-lib/pubfunc"
 )
 
 // Handle the store for pages when the crawler get the page.
 type PagesProcess struct {
-	config        *cpool.Section     // The PagesStore config
-	crawlQueue    *UrlCrawlQueue     // The url crawl queue
-	indexQueue    *WordsIndexProcess // The words index queue
-	drule         *operator.Operator // The DRule2 operator
-	pagedb        *reladb.RelaDB     // The page data RelaDB
-	mediadb       *reladb.RelaDB     // The media data RelaDB
-	arounddb      *operator.Operator // The around link data's db
-	aroundname    string             // The around link data's area name
-	urlfilter     []string           // If the url in the url filter, it will not be store
-	domains       []string           // Which domain can be store.
-	entr_cycle_in int64              // entrance url for cyclical's intervals
-	entr_url      []UrlBasic         // the entrance urls
-	closed        bool               // If close the pages process, it will true
+	config *cpool.Section // The PagesStore config
+
+	crawlQueue *UrlCrawlQueue     // The url crawl queue
+	indexQueue *WordsIndexProcess // The words index queue
+
+	drule *operator.Operator // The DRule2 operator
+
+	pagedb     *operator.Operator // The page data DRule2
+	pagedbname string             // The page data DRule2 area name
+
+	mediadb     *operator.Operator // The media data DRule2
+	mediadbname string             // the media data DRule2 area name
+
+	arounddb     *operator.Operator // The around link data's db
+	arounddbname string             // The around link data's area name
+
+	urlfilter []string // If the url in the url filter, it will not be store
+	domains   []string // Which domain can be store.
+
+	entr_cycle_in int64      // entrance url for cyclical's intervals
+	entr_url      []UrlBasic // the entrance urls
+
+	closed bool // If close the pages process, it will true
 }
 
 func NewPagesProcess(config *cpool.Section, crawlQueue *UrlCrawlQueue, indexQueue *WordsIndexProcess, drule *operator.Operator) (p *PagesProcess, err error) {
@@ -45,7 +54,8 @@ func NewPagesProcess(config *cpool.Section, crawlQueue *UrlCrawlQueue, indexQueu
 	// the url filter
 	p.urlfilter, err = config.GetEnum("urlfilter")
 	if err != nil {
-		return
+		p.urlfilter = make([]string, 0)
+		err = nil
 	}
 	// the domains url
 	p.domains, err = config.GetEnum("domains")
@@ -76,32 +86,45 @@ func NewPagesProcess(config *cpool.Section, crawlQueue *UrlCrawlQueue, indexQueu
 		}
 	}
 	// the around link db
-	p.aroundname, err = config.GetConfig("aroundname")
+	p.arounddbname, err = config.GetConfig("arounddbname")
 	if err != nil {
 		return
 	}
 	p.arounddb = drule
 	// the page data db
-	var pagedbname string
-	pagedbname, err = config.GetConfig("pagedb")
+	p.pagedbname, err = config.GetConfig("pagedbname")
 	if err != nil {
 		return
 	}
-	p.pagedb, err = reladb.NewRelaDBWithDRule(pagedbname, drule)
-	if err != nil {
-		return
-	}
+	p.pagedb = drule
+	/*
+		var pagedbname string
+		pagedbname, err = config.GetConfig("pagedb")
+		if err != nil {
+			return
+		}
+		p.pagedb, err = reladb.NewRelaDBWithDRule(pagedbname, drule)
+		if err != nil {
+			return
+		}
+	*/
 	// the media data db
-	var mediadbname string
-	mediadbname, err = config.GetConfig("mediadb")
+	p.mediadbname, err = config.GetConfig("mediadbname")
 	if err != nil {
 		return
 	}
-	p.mediadb, err = reladb.NewRelaDBWithDRule(mediadbname, drule)
-	if err != nil {
-		return
-	}
-
+	p.mediadb = drule
+	/*
+		var mediadbname string
+		mediadbname, err = config.GetConfig("mediadb")
+		if err != nil {
+			return
+		}
+		p.mediadb, err = reladb.NewRelaDBWithDRule(mediadbname, drule)
+		if err != nil {
+			return
+		}
+	*/
 	return
 }
 
@@ -115,83 +138,104 @@ func (p *PagesProcess) Close() {
 }
 
 // Add a page data to store whitch crawler get.
-func (p *PagesProcess) AddPage(page *PageData) (err error) {
-	/*
-		check if the url is in urlfilter
-		check if the url already exist.
-		if exist {
-			insert the new version.
-		}else{
-			create the url table.
-			insert the new version.
-		}
-		send the page to words processor.
-	*/
-	if pubfunc.StringInSlice(p.urlfilter, page.Url) == true {
-		return
-	}
-	var tableexit bool
-	tableexit, err = p.pagedb.TableExist(page.Url)
-	if err != nil {
-		return
-	}
-	if tableexit == true {
-		_, err = p.pagedb.InsertForAutoField(page.Url, page)
-		if err != nil {
+func (p *PagesProcess) AddPage(page *PageData, status NetDataStatus) (err error) {
+
+	// check if the data change(the hash change)
+	if status == NET_DATA_STATUS_PAGE_UPDATE {
+		// if update
+		roleexist, errd := p.pagedb.ExistRole(p.pagedbname, page.Url)
+		if errd.IsError() != nil {
+			err = errd.IsError()
 			return
 		}
-	} else {
-		err = p.pagedb.NewTable(page.Url, &PageData{}, "Ver")
-		if err != nil {
+		if roleexist == true {
+			// if exist
+			tran, errd := p.pagedb.Begin()
+			if errd.IsError() != nil {
+				err = errd.IsError()
+				return
+			}
+			// update the UpInterval.
+			var upInterval int64
+			errd = tran.ReadData(p.pagedbname, page.Url, "UpInterval", &upInterval)
+			if errd.IsError() != nil {
+				tran.Rollback()
+				err = errd.IsError()
+				return
+			}
+			if upInterval > UP_INTERVAL_MIN {
+				upInterval = upInterval - ((upInterval - UP_INTERVAL_MIN) / 2)
+				page.UpInterval = upInterval
+			}
+			errd = tran.StoreRole(p.pagedbname, page)
+			if errd.IsError() != nil {
+				tran.Rollback()
+				err = errd.IsError()
+				return
+			}
+			tran.Commit()
+		} else {
+			// if not exist
+			page.UpInterval = UP_INTERVAL_DEFAULT
+			errd := p.pagedb.StoreRole(p.pagedbname, page)
+			if errd.IsError() != nil {
+				err = errd.IsError()
+				return
+			}
+		}
+		// if the url in urlfilter, just do not be index.
+		if pubfunc.StringInSlice(p.urlfilter, page.Url) != true {
+			// if the url not in urlfilter, send the page to words processor.
+			index_req := &WordsIndexRequest{
+				Url:      page.Url,
+				Domain:   page.Domain,
+				Type:     WORDS_INDEX_TYPE_PAGE,
+				PageData: page,
+			}
+			err = p.indexQueue.Add(index_req)
 			return
 		}
-		_, err = p.pagedb.InsertForAutoField(page.Url, page)
-		if err != nil {
+	} else if status == NET_DATA_STATUS_PAGE_NOT_UPDATE {
+		// if not update, just update the UpInterval.
+		roleexist, errd := p.pagedb.ExistRole(p.pagedbname, page.Url)
+		if errd.IsError() != nil {
+			err = errd.IsError()
 			return
 		}
+		// if the role not exist
+		if roleexist == false {
+			return
+		}
+		tran, errd := p.pagedb.Begin()
+		if errd.IsError() != nil {
+			err = errd.IsError()
+			return
+		}
+		var upInterval int64
+		errd = tran.ReadData(p.pagedbname, page.Url, "UpInterval", &upInterval)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			err = errd.IsError()
+			return
+		}
+		if upInterval < UP_INTERVAL_MAX {
+			upInterval = ((UP_INTERVAL_MAX - upInterval) / 2) + upInterval
+			errd = tran.WriteData(p.pagedbname, page.Url, "UpInterval", upInterval)
+			if errd.IsError() != nil {
+				tran.Rollback()
+				err = errd.IsError()
+				return
+			}
+		}
+		tran.Commit()
 	}
-	// send the page to words processor.
-	index_req := &WordsIndexRequest{
-		Url:      page.Url,
-		Domain:   page.Domain,
-		Type:     WORDS_INDEX_TYPE_PAGE,
-		PageData: page,
-	}
-	err = p.indexQueue.Add(index_req)
+
 	return
 }
 
 // Add a media data to store whitch crawler get.
 func (p *PagesProcess) AddMedia(media *MediaData) (err error) {
-	/*
-		check if the url already exist.
-		if exist {
-			insert the new version.
-		}else{
-			create the url table.
-			insert the new version.
-		}
-	*/
-	var tableexit bool
-	tableexit, err = p.mediadb.TableExist(media.Url)
-	if err != nil {
-		return
-	}
-	if tableexit == true {
-		_, err = p.mediadb.InsertForAutoField(media.Url, media)
-		if err != nil {
-			return
-		}
-	} else {
-		err = p.mediadb.NewTable(media.Url, &PageData{}, "Ver")
-		if err != nil {
-			return
-		}
-		_, err = p.mediadb.InsertForAutoField(media.Url, media)
-		if err != nil {
-			return
-		}
-	}
+	// TODO or not TODO?
 	return
 }
 
@@ -201,13 +245,13 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 		// check the url if is in the domain
 		if pubfunc.StringInSlice(p.domains, oneurl.Domain) == true {
 			// check if the url is in the store.
-			var exist bool
-			exist, err = p.pagedb.TableExist(oneurl.Url)
-			if err != nil {
+			exist, errd := p.pagedb.ExistRole(p.pagedbname, oneurl.Url)
+			if errd.IsError() != nil {
+				err = errd.IsError()
 				return
 			}
 			if exist == false {
-				// not exisit
+				// not exist
 				if pubfunc.StringInSlice(p.urlfilter, oneurl.Url) == true {
 					oneurl.Filter = true
 				} else {
@@ -221,22 +265,34 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 				}
 			} else {
 				// get the store's last version, look the update time.
-				var count uint64
-				count, err = p.pagedb.Count(oneurl.Url)
-				if err != nil {
-					return
-				}
 				var UpTime time.Time
 				var UpInterval int64
 				var Hash string
-				err = p.pagedb.SelectFields(oneurl.Url, count, "UpTime", &UpTime, "UpInterval", &UpInterval, "Hash", &Hash)
-				if err != nil {
+				var Ver uint64
+				errd = p.pagedb.ReadData(p.pagedbname, oneurl.Url, "UpTime", &UpTime)
+				if errd.IsError() != nil {
+					err = errd.IsError()
+					return
+				}
+				errd = p.pagedb.ReadData(p.pagedbname, oneurl.Url, "UpInterval", &UpInterval)
+				if errd.IsError() != nil {
+					err = errd.IsError()
+					return
+				}
+				errd = p.pagedb.ReadData(p.pagedbname, oneurl.Url, "Hash", &Hash)
+				if errd.IsError() != nil {
+					err = errd.IsError()
+					return
+				}
+				errd = p.pagedb.ReadData(p.pagedbname, oneurl.Url, "Ver", &Ver)
+				if errd.IsError() != nil {
+					err = errd.IsError()
 					return
 				}
 				if UpTime.Unix()+UpInterval < time.Now().Unix() {
 					// if can update
 					oneurl.Hash = Hash
-					oneurl.Ver = count + 1
+					oneurl.Ver = Ver + 1
 					err = p.crawlQueue.Add(oneurl)
 					if err != nil {
 						return
@@ -245,7 +301,7 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 			}
 		} else {
 			// if the url is in the around link
-			exist, errd := p.arounddb.ExistRole(p.aroundname, oneurl.Url)
+			exist, errd := p.arounddb.ExistRole(p.arounddbname, oneurl.Url)
 			if errd.IsError() != nil {
 				err = errd.IsError()
 				return
@@ -258,7 +314,7 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 				Text: oneurl.Text,
 			}
 			thearound.New(oneurl.Url)
-			errd = p.arounddb.StoreRole(p.aroundname, thearound)
+			errd = p.arounddb.StoreRole(p.arounddbname, thearound)
 			if errd.IsError() != nil {
 				err = errd.IsError()
 				return

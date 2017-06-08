@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	"github.com/idcsource/Insight-0-0-lib/drule2/reladb"
 )
 
 // The words index process
@@ -20,10 +19,14 @@ type WordsIndexProcess struct {
 	count  uint                    // the queue's count
 	closed bool                    // if closed it will true
 
-	drule       *operator.Operator // The DRule2 remote operator
-	pagedb      *reladb.RelaDB     // The page content index database
-	arounddb    *operator.Operator // The around link data index db
-	aroundname  string             // The around link data index area name
+	drule *operator.Operator // The DRule2 remote operator
+
+	pagedb     *operator.Operator // The page data DRule2
+	pagedbname string             // The page data DRule2 area name
+
+	arounddb   *operator.Operator // The around link data index db
+	aroundname string             // The around link data index area name
+
 	keyworddb   *operator.Operator // The key word index db
 	keywordname string             // The key word index area name
 }
@@ -66,11 +69,11 @@ func (w *WordsIndexProcess) goindex() {
 }
 
 // the page index
-func (w *WordsIndexProcess) indexPage(req *WordsIndexRequest){
-	
+func (w *WordsIndexProcess) indexPage(req *WordsIndexRequest) {
+
 }
 
 // the around link index
-func (w *WordsIndexProcess) indexAroundLink(req *WordsIndexRequest){
-	
+func (w *WordsIndexProcess) indexAroundLink(req *WordsIndexRequest) {
+
 }

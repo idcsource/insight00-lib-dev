@@ -97,3 +97,9 @@ type NetTransportData struct {
 	Domain  string              // The damain if it be need
 	Data    []byte              // The data body, it can be PageData, UrlBasic and so on.
 }
+
+// The data which transport in network - the net transport send
+type NetTransportDataRe struct {
+	Status NetDataStatus // The data status
+	Data   []byte        // The data body, it can be PageData, UrlBasic and so on.
+}
