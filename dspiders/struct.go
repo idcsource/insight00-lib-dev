@@ -85,8 +85,9 @@ type PageSentences struct {
 	Url       string              // The complete link address
 	Ver       uint64              // the page version
 	Sentences map[uint64][]string // the sentences index
-	//Sentences []SentencesIndex    // the sentences index
+	//TextLen   uint64              // the text length
 	//Words     map[string][]uint64 // the words index [word's text][]the index localtion
+	//Sentences []SentencesIndex    // the sentences index
 }
 
 // The word index Role
