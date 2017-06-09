@@ -808,6 +808,8 @@ func (d *DRule) normalWriteFriendStatus(conn_exec *nst.ConnExec, o_send *operato
 				err = d.trule.WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				err = d.trule.WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				err = d.trule.WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.String)
 			}
 		} else {
 			switch ds.Single {
@@ -817,6 +819,8 @@ func (d *DRule) normalWriteFriendStatus(conn_exec *nst.ConnExec, o_send *operato
 				err = tran.tran.WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				err = tran.tran.WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				err = tran.tran.WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.String)
 			}
 		}
 		if err != nil {
@@ -839,6 +843,8 @@ func (d *DRule) normalWriteFriendStatus(conn_exec *nst.ConnExec, o_send *operato
 					errd = d.operators[one].WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.Float)
 				case roles.STATUS_VALUE_TYPE_COMPLEX:
 					errd = d.operators[one].WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.Complex)
+				case roles.STATUS_VALUE_TYPE_STRING:
+					errd = d.operators[one].WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.String)
 				}
 				if errd.IsError() != nil {
 					erra = append(erra, errd.String())
@@ -857,6 +863,8 @@ func (d *DRule) normalWriteFriendStatus(conn_exec *nst.ConnExec, o_send *operato
 					errd = tran.operators[one].WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.Float)
 				case roles.STATUS_VALUE_TYPE_COMPLEX:
 					errd = tran.operators[one].WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.Complex)
+				case roles.STATUS_VALUE_TYPE_STRING:
+					errd = tran.operators[one].WriteFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, ds.String)
 				}
 				if errd.IsError() != nil {
 					erra = append(erra, errd.String())
@@ -898,6 +906,8 @@ func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator
 				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
 			}
 		} else {
 			switch ds.Single {
@@ -907,6 +917,8 @@ func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator
 				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
 			}
 		}
 	} else {
@@ -924,6 +936,8 @@ func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator
 				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
 			}
 		} else {
 			o, f := d.randomOneOTransaction(o_s, tran)
@@ -938,6 +952,8 @@ func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator
 				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
 			}
 		}
 		if errd.IsError() != nil {
@@ -1450,6 +1466,8 @@ func (d *DRule) normalWriteContextStatus(conn_exec *nst.ConnExec, o_send *operat
 				err = d.trule.WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				err = d.trule.WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				err = d.trule.WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.String)
 			}
 		} else {
 			switch ds.Single {
@@ -1459,6 +1477,8 @@ func (d *DRule) normalWriteContextStatus(conn_exec *nst.ConnExec, o_send *operat
 				err = tran.tran.WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				err = tran.tran.WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				err = tran.tran.WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.String)
 			}
 		}
 		if err != nil {
@@ -1481,6 +1501,8 @@ func (d *DRule) normalWriteContextStatus(conn_exec *nst.ConnExec, o_send *operat
 					errd = d.operators[one].WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.Float)
 				case roles.STATUS_VALUE_TYPE_COMPLEX:
 					errd = d.operators[one].WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.Complex)
+				case roles.STATUS_VALUE_TYPE_STRING:
+					errd = d.operators[one].WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.String)
 				}
 				if errd.IsError() != nil {
 					erra = append(erra, errd.String())
@@ -1499,6 +1521,8 @@ func (d *DRule) normalWriteContextStatus(conn_exec *nst.ConnExec, o_send *operat
 					errd = tran.operators[one].WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.Float)
 				case roles.STATUS_VALUE_TYPE_COMPLEX:
 					errd = tran.operators[one].WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.Complex)
+				case roles.STATUS_VALUE_TYPE_STRING:
+					errd = tran.operators[one].WriteContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, ds.String)
 				}
 				if errd.IsError() != nil {
 					erra = append(erra, errd.String())
@@ -1540,6 +1564,8 @@ func (d *DRule) normalReadContextStatus(conn_exec *nst.ConnExec, o_send *operato
 				err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.String)
 			}
 		} else {
 			switch ds.Single {
@@ -1549,6 +1575,8 @@ func (d *DRule) normalReadContextStatus(conn_exec *nst.ConnExec, o_send *operato
 				err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
 				err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
+			case roles.STATUS_VALUE_TYPE_STRING:
+				err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.String)
 			}
 		}
 	} else {

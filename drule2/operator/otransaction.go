@@ -828,8 +828,11 @@ func (o *OTransaction) WriteFriendStatus(areaid, roleid, friendid string, bindbi
 	case "complex128":
 		rf.Complex = value_v.Complex()
 		rf.Single = roles.STATUS_VALUE_TYPE_COMPLEX
+	case "string":
+		rf.String = value_v.String()
+		rf.Single = roles.STATUS_VALUE_TYPE_STRING
 	default:
-		errs.Err = fmt.Errorf("operator[OTransaction]WriteFriendStatus: The value's type must int64, float64 or complex128.")
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteFriendStatus: The value's type must int64, float64, complex128 or string.")
 		return
 	}
 	// 编码
@@ -900,8 +903,10 @@ func (o *OTransaction) ReadFriendStatus(areaid, roleid, friendid string, bindbit
 		rf.Single = roles.STATUS_VALUE_TYPE_COMPLEX
 	case "complex128":
 		rf.Single = roles.STATUS_VALUE_TYPE_COMPLEX
+	case "string":
+		rf.Single = roles.STATUS_VALUE_TYPE_STRING
 	default:
-		errs.Err = fmt.Errorf("operator[OTransaction]ReadFriendStatus: The value's type must int64, float64 or complex128.")
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadFriendStatus: The value's type must int64, float64, complex128 or string.")
 		return
 	}
 
@@ -940,8 +945,10 @@ func (o *OTransaction) ReadFriendStatus(areaid, roleid, friendid string, bindbit
 		value_v.SetFloat(rf.Float)
 	case roles.STATUS_VALUE_TYPE_COMPLEX:
 		value_v.SetComplex(rf.Complex)
+	case roles.STATUS_VALUE_TYPE_STRING:
+		value_v.SetString(rf.String)
 	default:
-		err = fmt.Errorf("operator[OTransaction]ReadFriendStatus: The value's type not int64, float64 or complex128.")
+		err = fmt.Errorf("operator[OTransaction]ReadFriendStatus: The value's type not int64, float64, complex128 or string.")
 	}
 	return
 }
@@ -1344,8 +1351,11 @@ func (o *OTransaction) WriteContextStatus(areaid, roleid, contextname string, up
 	case "complex128":
 		rc.Complex = value_v.Complex()
 		rc.Single = roles.STATUS_VALUE_TYPE_COMPLEX
+	case "string":
+		rc.String = value_v.String()
+		rc.Single = roles.STATUS_VALUE_TYPE_STRING
 	default:
-		errs.Err = fmt.Errorf("operator[OTransaction]WriteContextStatus: The value's type must int64, float64 or complex128.")
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContextStatus: The value's type must int64, float64, complex128 or string.")
 		return
 	}
 	// 编码
@@ -1413,8 +1423,10 @@ func (o *OTransaction) ReadContextStatus(areaid, roleid, contextname string, upo
 		rc.Single = roles.STATUS_VALUE_TYPE_COMPLEX
 	case "complex128":
 		rc.Single = roles.STATUS_VALUE_TYPE_COMPLEX
+	case "string":
+		rc.Single = roles.STATUS_VALUE_TYPE_STRING
 	default:
-		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: The value's type must int64, float64 or complex128.")
+		errs.Err = fmt.Errorf("operator[OTransaction]ReadContextStatus: The value's type must int64, float64, complex128 or string.")
 		return
 	}
 
@@ -1453,8 +1465,10 @@ func (o *OTransaction) ReadContextStatus(areaid, roleid, contextname string, upo
 		value_v.SetFloat(rc.Float)
 	case roles.STATUS_VALUE_TYPE_COMPLEX:
 		value_v.SetComplex(rc.Complex)
+	case roles.STATUS_VALUE_TYPE_STRING:
+		value_v.SetString(rc.String)
 	default:
-		err = fmt.Errorf("operator[OTransaction]ReadContextStatus: The value's type not int64, float64 or complex128.")
+		err = fmt.Errorf("operator[OTransaction]ReadContextStatus: The value's type not int64, float64, complex128 or string.")
 	}
 	return
 }

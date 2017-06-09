@@ -146,6 +146,8 @@ type O_RoleAndFriend struct {
 	Float float64
 	// 单一修改的Complex
 	Complex complex128
+	// 单一修改的string
+	String string
 }
 
 // 角色的单个上下文关系的网络数据格式
@@ -197,6 +199,8 @@ type O_RoleAndContext_Data struct {
 	Float float64
 	// 单一修改的Complex
 	Complex complex128
+	// 单一修改的string
+	String string
 }
 
 // 角色的单个数据的数据体的网络格式

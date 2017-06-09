@@ -364,7 +364,7 @@ func (r *RoleMiddleData) SetFriendStatus(id string, bit int, value interface{}) 
 	}()
 	_, findf := r.Relation.Friends[id]
 	if findf == false {
-		r.Relation.Friends[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10)}
+		r.Relation.Friends[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
 	}
 	if bit > 9 {
 		return errors.New("The bit must less than 10.")
@@ -384,8 +384,10 @@ func (r *RoleMiddleData) SetFriendStatus(id string, bit int, value interface{}) 
 		r.Relation.Friends[id].Complex[bit] = valuer.Complex()
 	case "complex128":
 		r.Relation.Friends[id].Complex[bit] = valuer.Complex()
+	case "string":
+		r.Relation.Friends[id].String[bit] = valuer.String()
 	default:
-		return fmt.Errorf("roles[RoleMiddleData]SetFriendStatus: The value's type must int64, float64 or complex128.")
+		return fmt.Errorf("roles[RoleMiddleData]SetFriendStatus: The value's type must int64, float64, complex128 or string.")
 	}
 	return nil
 }
@@ -413,8 +415,10 @@ func (r *RoleMiddleData) GetFriendStatus(id string, bit int, value interface{}) 
 		valuer.SetFloat(r.Relation.Friends[id].Float[bit])
 	case "complex128":
 		valuer.SetComplex(r.Relation.Friends[id].Complex[bit])
+	case "string":
+		valuer.SetString(r.Relation.Friends[id].String[bit])
 	default:
-		return fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The value's type must int64, float64 or complex128.")
+		return fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The value's type must int64, float64, complex128 or string.")
 	}
 	return nil
 }
@@ -439,7 +443,7 @@ func (r *RoleMiddleData) SetContextStatus(contextname string, upordown ContextUp
 	if upordown == CONTEXT_UP {
 		_, findr := r.Relation.Contexts[contextname].Up[id]
 		if findr == false {
-			r.Relation.Contexts[contextname].Up[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10)}
+			r.Relation.Contexts[contextname].Up[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
 		}
 		valuer := reflect.Indirect(reflect.ValueOf(value))
 		vname := valuer.Type().String()
@@ -456,13 +460,15 @@ func (r *RoleMiddleData) SetContextStatus(contextname string, upordown ContextUp
 			r.Relation.Contexts[contextname].Up[id].Complex[bit] = valuer.Complex()
 		case "complex128":
 			r.Relation.Contexts[contextname].Up[id].Complex[bit] = valuer.Complex()
+		case "string":
+			r.Relation.Contexts[contextname].Up[id].String[bit] = valuer.String()
 		default:
-			return fmt.Errorf("roles:[RoleMiddleData]SetContextStatus:The value's type must int64, float64 or complex128.")
+			return fmt.Errorf("roles:[RoleMiddleData]SetContextStatus:The value's type must int64, float64, complex128 or string.")
 		}
 	} else if upordown == CONTEXT_DOWN {
 		_, findr := r.Relation.Contexts[contextname].Down[id]
 		if findr == false {
-			r.Relation.Contexts[contextname].Down[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10)}
+			r.Relation.Contexts[contextname].Down[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
 		}
 		valuer := reflect.Indirect(reflect.ValueOf(value))
 		vname := valuer.Type().String()
@@ -479,8 +485,10 @@ func (r *RoleMiddleData) SetContextStatus(contextname string, upordown ContextUp
 			r.Relation.Contexts[contextname].Down[id].Complex[bit] = valuer.Complex()
 		case "complex128":
 			r.Relation.Contexts[contextname].Down[id].Complex[bit] = valuer.Complex()
+		case "string":
+			r.Relation.Contexts[contextname].Down[id].String[bit] = valuer.String()
 		default:
-			return fmt.Errorf("roles:[RoleMiddleData]SetContextStatus:The value's type must int64, float64 or complex128.")
+			return fmt.Errorf("roles:[RoleMiddleData]SetContextStatus:The value's type must int64, float64, complex128 or string.")
 		}
 	} else {
 		return fmt.Errorf("roles:[RoleMiddleData]SetContextStatus:The upordown must CONTEXT_UP or CONTEXT_DOWN.")
@@ -516,8 +524,10 @@ func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUp
 			valuer.SetFloat(r.Relation.Contexts[contextname].Up[id].Float[bit])
 		case "complex128":
 			valuer.SetComplex(r.Relation.Contexts[contextname].Up[id].Complex[bit])
+		case "string":
+			valuer.SetString(r.Relation.Contexts[contextname].Up[id].String[bit])
 		default:
-			return errors.New("roles[RoleMiddleData]GetContextStatus: The value's type must int64, float64 or complex128.")
+			return errors.New("roles[RoleMiddleData]GetContextStatus: The value's type must int64, float64, complex128 or string.")
 		}
 	} else if upordown == CONTEXT_DOWN {
 		_, findr := r.Relation.Contexts[contextname].Down[id]
@@ -533,8 +543,10 @@ func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUp
 			valuer.SetFloat(r.Relation.Contexts[contextname].Down[id].Float[bit])
 		case "complex128":
 			valuer.SetComplex(r.Relation.Contexts[contextname].Down[id].Complex[bit])
+		case "string":
+			valuer.SetString(r.Relation.Contexts[contextname].Down[id].String[bit])
 		default:
-			return errors.New("roles[RoleMiddleData]GetContextStatus: The value's type must int64, float64 or complex128.")
+			return errors.New("roles[RoleMiddleData]GetContextStatus: The value's type must int64, float64, complex128 or string.")
 		}
 	} else {
 		return errors.New("roles[RoleMiddleData]GetContextStatus: The upordown must CONTEXT_UP or CONTEXT_DOWN.")
