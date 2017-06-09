@@ -901,24 +901,24 @@ func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator
 		if tran == nil {
 			switch ds.Single {
 			case roles.STATUS_VALUE_TYPE_INT:
-				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
+				ds.Exist, err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
 			case roles.STATUS_VALUE_TYPE_FLOAT:
-				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
+				ds.Exist, err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
-				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+				ds.Exist, err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
 			case roles.STATUS_VALUE_TYPE_STRING:
-				err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
+				ds.Exist, err = d.trule.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
 			}
 		} else {
 			switch ds.Single {
 			case roles.STATUS_VALUE_TYPE_INT:
-				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
+				ds.Exist, err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
 			case roles.STATUS_VALUE_TYPE_FLOAT:
-				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
+				ds.Exist, err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
-				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+				ds.Exist, err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
 			case roles.STATUS_VALUE_TYPE_STRING:
-				err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
+				ds.Exist, err = tran.tran.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
 			}
 		}
 	} else {
@@ -931,13 +931,13 @@ func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator
 			}
 			switch ds.Single {
 			case roles.STATUS_VALUE_TYPE_INT:
-				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
+				ds.Exist, errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
 			case roles.STATUS_VALUE_TYPE_FLOAT:
-				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
+				ds.Exist, errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
-				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+				ds.Exist, errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
 			case roles.STATUS_VALUE_TYPE_STRING:
-				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
+				ds.Exist, errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
 			}
 		} else {
 			o, f := d.randomOneOTransaction(o_s, tran)
@@ -947,13 +947,13 @@ func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator
 			}
 			switch ds.Single {
 			case roles.STATUS_VALUE_TYPE_INT:
-				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
+				ds.Exist, errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Int)
 			case roles.STATUS_VALUE_TYPE_FLOAT:
-				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
+				ds.Exist, errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
-				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
+				ds.Exist, errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.Complex)
 			case roles.STATUS_VALUE_TYPE_STRING:
-				errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
+				ds.Exist, errd = o.ReadFriendStatus(ds.Area, ds.Id, ds.Friend, ds.Bit, &ds.String)
 			}
 		}
 		if errd.IsError() != nil {
@@ -1559,24 +1559,24 @@ func (d *DRule) normalReadContextStatus(conn_exec *nst.ConnExec, o_send *operato
 		if tran == nil {
 			switch ds.Single {
 			case roles.STATUS_VALUE_TYPE_INT:
-				err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Int)
+				ds.Exist, err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Int)
 			case roles.STATUS_VALUE_TYPE_FLOAT:
-				err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
+				ds.Exist, err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
-				err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
+				ds.Exist, err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
 			case roles.STATUS_VALUE_TYPE_STRING:
-				err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.String)
+				ds.Exist, err = d.trule.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.String)
 			}
 		} else {
 			switch ds.Single {
 			case roles.STATUS_VALUE_TYPE_INT:
-				err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Int)
+				ds.Exist, err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Int)
 			case roles.STATUS_VALUE_TYPE_FLOAT:
-				err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
+				ds.Exist, err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
-				err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
+				ds.Exist, err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
 			case roles.STATUS_VALUE_TYPE_STRING:
-				err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.String)
+				ds.Exist, err = tran.tran.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.String)
 			}
 		}
 	} else {
@@ -1589,11 +1589,11 @@ func (d *DRule) normalReadContextStatus(conn_exec *nst.ConnExec, o_send *operato
 			}
 			switch ds.Single {
 			case roles.STATUS_VALUE_TYPE_INT:
-				errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Int)
+				ds.Exist, errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Int)
 			case roles.STATUS_VALUE_TYPE_FLOAT:
-				errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
+				ds.Exist, errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
-				errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
+				ds.Exist, errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
 			}
 		} else {
 			o, f := d.randomOneOTransaction(o_s, tran)
@@ -1603,11 +1603,11 @@ func (d *DRule) normalReadContextStatus(conn_exec *nst.ConnExec, o_send *operato
 			}
 			switch ds.Single {
 			case roles.STATUS_VALUE_TYPE_INT:
-				errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Int)
+				ds.Exist, errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Int)
 			case roles.STATUS_VALUE_TYPE_FLOAT:
-				errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
+				ds.Exist, errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Float)
 			case roles.STATUS_VALUE_TYPE_COMPLEX:
-				errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
+				ds.Exist, errd = o.ReadContextStatus(ds.Area, ds.Id, ds.Context, ds.UpOrDown, ds.BindRole, ds.Bit, &ds.Complex)
 			}
 		}
 		if errd.IsError() != nil {

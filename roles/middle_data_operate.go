@@ -393,7 +393,8 @@ func (r *RoleMiddleData) SetFriendStatus(id string, bit int, value interface{}) 
 }
 
 // 获取朋友的状态属性，id：朋友的ID；bit：位，0到9；value值，只接收int64、float64、complex128。
-func (r *RoleMiddleData) GetFriendStatus(id string, bit int, value interface{}) (err error) {
+func (r *RoleMiddleData) GetFriendStatus(id string, bit int, value interface{}) (have bool, err error) {
+	have = true
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: %v", e)
@@ -401,10 +402,13 @@ func (r *RoleMiddleData) GetFriendStatus(id string, bit int, value interface{}) 
 	}()
 	_, findf := r.Relation.Friends[id]
 	if findf == false {
-		return fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: Role has no exist : " + id + " in " + r.Version.Id + " friend .")
+		//return fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: Role has no exist : " + id + " in " + r.Version.Id + " friend .")
+		have = false
+		return
 	}
 	if bit > 9 {
-		return fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The bit must less than 10.")
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The bit must less than 10.")
+		return
 	}
 	valuer := reflect.Indirect(reflect.ValueOf(value))
 	vname := valuer.Type().String()
@@ -418,9 +422,9 @@ func (r *RoleMiddleData) GetFriendStatus(id string, bit int, value interface{}) 
 	case "string":
 		valuer.SetString(r.Relation.Friends[id].String[bit])
 	default:
-		return fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The value's type must int64, float64, complex128 or string.")
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The value's type must int64, float64, complex128 or string.")
 	}
-	return nil
+	return
 }
 
 // 设置上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值，只接收int64、float64、complex128。
@@ -497,23 +501,28 @@ func (r *RoleMiddleData) SetContextStatus(contextname string, upordown ContextUp
 }
 
 // 获取上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值，只接收int64、float64、complex128。
-func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUpDown, id string, bit int, value interface{}) (err error) {
+func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUpDown, id string, bit int, value interface{}) (have bool, err error) {
+	have = true
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("roles[RoleMiddleData]GetContextStatus: %v", e)
 		}
 	}()
 	if bit > 9 {
-		return errors.New("roles[RoleMiddleData]GetContextStatus: The bit must less than 10.")
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The bit must less than 10.")
+		return
 	}
 	_, findc := r.Relation.Contexts[contextname]
 	if findc == false {
-		return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no context " + contextname + " in " + r.Version.Id + " .")
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no context " + contextname + " in " + r.Version.Id + " .")
+		return
 	}
 	if upordown == CONTEXT_UP {
 		_, findr := r.Relation.Contexts[contextname].Up[id]
 		if findr == false {
-			return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no up context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no up context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
 		}
 		valuer := reflect.Indirect(reflect.ValueOf(value))
 		vname := valuer.Type().String()
@@ -527,12 +536,14 @@ func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUp
 		case "string":
 			valuer.SetString(r.Relation.Contexts[contextname].Up[id].String[bit])
 		default:
-			return errors.New("roles[RoleMiddleData]GetContextStatus: The value's type must int64, float64, complex128 or string.")
+			err = errors.New("roles[RoleMiddleData]GetContextStatus: The value's type must int64, float64, complex128 or string.")
 		}
 	} else if upordown == CONTEXT_DOWN {
 		_, findr := r.Relation.Contexts[contextname].Down[id]
 		if findr == false {
-			return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no down context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no down context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
 		}
 		valuer := reflect.Indirect(reflect.ValueOf(value))
 		vname := valuer.Type().String()
@@ -546,12 +557,12 @@ func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUp
 		case "string":
 			valuer.SetString(r.Relation.Contexts[contextname].Down[id].String[bit])
 		default:
-			return errors.New("roles[RoleMiddleData]GetContextStatus: The value's type must int64, float64, complex128 or string.")
+			err = errors.New("roles[RoleMiddleData]GetContextStatus: The value's type must int64, float64, complex128 or string.")
 		}
 	} else {
-		return errors.New("roles[RoleMiddleData]GetContextStatus: The upordown must CONTEXT_UP or CONTEXT_DOWN.")
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The upordown must CONTEXT_UP or CONTEXT_DOWN.")
 	}
-	return nil
+	return
 }
 
 func (r *RoleMiddleData) GetDataToByte(name string) (b []byte, err error) {

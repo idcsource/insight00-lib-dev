@@ -378,7 +378,7 @@ func (t *Transaction) WriteFriendStatus(area, id, friend string, bindbit int, va
 }
 
 // 读取朋友的状态
-func (t *Transaction) ReadFriendStatus(area, id, friend string, bindbit int, value interface{}) (err error) {
+func (t *Transaction) ReadFriendStatus(area, id, friend string, bindbit int, value interface{}) (have bool, err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]ReadFriendStatus: This transaction has been deleted.")
 		return
@@ -389,7 +389,7 @@ func (t *Transaction) ReadFriendStatus(area, id, friend string, bindbit int, val
 		err = fmt.Errorf("drule[Transaction]ReadFriendStatus: %v", err)
 		return
 	}
-	err = rolec.role.GetFriendStatus(friend, bindbit, value)
+	have, err = rolec.role.GetFriendStatus(friend, bindbit, value)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadFriendStatus: %v", err)
 	}
@@ -564,7 +564,7 @@ func (t *Transaction) WriteContextStatus(area, id, contextname string, upordown 
 }
 
 // 获取上下文的状态属性，upordown为roles.CONTEXT_UP或roles.CONTEXT_DOWN
-func (t *Transaction) ReadContextStatus(area, id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (err error) {
+func (t *Transaction) ReadContextStatus(area, id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (have bool, err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("drule[Transaction]ReadContextStatus: This transaction has been deleted.")
 		return
@@ -575,7 +575,7 @@ func (t *Transaction) ReadContextStatus(area, id, contextname string, upordown r
 		err = fmt.Errorf("drule[Transaction]ReadContextStatus: %v", err)
 		return
 	}
-	err = rolec.role.GetContextStatus(contextname, upordown, bindroleid, bindbit, value)
+	have, err = rolec.role.GetContextStatus(contextname, upordown, bindroleid, bindbit, value)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContextStatus: %v", err)
 	}

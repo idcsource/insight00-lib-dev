@@ -863,7 +863,7 @@ func (o *OTransaction) WriteFriend(areaid, roleid, friendid string, bind int64) 
 }
 
 // 读取朋友的状态
-func (o *OTransaction) ReadFriendStatus(areaid, roleid, friendid string, bindbit int, value interface{}) (errs DRuleError) {
+func (o *OTransaction) ReadFriendStatus(areaid, roleid, friendid string, bindbit int, value interface{}) (have bool, errs DRuleError) {
 	var err error
 	errs = NewDRuleError()
 	// 查看是否删除
@@ -950,6 +950,7 @@ func (o *OTransaction) ReadFriendStatus(areaid, roleid, friendid string, bindbit
 	default:
 		err = fmt.Errorf("operator[OTransaction]ReadFriendStatus: The value's type not int64, float64, complex128 or string.")
 	}
+	have = rf.Exist
 	return
 }
 
@@ -1381,7 +1382,7 @@ func (o *OTransaction) WriteContextStatus(areaid, roleid, contextname string, up
 }
 
 // 获取一个上下文的状态
-func (o *OTransaction) ReadContextStatus(areaid, roleid, contextname string, upordown roles.ContextUpDown, bindrole string, bindbit int, value interface{}) (errs DRuleError) {
+func (o *OTransaction) ReadContextStatus(areaid, roleid, contextname string, upordown roles.ContextUpDown, bindrole string, bindbit int, value interface{}) (have bool, errs DRuleError) {
 	var err error
 	errs = NewDRuleError()
 	// 查看是否删除
@@ -1470,6 +1471,7 @@ func (o *OTransaction) ReadContextStatus(areaid, roleid, contextname string, upo
 	default:
 		err = fmt.Errorf("operator[OTransaction]ReadContextStatus: The value's type not int64, float64, complex128 or string.")
 	}
+	have = rc.Exist
 	return
 }
 

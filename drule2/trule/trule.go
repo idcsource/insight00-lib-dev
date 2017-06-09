@@ -788,9 +788,9 @@ func (t *TRule) WriteFriendStatus(area, id, friends string, bindbit int, value i
 }
 
 // 获取朋友的状态属性
-func (t *TRule) ReadFriendStatus(area, id, friends string, bindbit int, value interface{}) (err error) {
+func (t *TRule) ReadFriendStatus(area, id, friends string, bindbit int, value interface{}) (have bool, err error) {
 	tran, _ := t.Begin()
-	err = tran.ReadFriendStatus(area, id, friends, bindbit, value)
+	have, err = tran.ReadFriendStatus(area, id, friends, bindbit, value)
 	if err != nil {
 		err = fmt.Errorf("trule[TRule]ReadFriendStatus: %v", err)
 		tran.Rollback()
@@ -814,9 +814,9 @@ func (t *TRule) WriteContextStatus(area, id, contextname string, upordown roles.
 }
 
 // 获取上下文的状态属性，upordown为roles中的CONTEXT_UP或CONTEXT_DOWN
-func (t *TRule) ReadContextStatus(area, id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (err error) {
+func (t *TRule) ReadContextStatus(area, id, contextname string, upordown roles.ContextUpDown, bindroleid string, bindbit int, value interface{}) (have bool, err error) {
 	tran, _ := t.Begin()
-	err = tran.ReadContextStatus(area, id, contextname, upordown, bindroleid, bindbit, value)
+	have, err = tran.ReadContextStatus(area, id, contextname, upordown, bindroleid, bindbit, value)
 	if err != nil {
 		err = fmt.Errorf("trule[TRule]ReadContextStatus: %v", err)
 		tran.Rollback()

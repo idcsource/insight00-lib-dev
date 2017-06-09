@@ -694,7 +694,7 @@ func (o *Operator) WriteFriend(areaid, roleid, friendid string, bind int64) (err
 }
 
 // 读取朋友的状态
-func (o *Operator) ReadFriendStatus(areaid, roleid, friendid string, bindbit int, value interface{}) (errs DRuleError) {
+func (o *Operator) ReadFriendStatus(areaid, roleid, friendid string, bindbit int, value interface{}) (have bool, errs DRuleError) {
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
@@ -777,6 +777,7 @@ func (o *Operator) ReadFriendStatus(areaid, roleid, friendid string, bindbit int
 	default:
 		err = fmt.Errorf("operator[Operator]ReadFriendStatus: The value's type not int64, float64, complex128 or string.")
 	}
+	have = rf.Exist
 	return
 }
 
@@ -1172,7 +1173,7 @@ func (o *Operator) WriteContextStatus(areaid, roleid, contextname string, upordo
 }
 
 // 获取一个上下文的状态
-func (o *Operator) ReadContextStatus(areaid, roleid, contextname string, upordown roles.ContextUpDown, bindrole string, bindbit int, value interface{}) (errs DRuleError) {
+func (o *Operator) ReadContextStatus(areaid, roleid, contextname string, upordown roles.ContextUpDown, bindrole string, bindbit int, value interface{}) (have bool, errs DRuleError) {
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
@@ -1257,6 +1258,7 @@ func (o *Operator) ReadContextStatus(areaid, roleid, contextname string, upordow
 	default:
 		err = fmt.Errorf("operator[Operator]ReadContextStatus: The value's type not int64, float64, complex128 or string.")
 	}
+	have = rc.Exist
 	return
 }
 

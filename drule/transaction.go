@@ -356,7 +356,7 @@ func (t *Transaction) ReadFriendStatus(id, friend string, bindbit int, value int
 		err = fmt.Errorf("drule[Transaction]ReadFriendStatus: %v", err)
 		return
 	}
-	err = rolec.role.GetFriendStatus(friend, bindbit, value)
+	_, err = rolec.role.GetFriendStatus(friend, bindbit, value)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadFriendStatus: %v", err)
 	}
@@ -518,7 +518,7 @@ func (t *Transaction) ReadContextStatus(id, contextname string, upordown roles.C
 		err = fmt.Errorf("drule[Transaction]ReadContextStatus: %v", err)
 		return
 	}
-	err = rolec.role.GetContextStatus(contextname, upordown, bindroleid, bindbit, value)
+	_, err = rolec.role.GetContextStatus(contextname, upordown, bindroleid, bindbit, value)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContextStatus: %v", err)
 	}

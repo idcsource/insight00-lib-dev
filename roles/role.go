@@ -547,7 +547,8 @@ func (r *Role) SetFriendStatus(id string, bit int, value interface{}) (err error
 }
 
 // 获取朋友的状态属性，id：朋友的ID；bit：位，0到9；value值，只接收int64、float64、complex128。
-func (r *Role) GetFriendStatus(id string, bit int, value interface{}) (err error) {
+func (r *Role) GetFriendStatus(id string, bit int, value interface{}) (have bool, err error) {
+	have = true
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("roles: GetFriendStatus: %v", e)
@@ -555,10 +556,12 @@ func (r *Role) GetFriendStatus(id string, bit int, value interface{}) (err error
 	}()
 	_, findf := r._friends[id]
 	if findf == false {
-		return errors.New("Role has no exist : " + id + " in " + r.Id + " friend .")
+		have = false
+		return
 	}
 	if bit > 9 {
-		return errors.New("The bit must less than 10.")
+		err = errors.New("The bit must less than 10.")
+		return
 	}
 	valuer := reflect.Indirect(reflect.ValueOf(value))
 	vname := valuer.Type().String()
@@ -572,9 +575,9 @@ func (r *Role) GetFriendStatus(id string, bit int, value interface{}) (err error
 	case "string":
 		valuer.SetString(r._friends[id].String[bit])
 	default:
-		return errors.New("The value's type must int64, float64, complex128 or string.")
+		err = errors.New("The value's type must int64, float64, complex128 or string.")
 	}
-	return nil
+	return
 }
 
 // 设置上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值，只接收int64、float64、complex128。
@@ -651,23 +654,28 @@ func (r *Role) SetContextStatus(contextname string, upordown ContextUpDown, id s
 }
 
 // 获取上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值，只接收int64、float64、complex128。
-func (r *Role) GetContextStatus(contextname string, upordown ContextUpDown, id string, bit int, value interface{}) (err error) {
+func (r *Role) GetContextStatus(contextname string, upordown ContextUpDown, id string, bit int, value interface{}) (have bool, err error) {
+	have = true
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("roles: GetContextStatus: %v", e)
 		}
 	}()
 	if bit > 9 {
-		return errors.New("The bit must less than 10.")
+		err = errors.New("The bit must less than 10.")
+		return
 	}
 	_, findc := r._context[contextname]
 	if findc == false {
-		return errors.New("The Role have no context " + contextname + " in " + r.Id + " .")
+		err = errors.New("The Role have no context " + contextname + " in " + r.Id + " .")
+		return
 	}
 	if upordown == CONTEXT_UP {
 		_, findr := r._context[contextname].Up[id]
 		if findr == false {
-			return errors.New("The Role have no up context relationship " + id + " in " + contextname + " in " + r.Id + " .")
+			//return errors.New("The Role have no up context relationship " + id + " in " + contextname + " in " + r.Id + " .")
+			have = false
+			return
 		}
 		valuer := reflect.Indirect(reflect.ValueOf(value))
 		vname := valuer.Type().String()
@@ -681,12 +689,14 @@ func (r *Role) GetContextStatus(contextname string, upordown ContextUpDown, id s
 		case "string":
 			valuer.SetString(r._context[contextname].Up[id].String[bit])
 		default:
-			return errors.New("The value's type must int64, float64, complex128 or string.")
+			err = errors.New("The value's type must int64, float64, complex128 or string.")
 		}
 	} else if upordown == CONTEXT_DOWN {
 		_, findr := r._context[contextname].Down[id]
 		if findr == false {
-			return errors.New("The Role have no down context relationship " + id + " in " + contextname + " in " + r.Id + " .")
+			//return errors.New("The Role have no down context relationship " + id + " in " + contextname + " in " + r.Id + " .")
+			have = false
+			return
 		}
 		valuer := reflect.Indirect(reflect.ValueOf(value))
 		vname := valuer.Type().String()
@@ -700,12 +710,12 @@ func (r *Role) GetContextStatus(contextname string, upordown ContextUpDown, id s
 		case "string":
 			valuer.SetString(r._context[contextname].Down[id].String[bit])
 		default:
-			return errors.New("The value's type must int64, float64, complex128 or string.")
+			err = errors.New("The value's type must int64, float64, complex128 or string.")
 		}
 	} else {
-		return errors.New("The upordown must CONTEXT_UP or CONTEXT_DOWN.")
+		err = errors.New("The upordown must CONTEXT_UP or CONTEXT_DOWN.")
 	}
-	return nil
+	return
 }
 
 // 为Gob注册角色类型

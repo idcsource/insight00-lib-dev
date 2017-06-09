@@ -135,6 +135,8 @@ type O_RoleAndFriend struct {
 	Id     string
 	Friend string
 	Bind   int64
+	// 要求的是否存在
+	Exist  bool
 	Status roles.Status
 	// 单一的绑定属性修改，1为int，2为float，3为complex
 	Single roles.StatusValueType
