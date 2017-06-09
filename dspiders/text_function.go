@@ -7,7 +7,16 @@
 
 package dspiders
 
-import "strings"
+import (
+	"fmt"
+	"net/url"
+	"regexp"
+	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+	iconv "github.com/djimenez/iconv-go"
+	"github.com/saintfish/chardet"
+)
 
 // let string to index char
 func toSequence(str string) (normal map[uint64][]string) {
@@ -120,4 +129,119 @@ func subSentences(str rune) bool {
 		}
 	}
 	return false
+}
+
+func charEncodeToUtf8(body []byte) (string, error) {
+	cd := chardet.NewHtmlDetector()
+	ccode, err := cd.DetectBest(body)
+	if err != nil {
+		return "", err
+	}
+	var bodys string
+	if ccode.Charset != "UTF-8" {
+		thecode := ccode.Charset
+		if strings.Contains(thecode, "GB-") {
+			thecode = "GBK"
+		}
+		var err2 error
+		bodys, err2 = iconv.ConvertString(string(body), thecode, "utf-8")
+		if err2 != nil {
+			return "", err2
+		}
+	} else {
+		bodys = string(body)
+	}
+	return bodys, nil
+}
+
+func trimHtml(html string) string {
+	html = strings.TrimSpace(html)
+	html = strings.Replace(html, "\r", "\n", -1)
+
+	b0, _ := regexp.Compile(`\&[^ ]{1,6};`)
+	html = b0.ReplaceAllString(html, " ")
+
+	b1, _ := regexp.Compile(`(?isU)<HEAD>(.*)</head>`)
+	html = b1.ReplaceAllString(html, "\n")
+
+	b4, _ := regexp.Compile(`(?isU)<script(.*)</script>`)
+	html = b4.ReplaceAllString(html, "\n")
+	b6, _ := regexp.Compile(`(?isU)<style(.*)</style>`)
+	html = b6.ReplaceAllString(html, "\n")
+	//b2, _ := regexp.Compile("<(html|body|div|span|ul|li|a|script|img)([^>]{0,})>");
+	b2, _ := regexp.Compile("<([^>]+)>")
+	//b3, _ := regexp.Compile("</(html|body|div|span|ul|li|a|script|img)([^>]{0,})>");
+	b3, _ := regexp.Compile("</([^>]+)>")
+	html = b2.ReplaceAllString(html, "\n")
+	html = b3.ReplaceAllString(html, "\n")
+
+	//html = strings.Replace(html,"\t"," ",-1);
+	//html = strings.Replace(html,"\n"," ",-1);
+	//html = strings.Replace(html, "-", " ", -1)
+	//html = strings.Replace(html, "/", " ", -1)
+	//html = strings.Replace(html, "\\", " ", -1)
+	//html = strings.Replace(html, ":", " ", -1)
+
+	b5, _ := regexp.Compile("([ ]{2,})")
+	html = b5.ReplaceAllString(html, " ")
+	b7, _ := regexp.Compile(`([\t]{2,})`)
+	html = b7.ReplaceAllString(html, "\n")
+	b8, _ := regexp.Compile(`([　]{2,})`)
+	html = b8.ReplaceAllString(html, " ")
+	b9, _ := regexp.Compile(`([ \n]{2,})`)
+	html = b9.ReplaceAllString(html, "\n")
+
+	b5_1, _ := regexp.Compile(`([\n]{2,})`)
+	html = b5_1.ReplaceAllString(html, "\n")
+	html = strings.ToLower(html)
+	return html
+}
+
+func getAllUrl(htmlbody string) (urls []UrlBasic, err error) {
+	bodysreader := strings.NewReader(htmlbody)
+	document, err := goquery.NewDocumentFromReader(bodysreader)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	urls = make([]UrlBasic, 0)
+	document.Find("a").Each(func(i int, se *goquery.Selection) {
+		link, exist := se.Attr("href")
+		if exist == false {
+			return
+		}
+		linka, err := url.Parse(link)
+		if err != nil {
+			return
+		}
+		url := UrlBasic{
+			Url:    link,
+			Text:   se.Text(),
+			Domain: linka.Hostname(),
+		}
+		urls = append(urls, url)
+	})
+	return
+}
+
+func getTitle(html string) string {
+	bodysreader := strings.NewReader(html)
+	jquery, _ := goquery.NewDocumentFromReader(bodysreader)
+	title := jquery.Find("title").Text()
+	return title
+}
+
+func getKeyword(html string) []string {
+	bodysreader := strings.NewReader(html)
+	jquery, _ := goquery.NewDocumentFromReader(bodysreader)
+	keyword, _ := jquery.Find("meta[name=keywords]").Attr("content")
+	keywords := strings.Split(keyword, ",")
+	if len(keywords) == 1 {
+		keywords = strings.Split(keyword, ";")
+	} else if len(keywords) == 1 {
+		keywords = strings.Split(keyword, "，")
+	} else if len(keywords) == 1 {
+		keywords = strings.Split(keyword, " ")
+	}
+	return keywords
 }

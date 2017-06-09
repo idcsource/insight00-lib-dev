@@ -10,6 +10,8 @@ package dspiders
 const (
 	URL_CRAWL_QUEUE_CAP uint = 1000 // The url crawl queue's capacity.
 
+	CRAWL_MACHINE_CRAWL_INTERVAL = 1 // the crawl machine every crawl interval what second.
+
 	UP_INTERVAL_DEFAULT = 86400   // The default page recrawl(update) interval, the unit is second, the value is 1 day.
 	UP_INTERVAL_MIN     = 60      // The minimum page recrawl(update) interval, the unit is second, the value is 1 minute.
 	UP_INTERVAL_MAX     = 8640000 // The maximum page recrawl(update) interval, the unit is second, the value is 100 day.

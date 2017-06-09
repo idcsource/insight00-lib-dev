@@ -79,7 +79,7 @@ func (n *NetTransportHandle) ExecTCP(ce *nst.ConnExec) (err error) {
 	case NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_ADD:
 		return n.addUrlToCrawlQueue(ce, &c_send)
 	case NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_GET:
-		return n.getUrlToCrawlQueue(ce, &c_send)
+		return n.getUrlFromCrawlQueue(ce, &c_send)
 	case NET_TRANSPORT_OPERATE_SEND_PAGE_DATA:
 		return n.thePageData(ce, &c_send)
 	case NET_TRANSPORT_OPERATE_SEND_MEDIA_DATA:
@@ -106,7 +106,7 @@ func (n *NetTransportHandle) addUrlToCrawlQueue(ce *nst.ConnExec, c_send *NetTra
 	return
 }
 
-func (n *NetTransportHandle) getUrlToCrawlQueue(ce *nst.ConnExec, c_send *NetTransportData) (err error) {
+func (n *NetTransportHandle) getUrlFromCrawlQueue(ce *nst.ConnExec, c_send *NetTransportData) (err error) {
 	url, err := n.urlCrawlQueue.Get()
 	if err != nil {
 		return n.sendReceipt(ce, NET_DATA_ERROR, []byte(err.Error()))
