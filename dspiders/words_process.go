@@ -64,7 +64,7 @@ func (w *WordsIndexProcess) ReturnQueue() chan *WordsIndexRequest {
 	return w.queue
 }
 
-// Add a url basic information to the url crawl queue
+// Add a words index reuest to queue
 func (w *WordsIndexProcess) Add(req *WordsIndexRequest) (err error) {
 	if w.count == URL_CRAWL_QUEUE_CAP {
 		err = fmt.Errorf("The queue is full.")
