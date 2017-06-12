@@ -9,7 +9,7 @@
 //
 // This is a web page crawl and full text index package.
 //
-// It's have two parts for dspiders: crawl machine and  process machine.
+// It's have two parts for dspiders: crawl machine and process machine.
 // And they are distributed.
 //
 // Crawl Machine:
@@ -38,4 +38,19 @@
 // WordsProcess. It manage the full text index for page content.
 // According to sentences, words, character, it split the page content to slice which recorded the index position.
 // Then store the index information for each page, merge/change words context relationship information.
+//
+// Words Context Relationship Informaion:
+//
+// The words index store in the dspiders is use the Roles context status. It record the position of a word in the page content, and what word before and after this word in the sentence.
+//
+// For example the page url is : http://for.example.com/a. The page content is: Today is sunday, We have a funny holiday.
+//
+// The page content will be process to only text content "today is sunday \n we have a funny holiday". It have no punctuation but only the line break, every line is one sentence.
+// Then the text content will be process to a map slice map[uint64][]string. It seems like this: [0]{today, is, sunday},[16]{we, have, a, funny, holiday}.
+//
+// Next step, the dspiders will store the relationship, for example fide the "is" Role,
+// find the "sunday" in the down context relationship, store the link and the position 2 of the word "sunday",
+// find the "today" in the up context relationship, store the link and the position 0 of the word "today".
+//
+// Now we record the relationship which word appear which link, and the word position in the content, and what word before and after this word.
 package dspiders

@@ -27,8 +27,10 @@ func toSequence(str string) (normal map[uint64][]string) {
 	strn := []rune(str)
 	var tmpstring string
 	tempslice := make([]string, 0)
+	var tempcount uint64 = 0
 	for _, one := range strn {
 		charcount++
+		tempcount++
 		// if a new sentence, create a new slice
 		if subSentences(one) == true {
 			if len(tmpstring) > 0 {
@@ -37,7 +39,8 @@ func toSequence(str string) (normal map[uint64][]string) {
 				tmpstring = ""
 			}
 			if len(tempslice) > 0 {
-				nowcount := charcount - 1 - uint64(len(tempslice))
+				nowcount := charcount - tempcount
+				tempcount = 0
 				normal[nowcount] = tempslice
 				tempslice = make([]string, 0)
 			}
@@ -64,7 +67,7 @@ func toSequence(str string) (normal map[uint64][]string) {
 		tempslice = append(tempslice, tmpstring)
 	}
 	if len(tempslice) > 0 {
-		nowcount := charcount - 1 - uint64(len(tempslice))
+		nowcount := charcount - tempcount
 		normal[nowcount] = tempslice
 	}
 	return
