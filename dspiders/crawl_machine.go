@@ -109,7 +109,7 @@ func (c *CrawlMachine) crawlHTML(resp *http.Response, url UrlBasic) (err error) 
 		return
 	}
 	// get the urls and send
-	go c.crawlUrl(htmlbody)
+	go c.crawlUrl(htmlbody, url.Url)
 	// get keywords
 	keywords := getKeyword(htmlbody)
 	// get headertitle
@@ -138,8 +138,8 @@ func (c *CrawlMachine) crawlHTML(resp *http.Response, url UrlBasic) (err error) 
 	return
 }
 
-func (c *CrawlMachine) crawlUrl(htmlbody string) {
-	urls, err := getAllUrl(htmlbody)
+func (c *CrawlMachine) crawlUrl(htmlbody string, fatherurl string) {
+	urls, err := getAllUrl(htmlbody, fatherurl)
 	if err != nil {
 		fmt.Println(err)
 		return

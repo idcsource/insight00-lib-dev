@@ -16,6 +16,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	iconv "github.com/djimenez/iconv-go"
 	"github.com/saintfish/chardet"
+
+	"github.com/idcsource/Insight-0-0-lib/pubfunc"
 )
 
 // let string to index char
@@ -197,7 +199,8 @@ func trimHtml(html string) string {
 	return html
 }
 
-func getAllUrl(htmlbody string) (urls []UrlBasic, err error) {
+func getAllUrl(htmlbody string, fatherurl string) (urls []UrlBasic, err error) {
+	fatherpre, _ := url.Parse(fatherurl)
 	bodysreader := strings.NewReader(htmlbody)
 	document, err := goquery.NewDocumentFromReader(bodysreader)
 	if err != nil {
@@ -214,8 +217,9 @@ func getAllUrl(htmlbody string) (urls []UrlBasic, err error) {
 		if err != nil {
 			return
 		}
+		linkComplete(linka, fatherpre)
 		url := UrlBasic{
-			Url:    link,
+			Url:    linka.String(),
 			Text:   se.Text(),
 			Domain: linka.Hostname(),
 		}
@@ -244,4 +248,16 @@ func getKeyword(html string) []string {
 		keywords = strings.Split(keyword, " ")
 	}
 	return keywords
+}
+
+func linkComplete(linka, father *url.URL) {
+	if linka.Host == "" || linka.Scheme == "" {
+		linka.Host = father.Host
+		linka.Scheme = father.Scheme
+		abpath, _ := regexp.MatchString("^/", linka.Path)
+		if abpath == false {
+			linka.Path = pubfunc.DirMustEnd(father.Path) + linka.Path
+		}
+	}
+	return
 }
