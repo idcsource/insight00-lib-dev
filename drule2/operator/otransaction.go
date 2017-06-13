@@ -1699,7 +1699,7 @@ func (o *OTransaction) ReadData(areaid, roleid, name string, data interface{}) (
 		return
 	}
 	// 解码数据
-	err = iendecode.BytesGobStruct(rd.Data, &data)
+	err = iendecode.BytesGobStruct(rd.Data, data)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[OTransaction]ReadData: %v", err)
 		return

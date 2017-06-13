@@ -1466,7 +1466,7 @@ func (o *Operator) ReadData(areaid, roleid, name string, data interface{}) (errs
 		return
 	}
 	// 解码数据
-	err = iendecode.BytesGobStruct(rd.Data, &data)
+	err = iendecode.BytesGobStruct(rd.Data, data)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]ReadData: %v", err)
 		return

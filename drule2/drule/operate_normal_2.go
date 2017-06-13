@@ -141,7 +141,7 @@ func (d *DRule) normalStoreRole(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 	// 查看读写权限和角色位置，o_s = operator service
 	havepower, position, o_s := d.getAreaPowerAndRolePosition(o_send.User, ds.Area, ds.RoleID, true)
 	if havepower == false {
-		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "", nil)
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "User have no area authority", nil)
 		return
 	}
 	if position == ROLE_POSITION_IN_LOCAL {

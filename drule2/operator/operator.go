@@ -16,6 +16,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
 // 创建一个操作者，自己的名字，远程地址，连接数，用户名，密码，日志
@@ -28,7 +29,7 @@ func NewOperator(selfname string, addr string, conn_num int, username, password 
 	drule := &druleInfo{
 		name:     addr,
 		username: username,
-		password: password,
+		password: random.GetSha1Sum(password),
 		tcpconn:  drule_conn,
 	}
 
@@ -78,7 +79,7 @@ func NewOperatorTLS(selfname string, addr string, conn_num int, username, passwo
 	drule := &druleInfo{
 		name:     addr,
 		username: username,
-		password: password,
+		password: random.GetSha1Sum(password),
 		tcpconn:  drule_conn,
 	}
 
@@ -189,6 +190,7 @@ func (o *Operator) autoLogin() (err error) {
 	if err != nil {
 		return
 	}
+
 	// 发送
 	cprocess := o.drule.tcpconn.OpenProgress()
 	defer cprocess.Close()
@@ -200,7 +202,7 @@ func (o *Operator) autoLogin() (err error) {
 		return fmt.Errorf(drule_return.Error)
 	}
 	// 解码
-	err = iendecode.BytesGobStruct(login_b, &login)
+	err = iendecode.BytesGobStruct(drule_return.Data, &login)
 	if err != nil {
 		return
 	}

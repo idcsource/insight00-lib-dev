@@ -244,7 +244,7 @@ func (d *DRule) checkUserNormalPower(username, areaname string, wr bool) (have b
 		return
 	}
 	// 只有读权限，想要写权限
-	if wr == true || wrable == false {
+	if wr == true && wrable == false {
 		have = false
 		return
 	}

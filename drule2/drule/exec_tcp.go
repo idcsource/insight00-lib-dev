@@ -139,7 +139,7 @@ func (d *DRule) operateNormal(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 	}
 	// 是否登录了
 	if login := d.checkUserLogin(o_send.User, o_send.Unid); login == false {
-		return d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "", nil)
+		return d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "User not login", nil)
 	}
 	switch o_send.Operate {
 	case operator.OPERATE_TRAN_BEGIN:
