@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -18,6 +19,7 @@ import (
 	"github.com/saintfish/chardet"
 
 	"github.com/idcsource/Insight-0-0-lib/pubfunc"
+	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
 // let string to index char
@@ -262,5 +264,14 @@ func linkComplete(linka, father *url.URL) {
 			linka.Path = pubfunc.DirMustEnd(father.Path) + linka.Path
 		}
 	}
+	return
+}
+
+func randomIp() (ip string) {
+	ip1 := random.GetRandNum(254)
+	ip2 := random.GetRandNum(254)
+	ip3 := random.GetRandNum(254)
+	ip4 := random.GetRandNum(254)
+	ip = strconv.Itoa(ip1) + "." + strconv.Itoa(ip2) + "." + strconv.Itoa(ip3) + "." + strconv.Itoa(ip4)
 	return
 }

@@ -193,6 +193,7 @@ func (c *CrawlMachine) respGet(url string) (resp *http.Response, err error) {
 	}
 	req.Header.Set("User-Agent", theAgent)
 	req.Header.Set("Accept-Language", theAcceptLanguage)
+	req.Header.Set("X-Forwarded-For", randomIp())
 	//req.Header.Set("Connection","keep-alive");
 	resp, err = client.Do(req)
 	return resp, err
