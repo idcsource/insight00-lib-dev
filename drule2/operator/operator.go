@@ -19,8 +19,17 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
+func NewOperator(tls bool, selfname string, addr string, conn_num int, username, password string, log *ilogs.Logs) (o *Operator, err error) {
+	password = random.GetSha1Sum(password)
+	if tls == false {
+		return NewOperatorNoTLS(selfname, addr, conn_num, username, password, log)
+	} else {
+		return NewOperatorTLS(selfname, addr, conn_num, username, password, log)
+	}
+}
+
 // 创建一个操作者，自己的名字，远程地址，连接数，用户名，密码，日志
-func NewOperator(selfname string, addr string, conn_num int, username, password string, log *ilogs.Logs) (o *Operator, err error) {
+func NewOperatorNoTLS(selfname string, addr string, conn_num int, username, password string, log *ilogs.Logs) (o *Operator, err error) {
 	drule_conn, err := nst.NewTcpClient(addr, conn_num, log)
 	if err != nil {
 		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
@@ -29,7 +38,7 @@ func NewOperator(selfname string, addr string, conn_num int, username, password 
 	drule := &druleInfo{
 		name:     addr,
 		username: username,
-		password: random.GetSha1Sum(password),
+		password: password,
 		tcpconn:  drule_conn,
 	}
 
@@ -79,7 +88,7 @@ func NewOperatorTLS(selfname string, addr string, conn_num int, username, passwo
 	drule := &druleInfo{
 		name:     addr,
 		username: username,
-		password: random.GetSha1Sum(password),
+		password: password,
 		tcpconn:  drule_conn,
 	}
 
