@@ -124,4 +124,5 @@ var UserAgent = []string{
 
 var AcceptLanguage = []string{
 	"en-US,en;q=0.5",
+	"zh-CN,zh;q=0.8,en;q=0.6",
 }
