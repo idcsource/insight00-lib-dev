@@ -68,7 +68,7 @@ func (t *Transmission) GetStruct(stru interface{}) (errs error) {
 	if errs != nil {
 		return
 	}
-	BytesGobStruct(bytes, stru)
+	errs = iendecode.BytesGobStruct(bytes, stru)
 	return
 }
 
