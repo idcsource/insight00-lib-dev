@@ -94,6 +94,7 @@ func (ts *TcpServer) startServer() {
 func (ts *TcpServer) doConn(conn *net.TCPConn) {
 	defer func() {
 		if e := recover(); e != nil {
+			fmt.Println("e", e)
 			ts.logerr(fmt.Errorf("nst[TcpServer]doConn: ", e))
 		}
 	}()
@@ -110,9 +111,11 @@ func (ts *TcpServer) doConn(conn *net.TCPConn) {
 		stat, err := tcp.GetStat()
 		if err != nil {
 			ts.logerr(fmt.Errorf("nst[TcpServer]doConn: %v", err))
+			fmt.Println("e2", err)
 			return
 		}
 		if stat == NORMAL_DATA {
+			tcp.SendStat(NORMAL_DATA)
 			in := make([]reflect.Value, 1)
 			in[0] = reflect.ValueOf(conn_exec)
 			// 注册的方法需要符合ConnExecer，整个连接将交给注册的方法去执行
@@ -128,6 +131,7 @@ func (ts *TcpServer) doConn(conn *net.TCPConn) {
 						fmt.Println(tcp.Close())
 						if fmt.Sprint(err) != "EOF" {
 							ts.logs.ErrLog("nst[TcpServer]doConn: ", err)
+							fmt.Println("e3", err)
 						}
 						return
 					}

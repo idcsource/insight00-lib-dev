@@ -143,6 +143,7 @@ func (tc *TcpClient) checkOneConn(cnum int) {
 // 检查某个连接的状态，发送NORMAL_DATA，如果有问题就重新连接，再发送NORMAL_DATA
 func (tc *TcpClient) checkOneConn2(cnum int) (err error) {
 	err = tc.tcpc[cnum].tcp.SendStat(NORMAL_DATA)
+	_, err = tc.tcpc[cnum].tcp.GetStat()
 	if err != nil {
 		ipAdrr, _ := net.ResolveTCPAddr("tcp", tc.addr)
 		connecter, err := net.DialTCP("tcp", nil, ipAdrr)
@@ -152,6 +153,7 @@ func (tc *TcpClient) checkOneConn2(cnum int) (err error) {
 		} else {
 			tc.tcpc[cnum].tcp = NewTCP(connecter)
 			err = tc.tcpc[cnum].tcp.SendStat(NORMAL_DATA)
+			_, err = tc.tcpc[cnum].tcp.GetStat()
 			if err != nil {
 				tc.logerr(fmt.Errorf("nst[TcpClient]checkOneConn2: Can't reconnect the server: %v", err))
 				return err
@@ -400,7 +402,7 @@ func (p *ProgressData) SendAndReturn(data []byte) (returndata []byte, err error)
 	var stat uint8
 	stat, err = p.tcpc.tcp.GetStat()
 	if err != nil {
-		err = fmt.Errorf("nst: [ProgressData]SendAndReturn: %v", err)
+		err = fmt.Errorf("nst: [ProgressData]SendAndReturn2: %v", err)
 		return
 	}
 	if stat == DATA_CLOSE {
@@ -410,7 +412,7 @@ func (p *ProgressData) SendAndReturn(data []byte) (returndata []byte, err error)
 
 	returndata, err = p.tcpc.tcp.GetData()
 	if err != nil {
-		err = fmt.Errorf("nst[ProgressData]SendAndReturn: %v", err)
+		err = fmt.Errorf("nst[ProgressData]SendAndReturn3: %v", err)
 		return
 	}
 	return

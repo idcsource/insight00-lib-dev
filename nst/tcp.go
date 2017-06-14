@@ -203,10 +203,8 @@ func (t *TCP) GetBytes(len uint64) (returnByte []byte, err error) {
 func (t *TCP) Close() (err error) {
 	if t.tls == true {
 		err = t.tcp_tls.Close()
-		if err != nil {
-			return
-		}
+	} else {
+		err = t.tcp.Close()
 	}
-	err = t.tcp.Close()
 	return
 }
