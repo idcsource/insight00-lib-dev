@@ -41,7 +41,7 @@ func (d *DRule) normalTranBigen(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 		for key, _ := range d.operators {
 			var errd operator.DRuleError
 			d_t.operators[key], errd = d.operators[key].Begin()
-			if errd.IsError() != nil {
+			if errd.IsError() == nil {
 				itok = append(itok, key)
 			} else {
 				for _, k := range itok {

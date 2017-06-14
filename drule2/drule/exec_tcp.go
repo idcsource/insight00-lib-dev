@@ -8,6 +8,8 @@
 package drule
 
 import (
+	"fmt"
+
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
 	"github.com/idcsource/Insight-0-0-lib/nst"
@@ -41,6 +43,11 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 	}
 	// 判断是否被暂停再看剩余的命令
+	if err != nil {
+		return err
+	} else {
+		return fmt.Errorf("DATA_CLOSE")
+	}
 	return
 }
 
@@ -134,10 +141,12 @@ func (d *DRule) operateManage(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 // 处理一般性请求
 func (d *DRule) operateNormal(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (err error) {
 	// 是否关闭了
+	fmt.Println("check close")
 	if d.closed == true && o_send.InTransaction == false {
 		return d.sendReceipt(conn_exec, operator.DATA_DRULE_CLOSED, "The DRule service is already closed.", nil)
 	}
 	// 是否登录了
+	fmt.Println("check user")
 	if login := d.checkUserLogin(o_send.User, o_send.Unid); login == false {
 		return d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "User not login", nil)
 	}

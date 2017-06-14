@@ -42,7 +42,11 @@ func (errs *DRuleError) IsError() (err error) {
 // 返回错误的字符串
 func (errs *DRuleError) String() (s string) {
 	if errs.Err != nil {
-		s = errs.Err.Error()
+		if len(errs.Err.Error()) == 0 {
+			s = errs.CodeString()
+		} else {
+			s = errs.Err.Error()
+		}
 	}
 	return
 }

@@ -66,6 +66,8 @@ func NewOperatorNoTLS(selfname string, addr string, conn_num int, username, pass
 	if err != nil {
 		return
 	}
+	// 开始监控自动登陆
+	go o.autoKeepLife()
 	// 事务信号监控
 	go o.transactionSignalHandle()
 	// 关闭信号处理
@@ -116,6 +118,8 @@ func NewOperatorTLS(selfname string, addr string, conn_num int, username, passwo
 	if err != nil {
 		return
 	}
+	// 开始监控自动登陆
+	go o.autoKeepLife()
 	// 事务信号监控
 	go o.transactionSignalHandle()
 	// 关闭信号处理
@@ -218,9 +222,6 @@ func (o *Operator) autoLogin() (err error) {
 	o.login = true
 	o.drule.unid = login.Unid
 
-	// 开始监控自动登陆
-	go o.autoKeepLife()
-
 	return
 }
 
@@ -277,5 +278,21 @@ func (o *Operator) operatorSend(process *nst.ProgressData, areaid, roleid string
 	}
 	receipt = O_DRuleReceipt{}
 	err = iendecode.BytesGobStruct(rdata, &receipt)
+	if err != nil {
+		return
+	}
+	// if not login
+	if receipt.DataStat == DATA_USER_NOT_LOGIN {
+		err = o.autoLogin()
+		if err != nil {
+			return
+		}
+		rdata, err = process.SendAndReturn(statbyte)
+		if err != nil {
+			return
+		}
+		receipt = O_DRuleReceipt{}
+		err = iendecode.BytesGobStruct(rdata, &receipt)
+	}
 	return
 }

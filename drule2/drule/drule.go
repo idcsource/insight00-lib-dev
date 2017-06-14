@@ -123,41 +123,43 @@ func (d *DRule) Start() (err error) {
 			}
 			d.operators[op_set_r.Name] = op
 		}
-	}
-	// 准备区域路由数据
-	d.areas = make(map[string]*AreasRouter)
-	areas, err := d.trule.ReadChildren(INSIDE_DMZ, AREA_DRULE_ROOT)
-	if err != nil {
-		err = fmt.Errorf("drule[DRule]Start: %v", err)
-		return
-	}
-	for _, areaid := range areas {
-		arearole := &AreasRouter{}
-		err = d.trule.ReadRole(INSIDE_DMZ, areaid, arearole)
+
+		// 准备区域路由数据
+		d.areas = make(map[string]*AreasRouter)
+		areas, err := d.trule.ReadChildren(INSIDE_DMZ, AREA_DRULE_ROOT)
 		if err != nil {
 			err = fmt.Errorf("drule[DRule]Start: %v", err)
-			return
+			return err
 		}
-		// 检查配置，查看路由项目中是否使用了不存在远端Operator
-		if arearole.Mirror == true {
-			for _, m := range arearole.Mirrors {
-				if _, find := d.operators[m]; find == false {
-					err = fmt.Errorf("drule[DRule]Start: Area '%v' can not find the remote DRule server operator '%v' set.", arearole.AreaName, m)
-					return
-				}
+		for _, areaid := range areas {
+			arearole := &AreasRouter{}
+			err = d.trule.ReadRole(INSIDE_DMZ, areaid, arearole)
+			if err != nil {
+				err = fmt.Errorf("drule[DRule]Start: %v", err)
+				return err
 			}
-		} else {
-			for _, ms := range arearole.Chars {
-				for _, m := range ms {
+			// 检查配置，查看路由项目中是否使用了不存在远端Operator
+			if arearole.Mirror == true {
+				for _, m := range arearole.Mirrors {
 					if _, find := d.operators[m]; find == false {
 						err = fmt.Errorf("drule[DRule]Start: Area '%v' can not find the remote DRule server operator '%v' set.", arearole.AreaName, m)
-						return
+						return err
+					}
+				}
+			} else {
+				for _, ms := range arearole.Chars {
+					for _, m := range ms {
+						if _, find := d.operators[m]; find == false {
+							err = fmt.Errorf("drule[DRule]Start: Area '%v' can not find the remote DRule server operator '%v' set.", arearole.AreaName, m)
+							return err
+						}
 					}
 				}
 			}
+			d.areas[arearole.AreaName] = arearole
 		}
-		d.areas[arearole.AreaName] = arearole
 	}
+
 	d.closed = false
 	return
 }
