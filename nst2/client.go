@@ -38,7 +38,7 @@ type CConnect struct {
 	lock        chan bool // the lock
 }
 
-func NewClient(addr string, max_count int, iftls bool) (c *Client) {
+func NewClient(addr string, max_count int, iftls bool) (c *Client, err error) {
 	c = &Client{
 		iftls:        iftls,
 		addr:         addr,
@@ -54,8 +54,8 @@ func NewClient(addr string, max_count int, iftls bool) (c *Client) {
 	return
 }
 
-func NewClientL(addr string, max_count int, iftls bool) (c *Client) {
-	c = NewClient(addr, max_count, iftls)
+func NewClientL(addr string, max_count int, iftls bool) (c *Client, err error) {
+	c, err = NewClient(addr, max_count, iftls)
 	c.lconnection = true
 	return
 }
