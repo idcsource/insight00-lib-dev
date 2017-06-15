@@ -10,11 +10,11 @@ package drule
 import (
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 )
 
 // 用户登录
-func (d *DRule) man_userLogin(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_userLogin(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 解码
 	var login operator.O_DRuleUser
@@ -42,7 +42,7 @@ func (d *DRule) man_userLogin(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 }
 
 // 用户续命
-func (d *DRule) man_userAddLife(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_userAddLife(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	yes := d.checkUserLogin(o_send.User, o_send.Unid)
 	if yes == true {
 		errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
@@ -54,7 +54,7 @@ func (d *DRule) man_userAddLife(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 }
 
 // 新建用户
-func (d *DRule) man_userAdd(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_userAdd(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -81,7 +81,7 @@ func (d *DRule) man_userAdd(conn_exec *nst.ConnExec, o_send *operator.O_Operator
 }
 
 // 修改密码
-func (d *DRule) man_userPassword(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_userPassword(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -113,7 +113,7 @@ func (d *DRule) man_userPassword(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 }
 
 // 修改邮箱
-func (d *DRule) man_userEmail(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_userEmail(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -145,7 +145,7 @@ func (d *DRule) man_userEmail(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 }
 
 // 删除用户
-func (d *DRule) man_userDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_userDel(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
 	if login == false {
@@ -173,7 +173,7 @@ func (d *DRule) man_userDel(conn_exec *nst.ConnExec, o_send *operator.O_Operator
 }
 
 // 用户登出
-func (d *DRule) man_userLogout(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_userLogout(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	// 查看用户权限
 	_, login := d.getUserAuthority(o_send.User, o_send.Unid)
 	if login == false {
@@ -190,7 +190,7 @@ func (d *DRule) man_userLogout(conn_exec *nst.ConnExec, o_send *operator.O_Opera
 }
 
 // 用户列表
-func (d *DRule) man_userList(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_userList(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -220,7 +220,7 @@ func (d *DRule) man_userList(conn_exec *nst.ConnExec, o_send *operator.O_Operato
 }
 
 // 新建区域
-func (d *DRule) man_areaAdd(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_areaAdd(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -249,7 +249,7 @@ func (d *DRule) man_areaAdd(conn_exec *nst.ConnExec, o_send *operator.O_Operator
 }
 
 // 删除区域
-func (d *DRule) man_areaDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_areaDel(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -278,7 +278,7 @@ func (d *DRule) man_areaDel(conn_exec *nst.ConnExec, o_send *operator.O_Operator
 }
 
 // 区域改名
-func (d *DRule) man_areaRename(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_areaRename(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -307,7 +307,7 @@ func (d *DRule) man_areaRename(conn_exec *nst.ConnExec, o_send *operator.O_Opera
 }
 
 // 区域是否存在
-func (d *DRule) man_areaExist(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_areaExist(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -338,7 +338,7 @@ func (d *DRule) man_areaExist(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 }
 
 // 所有区域的列表
-func (d *DRule) man_areaList(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_areaList(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -366,7 +366,7 @@ func (d *DRule) man_areaList(conn_exec *nst.ConnExec, o_send *operator.O_Operato
 }
 
 // 用户和区域的关系
-func (d *DRule) man_areaAndUser(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_areaAndUser(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -395,7 +395,7 @@ func (d *DRule) man_areaAndUser(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 }
 
 // 设置operator
-func (d *DRule) man_operatorSet(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_operatorSet(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	if d.closed != true {
 		errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_NOT_PAUSED, "The DRule must be paused to do this.", nil)
 		return
@@ -429,7 +429,7 @@ func (d *DRule) man_operatorSet(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 }
 
 // 删除operator
-func (d *DRule) man_operatorDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_operatorDel(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	if d.closed != true {
 		errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_NOT_PAUSED, "The DRule must be paused to do this.", nil)
 		return
@@ -457,7 +457,7 @@ func (d *DRule) man_operatorDel(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 }
 
 // 列出operator
-func (d *DRule) man_operatorList(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_operatorList(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -487,7 +487,7 @@ func (d *DRule) man_operatorList(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 }
 
 // 远端路由的设置
-func (d *DRule) man_areaRouterSet(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_areaRouterSet(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	if d.closed != true {
 		errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_NOT_PAUSED, "The DRule must be paused to do this.", nil)
 		return
@@ -524,7 +524,7 @@ func (d *DRule) man_areaRouterSet(conn_exec *nst.ConnExec, o_send *operator.O_Op
 }
 
 // 删除远端路由的设置
-func (d *DRule) man_areaRouterDel(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_areaRouterDel(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	if d.closed != true {
 		errs = d.sendReceipt(conn_exec, operator.DATA_DRULE_NOT_PAUSED, "The DRule must be paused to do this.", nil)
 		return
@@ -554,7 +554,7 @@ func (d *DRule) man_areaRouterDel(conn_exec *nst.ConnExec, o_send *operator.O_Op
 }
 
 // 列出远端路由的设置
-func (d *DRule) man_areaRouterList(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) man_areaRouterList(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)

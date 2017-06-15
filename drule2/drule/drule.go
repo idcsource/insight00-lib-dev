@@ -109,13 +109,13 @@ func (d *DRule) Start() (err error) {
 			}
 			var op *operator.Operator
 			if op_set_r.TLS == false {
-				op, err = operator.NewOperatorNoTLS(op_set_r.Name, op_set_r.Address, op_set_r.ConnNum, op_set_r.Username, op_set_r.Password, d.logs)
+				op, err = operator.NewOperatorNoTLS(op_set_r.Name, op_set_r.Address, op_set_r.ConnNum, op_set_r.Username, op_set_r.Password)
 				if err != nil {
 					err = fmt.Errorf("drule[DRule]Start: %v", err)
 					return err
 				}
 			} else {
-				op, err = operator.NewOperatorTLS(op_set_r.Name, op_set_r.Address, op_set_r.ConnNum, op_set_r.Username, op_set_r.Password, d.logs)
+				op, err = operator.NewOperatorTLS(op_set_r.Name, op_set_r.Address, op_set_r.ConnNum, op_set_r.Username, op_set_r.Password)
 				if err != nil {
 					err = fmt.Errorf("drule[DRule]Start: %v", err)
 					return err

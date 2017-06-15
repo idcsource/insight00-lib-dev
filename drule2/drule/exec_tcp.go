@@ -12,11 +12,11 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 )
 
 // ExecTCP nst的ConnExecer接口
-func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
+func (d *DRule) NSTexec(conn_exec *nst2.ConnExec) (stat nst2.SendStat, err error) {
 	// 接收operator发送
 	o_send_b, err := conn_exec.GetData()
 	if err != nil {
@@ -26,7 +26,8 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	o_send := operator.O_OperatorSend{}
 	err = iendecode.BytesGobStruct(o_send_b, &o_send)
 	if err != nil {
-		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "Data not expect.", nil)
+		err = d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "Data not expect.", nil)
+		return
 	}
 	// 如果trule没有再工作
 	//	if d.trule.WorkStatus() != trule.TRULE_RUN_RUNNING {
@@ -40,19 +41,21 @@ func (d *DRule) ExecTCP(conn_exec *nst.ConnExec) (err error) {
 	case operator.OPERATE_ZONE_NORMAL:
 		err = d.operateNormal(conn_exec, &o_send)
 	default:
-		return d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
+		err = d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
+		return
 	}
 	// 判断是否被暂停再看剩余的命令
 	if err != nil {
-		return err
+		return
 	} else {
-		return fmt.Errorf("DATA_CLOSE")
+		err = fmt.Errorf("DATA_CLOSE")
+		return
 	}
 	return
 }
 
 // 处理系统级别的请求
-func (d *DRule) operateSys(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (err error) {
+func (d *DRule) operateSys(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (err error) {
 	switch o_send.Operate {
 	case operator.OPERATE_DRULE_START:
 		// 启动drule
@@ -70,7 +73,7 @@ func (d *DRule) operateSys(conn_exec *nst.ConnExec, o_send *operator.O_OperatorS
 }
 
 // 处理管理级别的请求
-func (d *DRule) operateManage(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (err error) {
+func (d *DRule) operateManage(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (err error) {
 	switch o_send.Operate {
 	case operator.OPERATE_USER_LOGIN:
 		// 用户登录
@@ -139,7 +142,7 @@ func (d *DRule) operateManage(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 }
 
 // 处理一般性请求
-func (d *DRule) operateNormal(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (err error) {
+func (d *DRule) operateNormal(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (err error) {
 	// 是否关闭了
 	fmt.Println("check close")
 	if d.closed == true && o_send.InTransaction == false {
@@ -170,7 +173,7 @@ func (d *DRule) operateNormal(conn_exec *nst.ConnExec, o_send *operator.O_Operat
 }
 
 // 发送O_DRuleReceipt
-func (d *DRule) sendReceipt(conn_exec *nst.ConnExec, datastat operator.DRuleReturnStatus, errstr string, data []byte) (err error) {
+func (d *DRule) sendReceipt(conn_exec *nst2.ConnExec, datastat operator.DRuleReturnStatus, errstr string, data []byte) (err error) {
 	drule_r := operator.O_DRuleReceipt{
 		DataStat: datastat,
 		Error:    errstr,

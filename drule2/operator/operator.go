@@ -14,23 +14,22 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
-func NewOperator(tls bool, selfname string, addr string, conn_num int, username, password string, log *ilogs.Logs) (o *Operator, err error) {
+func NewOperator(tls bool, selfname string, addr string, conn_num int, username, password string) (o *Operator, err error) {
 	password = random.GetSha1Sum(password)
 	if tls == false {
-		return NewOperatorNoTLS(selfname, addr, conn_num, username, password, log)
+		return NewOperatorNoTLS(selfname, addr, conn_num, username, password)
 	} else {
-		return NewOperatorTLS(selfname, addr, conn_num, username, password, log)
+		return NewOperatorTLS(selfname, addr, conn_num, username, password)
 	}
 }
 
 // 创建一个操作者，自己的名字，远程地址，连接数，用户名，密码，日志
-func NewOperatorNoTLS(selfname string, addr string, conn_num int, username, password string, log *ilogs.Logs) (o *Operator, err error) {
-	drule_conn, err := nst.NewTcpClient(addr, conn_num, log)
+func NewOperatorNoTLS(selfname string, addr string, conn_num int, username, password string) (o *Operator, err error) {
+	drule_conn, err := nst2.NewClientL(addr, conn_num, false)
 	if err != nil {
 		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
 		return
@@ -55,7 +54,6 @@ func NewOperatorNoTLS(selfname string, addr string, conn_num int, username, pass
 		service:         operatorS,
 		transaction:     make(map[string]*OTransaction),
 		login:           false,
-		logs:            log,
 		runstatus:       OPERATOR_RUN_RUNNING,
 		closeing_signal: make(chan bool),
 		closed_signal:   make(chan bool),
@@ -76,13 +74,8 @@ func NewOperatorNoTLS(selfname string, addr string, conn_num int, username, pass
 }
 
 // 创建一个操作者，并使用加密连接。自己的名字，远程地址，连接数，用户名，密码，日志
-func NewOperatorTLS(selfname string, addr string, conn_num int, username, password string, log *ilogs.Logs) (o *Operator, err error) {
-	drule_conn, err := nst.NewTcpClient(addr, conn_num, log)
-	if err != nil {
-		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
-		return
-	}
-	err = nst.TcpClientTLS(drule_conn)
+func NewOperatorTLS(selfname string, addr string, conn_num int, username, password string) (o *Operator, err error) {
+	drule_conn, err := nst2.NewClient(addr, conn_num, true)
 	if err != nil {
 		err = fmt.Errorf("operator[Operator]NewOperator: %v", err)
 		return
@@ -107,7 +100,6 @@ func NewOperatorTLS(selfname string, addr string, conn_num int, username, passwo
 		service:         operatorS,
 		transaction:     make(map[string]*OTransaction),
 		login:           false,
-		logs:            log,
 		runstatus:       OPERATOR_RUN_RUNNING,
 		closeing_signal: make(chan bool),
 		closed_signal:   make(chan bool),
@@ -205,7 +197,10 @@ func (o *Operator) autoLogin() (err error) {
 	}
 
 	// 发送
-	cprocess := o.drule.tcpconn.OpenProgress()
+	cprocess, err := o.drule.tcpconn.OpenProgress()
+	if err != nil {
+		return
+	}
 	defer cprocess.Close()
 	drule_return, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_LOGIN, login_b)
 	if err != nil {
@@ -239,7 +234,10 @@ func (o *Operator) autoKeepLife() {
 
 func (o *Operator) keepLifeOnec() (err error) {
 	// 发送
-	cprocess := o.drule.tcpconn.OpenProgress()
+	cprocess, err := o.drule.tcpconn.OpenProgress()
+	if err != nil {
+		return
+	}
 	defer cprocess.Close()
 	drule_return, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_ADD_LIFE, nil)
 	if err != nil {
@@ -251,7 +249,7 @@ func (o *Operator) keepLifeOnec() (err error) {
 	return
 }
 
-func (o *Operator) operatorSend(process *nst.ProgressData, areaid, roleid string, oz OperateZone, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {
+func (o *Operator) operatorSend(process *nst2.CConnect, areaid, roleid string, oz OperateZone, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {
 	//	if o.login == false {
 	//		err = fmt.Errorf("Not login to the DRule server.")
 	//		return

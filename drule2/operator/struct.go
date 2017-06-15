@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
@@ -53,12 +53,12 @@ type OTransaction struct {
 
 // 一台服务器的信息
 type druleInfo struct {
-	name        string         // 机器名称
-	username    string         // 用户名
-	password    string         // 密码
-	unid        string         // 登录唯一码
-	active_time time.Time      // 活跃日期
-	tcpconn     *nst.TcpClient // tcp连接
+	name        string       // 机器名称
+	username    string       // 用户名
+	password    string       // 密码
+	unid        string       // 登录唯一码
+	active_time time.Time    // 活跃日期
+	tcpconn     *nst2.Client // tcp连接
 }
 
 /* 下面是网络传输所需要的结构 */

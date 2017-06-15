@@ -12,12 +12,12 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 // 存在角色吗
-func (d *DRule) normalExitRole(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalExitRole(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleSendAndReceive{}
@@ -74,7 +74,7 @@ func (d *DRule) normalExitRole(conn_exec *nst.ConnExec, o_send *operator.O_Opera
 }
 
 // 读角色
-func (d *DRule) normalReadRole(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadRole(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleSendAndReceive{}
@@ -129,7 +129,7 @@ func (d *DRule) normalReadRole(conn_exec *nst.ConnExec, o_send *operator.O_Opera
 }
 
 // 写角色
-func (d *DRule) normalStoreRole(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalStoreRole(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleSendAndReceive{}
@@ -191,7 +191,7 @@ func (d *DRule) normalStoreRole(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 }
 
 // 删除角色
-func (d *DRule) normalDeleteRole(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalDeleteRole(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleSendAndReceive{}
@@ -253,7 +253,7 @@ func (d *DRule) normalDeleteRole(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 }
 
 // 写father
-func (d *DRule) normalWriteFather(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalWriteFather(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleFatherChange{}
@@ -315,7 +315,7 @@ func (d *DRule) normalWriteFather(conn_exec *nst.ConnExec, o_send *operator.O_Op
 }
 
 // 读father
-func (d *DRule) normalReadFather(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadFather(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleFatherChange{}
@@ -370,7 +370,7 @@ func (d *DRule) normalReadFather(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 }
 
 // 读children
-func (d *DRule) normalReadChildren(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadChildren(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndChildren{}
@@ -425,7 +425,7 @@ func (d *DRule) normalReadChildren(conn_exec *nst.ConnExec, o_send *operator.O_O
 }
 
 // 写children
-func (d *DRule) normalWriteChildren(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalWriteChildren(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndChildren{}
@@ -487,7 +487,7 @@ func (d *DRule) normalWriteChildren(conn_exec *nst.ConnExec, o_send *operator.O_
 }
 
 // 写child
-func (d *DRule) normalWriteChild(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalWriteChild(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndChild{}
@@ -549,7 +549,7 @@ func (d *DRule) normalWriteChild(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 }
 
 // 删child
-func (d *DRule) normalDeleteChild(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalDeleteChild(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndChild{}
@@ -611,7 +611,7 @@ func (d *DRule) normalDeleteChild(conn_exec *nst.ConnExec, o_send *operator.O_Op
 }
 
 // 有child吗
-func (d *DRule) normalExistChild(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalExistChild(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndChild{}
@@ -666,7 +666,7 @@ func (d *DRule) normalExistChild(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 }
 
 // 读朋友们
-func (d *DRule) normalReadFriends(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadFriends(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndFriends{}
@@ -721,7 +721,7 @@ func (d *DRule) normalReadFriends(conn_exec *nst.ConnExec, o_send *operator.O_Op
 }
 
 // 写friends
-func (d *DRule) normalWriteFriends(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalWriteFriends(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndFriends{}
@@ -783,7 +783,7 @@ func (d *DRule) normalWriteFriends(conn_exec *nst.ConnExec, o_send *operator.O_O
 }
 
 // 写friend状态
-func (d *DRule) normalWriteFriendStatus(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalWriteFriendStatus(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndFriend{}
@@ -882,7 +882,7 @@ func (d *DRule) normalWriteFriendStatus(conn_exec *nst.ConnExec, o_send *operato
 }
 
 // 读friend状态
-func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadFriendStatus(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndFriend{}
@@ -973,7 +973,7 @@ func (d *DRule) normalReadFriendStatus(conn_exec *nst.ConnExec, o_send *operator
 }
 
 // 删朋友
-func (d *DRule) normalDeleteFriend(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalDeleteFriend(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndFriend{}
@@ -1035,7 +1035,7 @@ func (d *DRule) normalDeleteFriend(conn_exec *nst.ConnExec, o_send *operator.O_O
 }
 
 // 创建空的上下文
-func (d *DRule) normalCreateContext(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalCreateContext(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContext{}
@@ -1097,7 +1097,7 @@ func (d *DRule) normalCreateContext(conn_exec *nst.ConnExec, o_send *operator.O_
 }
 
 // 有context吗
-func (d *DRule) normalExistContext(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalExistContext(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContext{}
@@ -1152,7 +1152,7 @@ func (d *DRule) normalExistContext(conn_exec *nst.ConnExec, o_send *operator.O_O
 }
 
 // 删除上下文
-func (d *DRule) normalDropContext(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalDropContext(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContext{}
@@ -1214,7 +1214,7 @@ func (d *DRule) normalDropContext(conn_exec *nst.ConnExec, o_send *operator.O_Op
 }
 
 // 读context
-func (d *DRule) normalReadContext(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadContext(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContext_Data{}
@@ -1269,7 +1269,7 @@ func (d *DRule) normalReadContext(conn_exec *nst.ConnExec, o_send *operator.O_Op
 }
 
 // 删上下文绑定
-func (d *DRule) normalDeleteContextBind(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalDeleteContextBind(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContext{}
@@ -1331,7 +1331,7 @@ func (d *DRule) normalDeleteContextBind(conn_exec *nst.ConnExec, o_send *operato
 }
 
 // 读上下文同样绑定
-func (d *DRule) normalReadContextSameBind(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadContextSameBind(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContext_Data{}
@@ -1386,7 +1386,7 @@ func (d *DRule) normalReadContextSameBind(conn_exec *nst.ConnExec, o_send *opera
 }
 
 // 读上下文名字
-func (d *DRule) normalReadContextsName(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadContextsName(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContext_Data{}
@@ -1441,7 +1441,7 @@ func (d *DRule) normalReadContextsName(conn_exec *nst.ConnExec, o_send *operator
 }
 
 // 写context状态
-func (d *DRule) normalWriteContextStatus(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalWriteContextStatus(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContext_Data{}
@@ -1540,7 +1540,7 @@ func (d *DRule) normalWriteContextStatus(conn_exec *nst.ConnExec, o_send *operat
 }
 
 // 读context状态
-func (d *DRule) normalReadContextStatus(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadContextStatus(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContext_Data{}
@@ -1627,7 +1627,7 @@ func (d *DRule) normalReadContextStatus(conn_exec *nst.ConnExec, o_send *operato
 }
 
 // 写contexts
-func (d *DRule) normalWriteContexts(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalWriteContexts(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContexts{}
@@ -1689,7 +1689,7 @@ func (d *DRule) normalWriteContexts(conn_exec *nst.ConnExec, o_send *operator.O_
 }
 
 // 读contexts
-func (d *DRule) normalReadContexts(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadContexts(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleAndContexts{}
@@ -1744,7 +1744,7 @@ func (d *DRule) normalReadContexts(conn_exec *nst.ConnExec, o_send *operator.O_O
 }
 
 // 写数据
-func (d *DRule) normalWriteData(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalWriteData(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleData_Data{}
@@ -1806,7 +1806,7 @@ func (d *DRule) normalWriteData(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 }
 
 // 读数据
-func (d *DRule) normalReadData(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+func (d *DRule) normalReadData(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error
 	// 解码，ds = data struct
 	ds := operator.O_RoleData_Data{}

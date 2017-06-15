@@ -10,11 +10,11 @@ package drule
 import (
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 )
 
 // 启动
-func (d *DRule) sys_druleStart(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) sys_druleStart(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -39,7 +39,7 @@ func (d *DRule) sys_druleStart(conn_exec *nst.ConnExec, o_send *operator.O_Opera
 }
 
 // 暂停
-func (d *DRule) sys_drulePause(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) sys_drulePause(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	// var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)
@@ -58,7 +58,7 @@ func (d *DRule) sys_drulePause(conn_exec *nst.ConnExec, o_send *operator.O_Opera
 }
 
 // 运行模式
-func (d *DRule) sys_druleMode(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) sys_druleMode(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 查看用户权限
 	auth, login := d.getUserAuthority(o_send.User, o_send.Unid)

@@ -13,12 +13,12 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
 // 创建事务
-func (d *DRule) normalTranBigen(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) normalTranBigen(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 解码
 	o_t := operator.O_Transaction{}
@@ -64,7 +64,7 @@ func (d *DRule) normalTranBigen(conn_exec *nst.ConnExec, o_send *operator.O_Oper
 }
 
 // 执行事务
-func (d *DRule) normalTranCommit(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) normalTranCommit(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 如果不事务中
 	if o_send.InTransaction == false || len(o_send.TransactionId) == 0 {
@@ -107,7 +107,7 @@ func (d *DRule) normalTranCommit(conn_exec *nst.ConnExec, o_send *operator.O_Ope
 }
 
 // 回滚事务
-func (d *DRule) normalTranRollback(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) normalTranRollback(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 	// 如果不事务中
 	if o_send.InTransaction == false || len(o_send.TransactionId) == 0 {
@@ -150,7 +150,7 @@ func (d *DRule) normalTranRollback(conn_exec *nst.ConnExec, o_send *operator.O_O
 }
 
 // 锁定角色
-func (d *DRule) normalLockRole(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) normalLockRole(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error
 
 	// 如果不事务中
@@ -209,7 +209,7 @@ func (d *DRule) normalLockRole(conn_exec *nst.ConnExec, o_send *operator.O_Opera
 }
 
 // 查看是否在事务中
-func (d *DRule) checkTranOrNoTran(conn_exec *nst.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+func (d *DRule) checkTranOrNoTran(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var tran *transactionMap
 
 	// 查看事务情况
