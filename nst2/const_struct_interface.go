@@ -11,6 +11,8 @@ type SendStat uint8
 
 const (
 	SEND_STAT_NO          SendStat = iota // the stat have nothing
+	SEND_STAT_OK                          // it's all ok
+	SEND_STAT_NOT_OK                      // it's not ok
 	SEND_STAT_CONN_LONG                   // this is long connect
 	SEND_STAT_CONN_SHORT                  // this is shot connect
 	SEND_STAT_CHECK_DATA                  // check the server or connect

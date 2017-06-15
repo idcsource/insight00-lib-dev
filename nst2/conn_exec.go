@@ -9,8 +9,29 @@ package nst2
 
 type ConnExec struct {
 	Transmission *Transmission
+	long_shot    bool // if is long connection, the bool is true
 }
 
 func NewConnExec(trans *Transmission) (connExec *ConnExec) {
 	return &ConnExec{Transmission: trans}
+}
+
+func (c *ConnExec) SetLong() {
+	c.long_shot = true
+}
+
+func (c *ConnExec) SetShort() {
+	c.long_shot = false
+}
+
+func (c *ConnExec) SendData(data []byte) (err error) {
+	return c.Transmission.SendData(data)
+}
+
+func (c *ConnExec) GetData() (data []byte, err error) {
+	return c.Transmission.GetData()
+}
+
+func (c *ConnExec) SendClose() (err error) {
+	return c.Transmission.Close()
 }

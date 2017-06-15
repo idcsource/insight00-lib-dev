@@ -65,8 +65,8 @@ func (s *Server) ToTLS(pem, key string) (err error) {
 	return
 }
 
-func (s *Server) Start() (err error) {
-	s.closed == false
+func (s *Server) Start() {
+	s.closed = false
 	for {
 		// check if closed
 		if s.closed == true {
@@ -83,18 +83,110 @@ func (s *Server) Start() (err error) {
 }
 
 func (s *Server) Close() {
-	s.closed == true
+	s.closed = true
 }
 
 func (s *Server) doConnect(conn *net.TCPConn) {
+	var err error
 	var trans *Transmission
 	if s.tls == false {
 		trans = NewTransmission(conn)
 	} else {
-		trans = NewTransmissionTLS(tls.Server(conn, ts.tls_config))
+		trans = NewTransmissionTLS(tls.Server(conn, s.tls_config))
 	}
 	conn_exec := NewConnExec(trans)
+	// get the stat SEND_STAT_CONN_LONG or SEND_STAT_CONN_SHORT
+	stat, err := conn_exec.Transmission.GetStat()
+	if err != nil {
+		if err.Error() != "EOF" {
+			s.logs.ErrLog(err)
+		}
+		return
+	}
+	if stat == uint8(SEND_STAT_CONN_SHORT) {
+		// if is short connection
+		err = conn_exec.Transmission.SendStat(uint8(SEND_STAT_OK))
+		if err != nil {
+			if err.Error() != "EOF" {
+				s.logs.ErrLog(err)
+			}
+			return
+		}
+		// do something
+		s.doShortConn(conn_exec)
+		//conn_exec.Transmission.Close()
+	} else if stat == uint8(SEND_STAT_CONN_LONG) {
+		// if is long connection
+		err = conn_exec.Transmission.SendStat(uint8(SEND_STAT_OK))
+		if err != nil {
+			if err.Error() != "EOF" {
+				s.logs.ErrLog(err)
+			}
+			return
+		}
+		// do something
+		s.doLongConn(conn_exec)
+	} else {
+		s.logs.ErrLog("can not to do this, not SEND_STAT_CONN_SHORT or SEND_STAT_CONN_LONG")
+		err = conn_exec.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))
+		if err != nil {
+			if err.Error() != "EOF" {
+				s.logs.ErrLog(err)
+			}
+			return
+		}
+	}
+	return
+}
 
-	// check if long connect or short connect.
+// short connection
+func (s *Server) doShortConn(ce *ConnExec) {
+	ce.SetShort()
+	s.execer.NSTexec(ce)
+}
 
+// long connection
+func (s *Server) doLongConn(ce *ConnExec) {
+	ce.SetLong()
+	for {
+		// get the stat SEND_STAT_DATA_GOON or SEND_STAT_CONN_CLOSE
+		stat, err := ce.Transmission.GetStat()
+		if err != nil {
+			if err.Error() != "EOF" {
+				s.logs.ErrLog(err)
+			}
+			return
+		}
+		if stat == uint8(SEND_STAT_DATA_GOON) {
+			err = ce.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))
+			if err != nil {
+				if err.Error() != "EOF" {
+					s.logs.ErrLog(err)
+				}
+				return
+			}
+			fmt.Println("This")
+			s.execer.NSTexec(ce)
+			fmt.Println("This2")
+		} else if stat == uint8(SEND_STAT_CONN_CLOSE) {
+			// if conn close
+			err = ce.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))
+			if err != nil {
+				if err.Error() != "EOF" {
+					s.logs.ErrLog(err)
+				}
+			}
+			ce.Transmission.Close()
+			return
+		} else {
+			s.logs.ErrLog("can not to do this, not SEND_STAT_DATA_GOON or SEND_STAT_CONN_CLOSE")
+			err = ce.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))
+			if err != nil {
+				if err.Error() != "EOF" {
+					s.logs.ErrLog(err)
+				}
+				return
+			}
+		}
+	}
 }
