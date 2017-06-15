@@ -10,12 +10,13 @@ package smcs2
 import (
 	"fmt"
 
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/iendecode"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 	"github.com/idcsource/Insight-0-0-lib/random"
 )
 
 // 新建一个为节点使用的配置蔓延
-func NewNodeSmcs(center string, tcp *nst.TcpClient) (ns *NodeSmcs, err error) {
+func NewNodeSmcs(center string, tcp *nst2.Client) (ns *NodeSmcs, err error) {
 	ns = &NodeSmcs{
 		centername: center,
 		tcpc:       tcp,
@@ -29,12 +30,16 @@ func NewNodeSmcs(center string, tcp *nst.TcpClient) (ns *NodeSmcs, err error) {
 func (ns *NodeSmcs) SendNodeSend(node_send NodeSend) (center_send CenterSend, err error) {
 	// 编码
 	node_send.CenterName = ns.centername
-	node_send_b, err := nst.StructGobBytes(node_send)
+	node_send_b, err := iendecode.StructGobBytes(node_send)
 	if err != nil {
 		return
 	}
 	// 分配连接
-	cprocess := ns.tcpc.OpenProgress()
+	cprocess, err := ns.tcpc.OpenProgress()
+	if err != nil {
+		err = fmt.Errorf("smcs2[NodeSmcs]SendNodeSend: %v", err)
+		return
+	}
 	defer cprocess.Close()
 	// 发送nodesend
 	return_b, err := cprocess.SendAndReturn(node_send_b)
@@ -43,7 +48,7 @@ func (ns *NodeSmcs) SendNodeSend(node_send NodeSend) (center_send CenterSend, er
 	}
 	// 解码CenterSend
 	center_send = CenterSend{}
-	err = nst.BytesGobStruct(return_b, &center_send)
+	err = iendecode.BytesGobStruct(return_b, &center_send)
 	if err != nil {
 		return
 	}

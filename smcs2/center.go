@@ -14,7 +14,8 @@ import (
 
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/iendecode"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 )
 
 // 新建一个中央蔓延点，这里的name也将作为配置节点的名称前缀
@@ -372,13 +373,13 @@ func (c *CenterSmcs) getNodeTree(node_id string) (nodetree NodeTree, err error) 
 // nst的TcpServer接口实现
 //
 // 首先接收一段NodeSend
-func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
+func (c *CenterSmcs) NSTexec(ce *nst2.ConnExec) (stat nst2.SendStat, err error) {
 	node_send_b, err := ce.GetData()
 	if err != nil {
 		return
 	}
 	node_send := NodeSend{}
-	err = nst.BytesGobStruct(node_send_b, &node_send)
+	err = iendecode.BytesGobStruct(node_send_b, &node_send)
 	if err != nil {
 		return
 	}
@@ -486,7 +487,7 @@ func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
 	// 执行事务
 	tran.Commit()
 	// 编码发送
-	center_send_b, err := nst.StructGobBytes(center_send)
+	center_send_b, err := iendecode.StructGobBytes(center_send)
 	if err != nil {
 		c.sendError(ce, "Build CenterSend error.")
 		return
@@ -495,12 +496,12 @@ func (c *CenterSmcs) ExecTCP(ce *nst.ConnExec) (err error) {
 	return
 }
 
-func (c *CenterSmcs) sendError(ce *nst.ConnExec, err string) {
+func (c *CenterSmcs) sendError(ce *nst2.ConnExec, err string) {
 	// 构造发送出去的结构体
 	center_send := CenterSend{}
 	center_send.Error = err
 	//编码
-	center_send_b, _ := nst.StructGobBytes(center_send)
+	center_send_b, _ := iendecode.StructGobBytes(center_send)
 	// 发送错误
 	ce.SendData(center_send_b)
 	return

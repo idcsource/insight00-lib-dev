@@ -19,7 +19,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
@@ -128,16 +128,16 @@ type CenterSmcs struct {
 
 // 节点的蔓延数据类型，也就是节点的服务器
 type NodeSmcs struct {
-	name       string         // 节点的名字
-	code       string         // 身份码
-	centername string         // 中央的名称
-	tcpc       *nst.TcpClient // TCP连接
-	runtimeid  string         // 运行时UNID
-	nodesend   NodeSend       // 发送出去的类型
-	sleeptime  int64          // 每次请求中心的等待时间
-	closeM     chan bool      // 关闭监控信号
-	closeMt    bool           // 是否处于关闭状态
-	logs       *ilogs.Logs    // 自己的日志
+	name       string       // 节点的名字
+	code       string       // 身份码
+	centername string       // 中央的名称
+	tcpc       *nst2.Client // TCP连接
+	runtimeid  string       // 运行时UNID
+	nodesend   NodeSend     // 发送出去的类型
+	sleeptime  int64        // 每次请求中心的等待时间
+	closeM     chan bool    // 关闭监控信号
+	closeMt    bool         // 是否处于关闭状态
+	logs       *ilogs.Logs  // 自己的日志
 }
 
 // 为Gob注册角色类型
