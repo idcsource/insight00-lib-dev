@@ -197,7 +197,9 @@ func (o *Operator) autoLogin() (err error) {
 	}
 
 	// 发送
+	fmt.Println("lthis")
 	cprocess, err := o.drule.tcpconn.OpenProgress()
+	fmt.Println("lthis2")
 	if err != nil {
 		return
 	}
@@ -279,18 +281,33 @@ func (o *Operator) operatorSend(process *nst2.CConnect, areaid, roleid string, o
 	if err != nil {
 		return
 	}
-	// if not login
-	if receipt.DataStat == DATA_USER_NOT_LOGIN {
+	return
+}
+
+func (o *Operator) checkLogin() (errs DRuleError) {
+	errs = NewDRuleError()
+	// 发送
+	cprocess, err := o.drule.tcpconn.OpenProgress()
+	if err != nil {
+		return
+	}
+	defer cprocess.Close()
+	drule_return, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_CHECK_LOGIN, nil)
+	if err != nil {
+		errs.Err = err
+		errs.Code = DATA_RETURN_ERROR
+	}
+	if drule_return.DataStat == DATA_USER_NOT_LOGIN {
 		err = o.autoLogin()
 		if err != nil {
-			return
+			errs.Err = err
+			errs.Code = DATA_RETURN_ERROR
 		}
-		rdata, err = process.SendAndReturn(statbyte)
-		if err != nil {
-			return
-		}
-		receipt = O_DRuleReceipt{}
-		err = iendecode.BytesGobStruct(rdata, &receipt)
+	} else if drule_return.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf(drule_return.Error)
+		errs.Code = drule_return.DataStat
+	} else {
+		errs.Code = DATA_ALL_OK
 	}
 	return
 }

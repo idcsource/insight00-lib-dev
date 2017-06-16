@@ -254,6 +254,8 @@ const (
 
 	// 用户登录
 	OPERATE_USER_LOGIN
+	// 检查登录
+	OPERATE_USER_CHECK_LOGIN
 	// 用户续命
 	OPERATE_USER_ADD_LIFE
 	// 用户新建

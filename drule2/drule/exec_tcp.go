@@ -81,6 +81,9 @@ func (d *DRule) operateManage(conn_exec *nst2.ConnExec, o_send *operator.O_Opera
 	case operator.OPERATE_USER_ADD_LIFE:
 		// 用户续命
 		err = d.man_userAddLife(conn_exec, o_send)
+	case operator.OPERATE_USER_CHECK_LOGIN:
+		// 用户续命
+		err = d.man_userCheckLogin(conn_exec, o_send)
 	case operator.OPERATE_USER_ADD:
 		// 新建用户
 		err = d.man_userAdd(conn_exec, o_send)
@@ -144,13 +147,13 @@ func (d *DRule) operateManage(conn_exec *nst2.ConnExec, o_send *operator.O_Opera
 // 处理一般性请求
 func (d *DRule) operateNormal(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (err error) {
 	// 是否关闭了
-	fmt.Println("check close")
 	if d.closed == true && o_send.InTransaction == false {
 		return d.sendReceipt(conn_exec, operator.DATA_DRULE_CLOSED, "The DRule service is already closed.", nil)
 	}
 	// 是否登录了
 	fmt.Println("check user")
 	if login := d.checkUserLogin(o_send.User, o_send.Unid); login == false {
+		fmt.Println("mei you deng lu")
 		return d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "User not login", nil)
 	}
 	switch o_send.Operate {

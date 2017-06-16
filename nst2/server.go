@@ -165,9 +165,7 @@ func (s *Server) doLongConn(ce *ConnExec) {
 				}
 				return
 			}
-			fmt.Println("This")
 			s.execer.NSTexec(ce)
-			fmt.Println("This2")
 		} else if stat == uint8(SEND_STAT_CONN_CLOSE) {
 			// if conn close
 			err = ce.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))

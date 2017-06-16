@@ -23,6 +23,11 @@ func (o *Operator) ExistRole(area, id string) (have bool, errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	role := O_RoleSendAndReceive{
 		Area:   area,
 		RoleID: id,
@@ -63,6 +68,11 @@ func (o *Operator) ReadRole(area, id string, role roles.Roleer) (errs DRuleError
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -115,6 +125,11 @@ func (o *Operator) ReadRoleToMiddleData(area, id string) (md roles.RoleMiddleDat
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 生成传输
 	rsend := O_RoleSendAndReceive{
 		Area:   area,
@@ -156,6 +171,12 @@ func (o *Operator) StoreRole(area string, role roles.Roleer) (errs DRuleError) {
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		errs.Code = DATA_RETURN_ERROR
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -165,6 +186,7 @@ func (o *Operator) StoreRole(area string, role roles.Roleer) (errs DRuleError) {
 	rolemid, err := roles.EncodeRoleToMiddle(role)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]StoreRole: %v", err)
+		errs.Code = DATA_RETURN_ERROR
 		return
 	}
 
@@ -177,18 +199,23 @@ func (o *Operator) StoreRole(area string, role roles.Roleer) (errs DRuleError) {
 	rsend_b, err := iendecode.StructGobBytes(rsend)
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]StoreRole: %v", err)
+		errs.Code = DATA_RETURN_ERROR
 		return
 	}
 	// 开始传输
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]StoreRole: %v", err)
+		errs.Code = DATA_RETURN_ERROR
 		return
 	}
 	defer cprocess.Close()
+	fmt.Println("this")
 	drule_r, err := o.operatorSend(cprocess, area, roleid, OPERATE_ZONE_NORMAL, OPERATE_WRITE_ROLE, rsend_b)
+	fmt.Println("this2")
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]StoreRole: %v", err)
+		errs.Code = DATA_RETURN_ERROR
 		return
 	}
 	errs.Code = drule_r.DataStat
@@ -204,6 +231,11 @@ func (o *Operator) StoreRoleFromMiddleData(area string, rolemid roles.RoleMiddle
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -249,6 +281,11 @@ func (o *Operator) DeleteRole(areaid, roleid string) (errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 生成传输
 	rsend := O_RoleSendAndReceive{
 		Area:   areaid,
@@ -284,6 +321,11 @@ func (o *Operator) WriteFather(areaid, roleid, fatherid string) (errs DRuleError
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -330,6 +372,11 @@ func (o *Operator) ReadFather(areaid, roleid string) (fatherid string, errs DRul
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	of := O_RoleFatherChange{
 		Area: areaid,
 		Id:   roleid,
@@ -371,6 +418,11 @@ func (o *Operator) ReadChildren(areaid, roleid string) (children []string, errs 
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -420,6 +472,11 @@ func (o *Operator) WriteChildren(areaid, roleid string, children []string) (errs
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构造
 	oc := O_RoleAndChildren{
 		Area:     areaid,
@@ -466,6 +523,11 @@ func (o *Operator) WriteChild(areaid, roleid, childid string) (errs DRuleError) 
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rc := O_RoleAndChild{
 		Area:  areaid,
@@ -506,6 +568,11 @@ func (o *Operator) DeleteChild(areaid, roleid, childid string) (errs DRuleError)
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rc := O_RoleAndChild{
 		Area:  areaid,
@@ -543,6 +610,11 @@ func (o *Operator) ExistChild(areaid, roleid, childid string) (have bool, errs D
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -593,6 +665,11 @@ func (o *Operator) ReadFriends(areaid, roleid string) (firends map[string]roles.
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rf := O_RoleAndFriends{
 		Area: areaid,
@@ -639,6 +716,11 @@ func (o *Operator) WriteFriends(areaid, roleid string, friends map[string]roles.
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rf := O_RoleAndFriends{
 		Area:    areaid,
@@ -681,6 +763,11 @@ func (o *Operator) WriteFriendStatus(areaid, roleid, friendid string, bindbit in
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -762,6 +849,11 @@ func (o *Operator) ReadFriendStatus(areaid, roleid, friendid string, bindbit int
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -857,6 +949,11 @@ func (o *Operator) DeleteFriend(areaid, roleid, friendid string) (errs DRuleErro
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构造
 	rf := O_RoleAndFriend{
 		Area:   areaid,
@@ -898,6 +995,11 @@ func (o *Operator) CreateContext(areaid, roleid, contextname string) (errs DRule
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rc := O_RoleAndContext{
 		Area:    areaid,
@@ -935,6 +1037,11 @@ func (o *Operator) ExistContext(areaid, roleid, contextname string) (have bool, 
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -979,6 +1086,11 @@ func (o *Operator) DropContext(areaid, roleid, contextname string) (errs DRuleEr
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rc := O_RoleAndContext{
 		Area:    areaid,
@@ -1016,6 +1128,11 @@ func (o *Operator) ReadContext(areaid, roleid, contextname string) (context role
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -1067,6 +1184,11 @@ func (o *Operator) DeleteContextBind(areaid, roleid, contextname string, upordow
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rc := O_RoleAndContext{
 		Area:     areaid,
@@ -1106,6 +1228,11 @@ func (o *Operator) ReadContextSameBind(areaid, roleid, contextname string, upord
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -1160,6 +1287,11 @@ func (o *Operator) ReadContextsName(areaid, roleid string) (names []string, errs
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rc := O_RoleAndContext_Data{
 		Area: areaid,
@@ -1203,6 +1335,11 @@ func (o *Operator) WriteContextStatus(areaid, roleid, contextname string, upordo
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -1281,6 +1418,11 @@ func (o *Operator) ReadContextStatus(areaid, roleid, contextname string, upordow
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -1378,6 +1520,11 @@ func (o *Operator) WriteContexts(areaid, roleid string, contexts map[string]role
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rc := O_RoleAndContexts{
 		Area:     areaid,
@@ -1415,6 +1562,11 @@ func (o *Operator) ReadContexts(areaid, roleid string) (contexts map[string]role
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -1470,6 +1622,11 @@ func (o *Operator) WriteData(areaid, roleid, name string, data interface{}) (err
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 数据编码
 	data_b, err := iendecode.StructGobBytes(data)
 	if err != nil {
@@ -1517,6 +1674,11 @@ func (o *Operator) WriteDataFromByte(areaid, roleid, name string, data_b []byte)
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	rd := O_RoleData_Data{
 		Area: areaid,
@@ -1555,6 +1717,11 @@ func (o *Operator) ReadData(areaid, roleid, name string, data interface{}) (errs
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -1607,6 +1774,11 @@ func (o *Operator) ReadDataToByte(areaid, roleid, name string) (data_b []byte, e
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 

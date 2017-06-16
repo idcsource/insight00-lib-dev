@@ -53,6 +53,18 @@ func (d *DRule) man_userAddLife(conn_exec *nst2.ConnExec, o_send *operator.O_Ope
 	}
 }
 
+// 用户是否登录
+func (d *DRule) man_userCheckLogin(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
+	yes := d.checkUserLogin(o_send.User, o_send.Unid)
+	if yes == true {
+		errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+		return
+	} else {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "User not login", nil)
+		return
+	}
+}
+
 // 新建用户
 func (d *DRule) man_userAdd(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var err error

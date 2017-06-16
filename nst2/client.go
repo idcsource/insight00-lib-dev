@@ -35,7 +35,7 @@ type CConnect struct {
 	paused      bool      // if it paused
 	closed      bool      // if is closed
 	closechan   chan bool // the conncet close channel from Client
-	lock        chan bool // the lock
+	lock        bool      // the lock
 }
 
 func NewClient(addr string, max_count int, iftls bool) (c *Client, err error) {
@@ -122,41 +122,62 @@ func (c *Client) selectFromPool() (cc *CConnect, err error) {
 		if len(c.connect_pool) == 0 {
 			break
 		}
-		breakfor := false
-		select {
-		case c.connect_pool[cnum].lock <- true:
+		//breakfor := false
+		//select {
+		// case c.connect_pool[cnum].lock <- true:
+		if c.connect_pool[cnum].lock == false {
 			cc = c.connect_pool[cnum]
+			cc.lock = true
 			// send the SEND_STAT_DATA_GOON
 			err = cc.conn_exec.Transmission.SendStat(uint8(SEND_STAT_DATA_GOON))
 			if err != nil {
-				return
+				err = nil
+				failure = append(failure, cnum)
+				if cnum < clang-1 {
+					cnum++
+				} else {
+					//breakfor = true
+					break
+				}
 			}
 			// get the SEND_STAT_OK
 			_, err = cc.conn_exec.Transmission.GetStat()
 			if err != nil {
-				fmt.Println(err)
+				err = nil
 				failure = append(failure, cnum)
+				if cnum < clang-1 {
+					cnum++
+				} else {
+					//breakfor = true
+					break
+				}
 			} else {
 				selected = true
-				breakfor = true
+				//breakfor = true
 				break
 			}
-		default:
+			//default:
+		} else {
 			if cnum < clang-1 {
 				cnum++
 			} else {
-				breakfor = true
+				//breakfor = true
 				break
 			}
 		}
-		if breakfor == true {
-			break
-		}
+		//		if breakfor == true {
+		//			break
+		//		}
 	}
 	// clean up the failure link
+	//fmt.Println("failuer", failure)
+	//fmt.Println("now_count", c.now_count)
+	//fmt.Println("t_count", len(c.connect_pool))
 	if len(failure) != 0 {
 		c.cleanFailure(failure)
 	}
+	//fmt.Println("now_count2", c.now_count)
+	//fmt.Println("t_count2", len(c.connect_pool))
 	if selected == false {
 		if c.now_count >= c.max_count {
 			err = fmt.Errorf("The number of connections is exceeded.")
@@ -166,8 +187,9 @@ func (c *Client) selectFromPool() (cc *CConnect, err error) {
 		if err != nil {
 			return
 		}
+		//cc.lock <- true
+		cc.lock = true
 		c.connect_pool = append(c.connect_pool, cc)
-		c.connect_pool[cnum].lock <- true
 		// send the SEND_STAT_DATA_GOON
 		err = cc.conn_exec.Transmission.SendStat(uint8(SEND_STAT_DATA_GOON))
 		if err != nil {
@@ -180,6 +202,8 @@ func (c *Client) selectFromPool() (cc *CConnect, err error) {
 		}
 		c.now_count++
 	}
+	//fmt.Println("now_count3", c.now_count)
+	//fmt.Println("t_count3", len(c.connect_pool))
 	return
 }
 
@@ -253,7 +277,8 @@ func (c *Client) dial() (cc *CConnect, err error) {
 		lconnection: c.lconnection,
 		closechan:   c.closechan,
 		closed:      false,
-		lock:        make(chan bool, 1),
+		lock:        false,
+		//lock:        make(chan bool, 1),
 	}
 	return
 }
@@ -265,7 +290,8 @@ func (cc *CConnect) Close() (err error) {
 		cc.closechan <- true
 		cc = nil
 	} else {
-		<-cc.lock
+		//<-cc.lock
+		cc.lock = false
 	}
 	return
 }

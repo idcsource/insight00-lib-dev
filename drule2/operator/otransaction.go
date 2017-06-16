@@ -40,55 +40,6 @@ func (o *OTransaction) operatorSend(process *nst2.CConnect, areaid, roleid strin
 	}
 	receipt = O_DRuleReceipt{}
 	err = iendecode.BytesGobStruct(rdata, &receipt)
-	// if not login
-	if receipt.DataStat == DATA_USER_NOT_LOGIN {
-		err = o.autoLogin()
-		if err != nil {
-			return
-		}
-		rdata, err = process.SendAndReturn(statbyte)
-		if err != nil {
-			return
-		}
-		receipt = O_DRuleReceipt{}
-		err = iendecode.BytesGobStruct(rdata, &receipt)
-	}
-	return
-}
-
-// 写登陆
-func (o *OTransaction) autoLogin() (err error) {
-	login := O_DRuleUser{
-		UserName: o.drule.username,
-		//Password: random.GetSha1Sum(o.drule.password),
-		Password: o.drule.password,
-	}
-	// 编码
-	login_b, err := iendecode.StructGobBytes(login)
-	if err != nil {
-		return
-	}
-
-	// 发送
-	cprocess, err := o.drule.tcpconn.OpenProgress()
-	if err != nil {
-		return
-	}
-	defer cprocess.Close()
-	drule_return, err := o.operatorSend(cprocess, "", "", OPERATE_ZONE_MANAGE, OPERATE_USER_LOGIN, login_b)
-	if err != nil {
-		return
-	}
-	if drule_return.DataStat != DATA_ALL_OK {
-		return fmt.Errorf(drule_return.Error)
-	}
-	// 解码
-	err = iendecode.BytesGobStruct(drule_return.Data, &login)
-	if err != nil {
-		return
-	}
-	o.drule.unid = login.Unid
-
 	return
 }
 

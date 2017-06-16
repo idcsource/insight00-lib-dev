@@ -25,7 +25,10 @@ func (o *Operator) Password(username, password string) (errs DRuleError) {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
 		return
 	}
-
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
 	user := O_DRuleUser{
 		UserName: username,
 		Password: random.GetSha1Sum(password),
@@ -59,6 +62,11 @@ func (o *Operator) UserAdd(username, password, email string, authority UserAutho
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -97,6 +105,11 @@ func (o *Operator) UserDel(username string) (errs DRuleError) {
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -254,6 +267,11 @@ func (o *Operator) UserList() (list []O_DRuleUser, errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]UserList: %v", err)
@@ -284,6 +302,11 @@ func (o *Operator) AreaAdd(area string) (errs DRuleError) {
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -322,6 +345,11 @@ func (o *Operator) AreaDel(area string) (errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	a := O_Area{
 		AreaName: area,
 	}
@@ -354,6 +382,11 @@ func (o *Operator) AreaExist(area string) (exist bool, errs DRuleError) {
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -399,6 +432,11 @@ func (o *Operator) AreaRename(oldname, newname string) (errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	a := O_Area{
 		AreaName: oldname,
 		Rename:   newname,
@@ -435,6 +473,11 @@ func (o *Operator) AreaList() (list []string, errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]AreaList: %v", err)
@@ -465,6 +508,11 @@ func (o *Operator) UserAreaAlert(userid, areaname string, rw UserAreaVisit) (err
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -512,6 +560,11 @@ func (o *Operator) UserAreaDelete(userid, areaname string) (errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 构建
 	au := O_Area_User{
 		UserName: userid,
@@ -548,6 +601,11 @@ func (o *Operator) DRuleOperatorSet(name, address string, connnum int, tls bool,
 	errs = NewDRuleError()
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -592,6 +650,12 @@ func (o *Operator) DRuleOperatorDelete(name string) (errs DRuleError) {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
 		return
 	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 发送
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
@@ -618,6 +682,11 @@ func (o *Operator) DRuleOperatorList() (list []O_DRuleOperator, errs DRuleError)
 
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -656,6 +725,12 @@ func (o *Operator) AreaRouterSet(set O_AreasRouter) (errs DRuleError) {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
 		return
 	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 编码
 	set_b, err := iendecode.StructGobBytes(set)
 	if err != nil {
@@ -691,6 +766,11 @@ func (o *Operator) AreaRouterDelete(areaname string) (errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 发送
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
@@ -717,6 +797,11 @@ func (o *Operator) AreaRouterList() (list []O_AreasRouter, errs DRuleError) {
 
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
@@ -756,6 +841,11 @@ func (o *Operator) DRuleModeGet() (mode DRuleOperateMode, errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 发送
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
@@ -791,6 +881,11 @@ func (o *Operator) DRuleStart() (errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 发送
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
@@ -820,6 +915,11 @@ func (o *Operator) DRulePause() (errs DRuleError) {
 		return
 	}
 
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
 	// 发送
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
@@ -846,6 +946,11 @@ func (o *Operator) Begin() (t *OTransaction, errs DRuleError) {
 
 	if o.runstatus != OPERATOR_RUN_RUNNING {
 		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
 		return
 	}
 
