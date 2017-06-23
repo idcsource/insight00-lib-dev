@@ -67,6 +67,10 @@ func (s *Server) ToTLS(pem, key string) (err error) {
 
 func (s *Server) Start() {
 	s.closed = false
+	go s.gostart()
+}
+
+func (s *Server) gostart(){
 	for {
 		// check if closed
 		if s.closed == true {
