@@ -10,6 +10,8 @@ package dspiders
 import (
 	"time"
 
+	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
+	"github.com/idcsource/Insight-0-0-lib/drule2/reladb"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
@@ -109,6 +111,13 @@ type NetTransportData struct {
 type NetTransportDataRe struct {
 	Status NetDataStatus // The data status
 	Data   []byte        // The data body, it can be PageData, UrlBasic and so on.
+}
+
+// the database information
+type dbinfo struct {
+	area   string             // drule area name
+	drule  *operator.Operator // drule connect
+	reladb *reladb.RelaDB     // reladb connect
 }
 
 var UserAgent = []string{

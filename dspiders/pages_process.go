@@ -25,14 +25,9 @@ type PagesProcess struct {
 
 	drule *operator.Operator // The DRule2 operator
 
-	pagedb     *operator.Operator // The page data DRule2
-	pagedbname string             // The page data DRule2 area name
-
-	mediadb     *operator.Operator // The media data DRule2
-	mediadbname string             // the media data DRule2 area name
-
-	arounddb     *operator.Operator // The around link data's db
-	arounddbname string             // The around link data's area name
+	pagedb   *dbinfo // The page data information
+	mediadb  *dbinfo // The media data information
+	arounddb *dbinfo // The around link data information
 
 	urlfilter []string // If the url in the url filter, it will not be store
 	domains   []string // Which domain can be store.
@@ -86,17 +81,21 @@ func NewPagesProcess(config *cpool.Section, crawlQueue *UrlCrawlQueue, indexQueu
 		}
 	}
 	// the around link db
-	p.arounddbname, err = config.GetConfig("arounddbname")
+	p.arounddb = &dbinfo{
+		drule: drule,
+	}
+	p.arounddb.area, err = config.GetConfig("arounddbname")
 	if err != nil {
 		return
 	}
-	p.arounddb = drule
 	// the page data db
-	p.pagedbname, err = config.GetConfig("pagedbname")
+	p.pagedb = &dbinfo{
+		drule: drule,
+	}
+	p.pagedb.area, err = config.GetConfig("pagedbname")
 	if err != nil {
 		return
 	}
-	p.pagedb = drule
 	/*
 		var pagedbname string
 		pagedbname, err = config.GetConfig("pagedb")
@@ -109,11 +108,13 @@ func NewPagesProcess(config *cpool.Section, crawlQueue *UrlCrawlQueue, indexQueu
 		}
 	*/
 	// the media data db
-	p.mediadbname, err = config.GetConfig("mediadbname")
+	p.mediadb = &dbinfo{
+		drule: drule,
+	}
+	p.mediadb.area, err = config.GetConfig("mediadbname")
 	if err != nil {
 		return
 	}
-	p.mediadb = drule
 	/*
 		var mediadbname string
 		mediadbname, err = config.GetConfig("mediadb")
@@ -143,21 +144,21 @@ func (p *PagesProcess) AddPage(page *PageData, status NetDataStatus) (err error)
 	// check if the data change(the hash change)
 	if status == NET_DATA_STATUS_PAGE_UPDATE {
 		// if update
-		roleexist, errd := p.pagedb.ExistRole(p.pagedbname, page.Url)
+		roleexist, errd := p.pagedb.drule.ExistRole(p.pagedb.area, page.Url)
 		if errd.IsError() != nil {
 			err = errd.IsError()
 			return
 		}
 		if roleexist == true {
 			// if exist
-			tran, errd := p.pagedb.Begin()
+			tran, errd := p.pagedb.drule.Begin()
 			if errd.IsError() != nil {
 				err = errd.IsError()
 				return
 			}
 			// update the UpInterval.
 			var upInterval int64
-			errd = tran.ReadData(p.pagedbname, page.Url, "UpInterval", &upInterval)
+			errd = tran.ReadData(p.pagedb.area, page.Url, "UpInterval", &upInterval)
 			if errd.IsError() != nil {
 				tran.Rollback()
 				err = errd.IsError()
@@ -167,7 +168,7 @@ func (p *PagesProcess) AddPage(page *PageData, status NetDataStatus) (err error)
 				upInterval = upInterval - ((upInterval - UP_INTERVAL_MIN) / 2)
 				page.UpInterval = upInterval
 			}
-			errd = tran.StoreRole(p.pagedbname, page)
+			errd = tran.StoreRole(p.pagedb.area, page)
 			if errd.IsError() != nil {
 				tran.Rollback()
 				err = errd.IsError()
@@ -177,7 +178,7 @@ func (p *PagesProcess) AddPage(page *PageData, status NetDataStatus) (err error)
 		} else {
 			// if not exist
 			page.UpInterval = UP_INTERVAL_DEFAULT
-			errd := p.pagedb.StoreRole(p.pagedbname, page)
+			errd := p.pagedb.drule.StoreRole(p.pagedb.area, page)
 			if errd.IsError() != nil {
 				err = errd.IsError()
 				return
@@ -197,7 +198,7 @@ func (p *PagesProcess) AddPage(page *PageData, status NetDataStatus) (err error)
 		}
 	} else if status == NET_DATA_STATUS_PAGE_NOT_UPDATE {
 		// if not update, just update the UpInterval.
-		roleexist, errd := p.pagedb.ExistRole(p.pagedbname, page.Url)
+		roleexist, errd := p.pagedb.drule.ExistRole(p.pagedb.area, page.Url)
 		if errd.IsError() != nil {
 			err = errd.IsError()
 			return
@@ -206,13 +207,13 @@ func (p *PagesProcess) AddPage(page *PageData, status NetDataStatus) (err error)
 		if roleexist == false {
 			return
 		}
-		tran, errd := p.pagedb.Begin()
+		tran, errd := p.pagedb.drule.Begin()
 		if errd.IsError() != nil {
 			err = errd.IsError()
 			return
 		}
 		var upInterval int64
-		errd = tran.ReadData(p.pagedbname, page.Url, "UpInterval", &upInterval)
+		errd = tran.ReadData(p.pagedb.area, page.Url, "UpInterval", &upInterval)
 		if errd.IsError() != nil {
 			tran.Rollback()
 			err = errd.IsError()
@@ -220,7 +221,7 @@ func (p *PagesProcess) AddPage(page *PageData, status NetDataStatus) (err error)
 		}
 		if upInterval < UP_INTERVAL_MAX {
 			upInterval = ((UP_INTERVAL_MAX - upInterval) / 2) + upInterval
-			errd = tran.WriteData(p.pagedbname, page.Url, "UpInterval", upInterval)
+			errd = tran.WriteData(p.pagedb.area, page.Url, "UpInterval", upInterval)
 			if errd.IsError() != nil {
 				tran.Rollback()
 				err = errd.IsError()
@@ -245,7 +246,7 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 		// check the url if is in the domain
 		if pubfunc.StringInSlice(p.domains, oneurl.Domain) == true {
 			// check if the url is in the store.
-			exist, errd := p.pagedb.ExistRole(p.pagedbname, oneurl.Url)
+			exist, errd := p.pagedb.drule.ExistRole(p.pagedb.area, oneurl.Url)
 			if errd.IsError() != nil {
 				err = errd.IsError()
 				return
@@ -269,26 +270,36 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 				var UpInterval int64
 				var Hash string
 				var Ver uint64
-				errd = p.pagedb.ReadData(p.pagedbname, oneurl.Url, "UpTime", &UpTime)
+				tran, errd := p.pagedb.drule.Begin()
 				if errd.IsError() != nil {
 					err = errd.IsError()
 					return
 				}
-				errd = p.pagedb.ReadData(p.pagedbname, oneurl.Url, "UpInterval", &UpInterval)
+				errd = tran.ReadData(p.pagedb.area, oneurl.Url, "UpTime", &UpTime)
 				if errd.IsError() != nil {
+					tran.Rollback()
 					err = errd.IsError()
 					return
 				}
-				errd = p.pagedb.ReadData(p.pagedbname, oneurl.Url, "Hash", &Hash)
+				errd = tran.ReadData(p.pagedb.area, oneurl.Url, "UpInterval", &UpInterval)
 				if errd.IsError() != nil {
+					tran.Rollback()
 					err = errd.IsError()
 					return
 				}
-				errd = p.pagedb.ReadData(p.pagedbname, oneurl.Url, "Ver", &Ver)
+				errd = tran.ReadData(p.pagedb.area, oneurl.Url, "Hash", &Hash)
 				if errd.IsError() != nil {
+					tran.Rollback()
 					err = errd.IsError()
 					return
 				}
+				errd = tran.ReadData(p.pagedb.area, oneurl.Url, "Ver", &Ver)
+				if errd.IsError() != nil {
+					tran.Rollback()
+					err = errd.IsError()
+					return
+				}
+				tran.Commit()
 				if UpTime.Unix()+UpInterval < time.Now().Unix() {
 					// if can update
 					oneurl.Hash = Hash
@@ -301,7 +312,7 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 			}
 		} else {
 			// if the url is in the around link
-			exist, errd := p.arounddb.ExistRole(p.arounddbname, oneurl.Url)
+			exist, errd := p.arounddb.drule.ExistRole(p.arounddb.area, oneurl.Url)
 			if errd.IsError() != nil {
 				err = errd.IsError()
 				return
@@ -314,7 +325,7 @@ func (p *PagesProcess) AddUrls(urls []UrlBasic) (err error) {
 				Text: oneurl.Text,
 			}
 			thearound.New(oneurl.Url)
-			errd = p.arounddb.StoreRole(p.arounddbname, thearound)
+			errd = p.arounddb.drule.StoreRole(p.arounddb.area, thearound)
 			if errd.IsError() != nil {
 				err = errd.IsError()
 				return
