@@ -15,19 +15,19 @@ import (
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 	"github.com/idcsource/Insight-0-0-lib/random"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
 type CrawlMachine struct {
-	transport     *nst.TcpClient // the net transport
-	identity_name string         // the identity name
-	identity_code string         // the identity code
-	closed        bool           // if closed the bool is true
+	transport     *nst2.Client // the net transport
+	identity_name string       // the identity name
+	identity_code string       // the identity code
+	closed        bool         // if closed the bool is true
 }
 
-func NewCrawlMachine(tcp *nst.TcpClient, name, code string) (c *CrawlMachine) {
+func NewCrawlMachine(tcp *nst2.Client, name, code string) (c *CrawlMachine) {
 	c = &CrawlMachine{
 		transport:     tcp,
 		identity_name: name,
@@ -167,7 +167,10 @@ func (c *CrawlMachine) sendandreturn(operate NetTransportOperate, status NetData
 	if err != nil {
 		return
 	}
-	process := c.transport.OpenProgress()
+	process, err := c.transport.OpenProgress()
+	if err != nil {
+		return
+	}
 	defer process.Close()
 	re_b, err := process.SendAndReturn(ntd_b)
 	if err != nil {
