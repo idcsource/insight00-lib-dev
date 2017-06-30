@@ -41,11 +41,11 @@ import (
 )
 
 // 配置池
-type ConfigPool struct{
-	block				map[string]*Block
-	rege				map[string]*regexp.Regexp
-	files				[]string									// 文件名
-	lines				[][]string									// 每个文件里的每一行
+type ConfigPool struct {
+	block map[string]*Block
+	rege  map[string]*regexp.Regexp
+	files []string   // 文件名
+	lines [][]string // 每个文件里的每一行
 }
 
 // 配置池的编码模式
@@ -54,55 +54,56 @@ type PoolEncode struct {
 }
 
 // 块配置
-type Block struct { 
-	section		map[string]*Section
-	key			string						// 键
-	notes		string						// 注释信息
-	file		int							// 哪个文件
-	index		int							// 文件行计数位置
-	new			bool						// 如果为true就为新建
-	del			bool						// 如果为true就为删除
+type Block struct {
+	section map[string]*Section
+	key     string // 键
+	notes   string // 注释信息
+	file    int    // 哪个文件
+	index   int    // 文件行计数位置
+	new     bool   // 如果为true就为新建
+	del     bool   // 如果为true就为删除
 }
 
 // 块的编码模式
 type BlockEncode struct {
-	Key string
-	Notes string
+	Key      string
+	Notes    string
 	Sections map[string]SectionEncode
 }
 
 // 片配置
 type Section struct {
-	config		map[string]*Config
-	key			string						// 键
-	notes		string						// 注释信息
-	file		int							// 哪个文件
-	index		int							// 文件行计数位置
-	new			bool						// 如果为true就为新建
-	del			bool						// 如果为true就为删除
+	config map[string]*Config
+	key    string // 键
+	notes  string // 注释信息
+	file   int    // 哪个文件
+	index  int    // 文件行计数位置
+	new    bool   // 如果为true就为新建
+	del    bool   // 如果为true就为删除
 }
 
 // 片的编码模式
 type SectionEncode struct {
-	Key string
-	Notes string
+	Key     string
+	Notes   string
 	Configs map[string]ConfigEncode
 }
 
 // 单项配置
 type Config struct {
-	key			string						// 键
-	value		string						// 值
-	file		int							// 哪个文件
-	index		int							// 文件行计数位置
-	notes		string						// 注释信息
-	new			bool						// 如果为true就为新建
-	del			bool						// 如果为true就为删除
+	key   string   // 键
+	value string   // 值
+	enum  []string // 枚举
+	file  int      // 哪个文件
+	index int      // 文件行计数位置
+	notes string   // 注释信息
+	new   bool     // 如果为true就为新建
+	del   bool     // 如果为true就为删除
 }
 
 // 单项配置的编码模式
 type ConfigEncode struct {
-	Key string
+	Key   string
 	Value string
 	Notes string
 }
