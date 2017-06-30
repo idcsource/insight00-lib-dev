@@ -20,15 +20,15 @@ import (
 //
 // It operate url crawl queue's request, the page's storage, the words's index and others.
 type NetTransportHandle struct {
-	urlCrawlQueue  *UrlCrawlQueue     // The url crawl queue
-	pageProcess    *PagesProcess      // The page process
-	wordProcess    *WordsIndexProcess // The word index process
-	identityConfig *cpool.Section     // The indentity code's config, the *cpool.Section is name = code
-	closed         bool               // if closed it will true
+	urlCrawlQueue  *UrlCrawlQueue           // The url crawl queue
+	pageProcess    map[string]*PagesProcess // The page process
+	wordProcess    *WordsIndexProcess       // The word index process
+	identityConfig *cpool.Section           // The indentity code's config, the *cpool.Section is name = code
+	closed         bool                     // if closed it will true
 	// TODO : Others
 }
 
-func NewNetTransportHandle(u *UrlCrawlQueue, p *PagesProcess, w *WordsIndexProcess, i *cpool.Section) (n *NetTransportHandle) {
+func NewNetTransportHandle(u *UrlCrawlQueue, p map[string]*PagesProcess, w *WordsIndexProcess, i *cpool.Section) (n *NetTransportHandle) {
 	return &NetTransportHandle{
 		urlCrawlQueue:  u,
 		pageProcess:    p,
@@ -40,13 +40,17 @@ func NewNetTransportHandle(u *UrlCrawlQueue, p *PagesProcess, w *WordsIndexProce
 
 func (n *NetTransportHandle) Start() {
 	n.wordProcess.Start()
-	n.pageProcess.Start()
+	for key := range n.pageProcess {
+		n.pageProcess[key].Start()
+	}
 	n.closed = false
 }
 
 func (n *NetTransportHandle) Close() {
 	n.wordProcess.Close()
-	n.pageProcess.Close()
+	for key := range n.pageProcess {
+		n.pageProcess[key].Close()
+	}
 	n.closed = true
 }
 
@@ -97,11 +101,15 @@ func (n *NetTransportHandle) addUrlToCrawlQueue(ce *nst.ConnExec, c_send *NetTra
 	if err != nil {
 		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("The []UrlBasic decode error: "+err.Error()))
 	}
-	err = n.pageProcess.AddUrls(urls)
-	if err != nil {
-		return n.sendReceipt(ce, NET_DATA_ERROR, []byte(err.Error()))
+	if _, have := n.pageProcess[c_send.SiteName]; have == true {
+		err = n.pageProcess[c_send.SiteName].AddUrls(urls)
+		if err != nil {
+			return n.sendReceipt(ce, NET_DATA_ERROR, []byte(err.Error()))
+		} else {
+			return n.sendReceipt(ce, NET_DATA_STATUS_OK, nil)
+		}
 	} else {
-		return n.sendReceipt(ce, NET_DATA_STATUS_OK, nil)
+		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("Nonexistent site name."))
 	}
 	return
 }
@@ -133,12 +141,17 @@ func (n *NetTransportHandle) thePageData(ce *nst.ConnExec, c_send *NetTransportD
 		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("The PageData decode error: "+err.Error()))
 	}
 	// send to
-	err = n.pageProcess.AddPage(pagedata, c_send.Status)
-	if err != nil {
-		return n.sendReceipt(ce, NET_DATA_ERROR, []byte(err.Error()))
+	if _, have := n.pageProcess[c_send.SiteName]; have == true {
+		err = n.pageProcess[c_send.SiteName].AddPage(pagedata, c_send.Status)
+		if err != nil {
+			return n.sendReceipt(ce, NET_DATA_ERROR, []byte(err.Error()))
+		} else {
+			return n.sendReceipt(ce, NET_DATA_STATUS_OK, nil)
+		}
 	} else {
-		return n.sendReceipt(ce, NET_DATA_STATUS_OK, nil)
+		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("Nonexistent site name."))
 	}
+
 	return
 }
 

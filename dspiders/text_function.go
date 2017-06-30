@@ -204,7 +204,7 @@ func trimHtml(html string) string {
 	return html
 }
 
-func getAllUrl(htmlbody string, fatherurl string) (urls []UrlBasic, err error) {
+func getAllUrl(sitename string, htmlbody string, fatherurl string) (urls []UrlBasic, err error) {
 	fatherpre, _ := url.Parse(fatherurl)
 	bodysreader := strings.NewReader(htmlbody)
 	document, err := goquery.NewDocumentFromReader(bodysreader)
@@ -224,9 +224,10 @@ func getAllUrl(htmlbody string, fatherurl string) (urls []UrlBasic, err error) {
 		}
 		linkComplete(linka, fatherpre)
 		url := UrlBasic{
-			Url:    linka.String(),
-			Text:   se.Text(),
-			Domain: linka.Hostname(),
+			SiteName: sitename,
+			Url:      linka.String(),
+			Text:     se.Text(),
+			Domain:   linka.Hostname(),
 		}
 		urls = append(urls, url)
 	})

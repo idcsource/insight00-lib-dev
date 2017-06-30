@@ -18,7 +18,8 @@ import (
 
 // Handle the store for pages when the crawler get the page.
 type PagesProcess struct {
-	config *cpool.Section // The PagesStore config
+	sitename string         // The site name.
+	config   *cpool.Section // The PagesStore config
 
 	crawlQueue *UrlCrawlQueue     // The url crawl queue
 	indexQueue *WordsIndexProcess // The words index queue
@@ -38,8 +39,9 @@ type PagesProcess struct {
 	closed bool // If close the pages process, it will true
 }
 
-func NewPagesProcess(config *cpool.Section, crawlQueue *UrlCrawlQueue, indexQueue *WordsIndexProcess, drule *operator.Operator) (p *PagesProcess, err error) {
+func NewPagesProcess(sitename string, config *cpool.Section, crawlQueue *UrlCrawlQueue, indexQueue *WordsIndexProcess, drule *operator.Operator) (p *PagesProcess, err error) {
 	p = &PagesProcess{
+		sitename:   sitename,
 		config:     config,
 		crawlQueue: crawlQueue,
 		indexQueue: indexQueue,
@@ -76,8 +78,9 @@ func NewPagesProcess(config *cpool.Section, crawlQueue *UrlCrawlQueue, indexQueu
 			return
 		}
 		p.entr_url[i] = UrlBasic{
-			Domain: theurl.Hostname(),
-			Url:    one,
+			SiteName: p.sitename,
+			Domain:   theurl.Hostname(),
+			Url:      one,
 		}
 	}
 	// the around link db

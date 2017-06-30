@@ -60,7 +60,7 @@ func (c *CrawlMachine) crawl() {
 	var err error
 	var re *NetTransportDataRe
 	// get a url
-	re, err = c.sendandreturn(NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_GET, NET_DATA_STATUS_NO, "", nil)
+	re, err = c.sendandreturn(NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_GET, NET_DATA_STATUS_NO, "", "", nil)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -105,11 +105,11 @@ func (c *CrawlMachine) crawlHTML(resp *http.Response, url UrlBasic) (err error) 
 	htmltrim_sha1 := random.GetSha1Sum(htmltrim)
 	if htmltrim_sha1 == url.Hash {
 		// if the hash not change
-		c.sendandreturn(NET_TRANSPORT_OPERATE_SEND_PAGE_DATA, NET_DATA_STATUS_PAGE_NOT_UPDATE, url.Domain, nil)
+		c.sendandreturn(NET_TRANSPORT_OPERATE_SEND_PAGE_DATA, NET_DATA_STATUS_PAGE_NOT_UPDATE, url.Domain, url.SiteName, nil)
 		return
 	}
 	// get the urls and send
-	go c.crawlUrl(htmlbody, url.Url)
+	go c.crawlUrl(htmlbody, url)
 	// get keywords
 	keywords := getKeyword(htmlbody)
 	// get headertitle
@@ -134,12 +134,13 @@ func (c *CrawlMachine) crawlHTML(resp *http.Response, url UrlBasic) (err error) 
 	if err != nil {
 		return
 	}
-	c.sendandreturn(NET_TRANSPORT_OPERATE_SEND_PAGE_DATA, NET_DATA_STATUS_PAGE_UPDATE, url.Domain, page_mid_b)
+	c.sendandreturn(NET_TRANSPORT_OPERATE_SEND_PAGE_DATA, NET_DATA_STATUS_PAGE_UPDATE, url.Domain, url.SiteName, page_mid_b)
 	return
 }
 
-func (c *CrawlMachine) crawlUrl(htmlbody string, fatherurl string) {
-	urls, err := getAllUrl(htmlbody, fatherurl)
+func (c *CrawlMachine) crawlUrl(htmlbody string, url UrlBasic) {
+	fatherurl := url.Url
+	urls, err := getAllUrl(url.SiteName, htmlbody, fatherurl)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -150,18 +151,19 @@ func (c *CrawlMachine) crawlUrl(htmlbody string, fatherurl string) {
 		fmt.Println(err)
 		return
 	}
-	c.sendandreturn(NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_ADD, NET_DATA_STATUS_NO, "", urls_b)
+	c.sendandreturn(NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_ADD, NET_DATA_STATUS_NO, "", url.SiteName, urls_b)
 	return
 }
 
-func (c *CrawlMachine) sendandreturn(operate NetTransportOperate, status NetDataStatus, domain string, data []byte) (re *NetTransportDataRe, err error) {
+func (c *CrawlMachine) sendandreturn(operate NetTransportOperate, status NetDataStatus, domain string, sitename string, data []byte) (re *NetTransportDataRe, err error) {
 	ntd := NetTransportData{
-		Name:    c.identity_name,
-		Code:    c.identity_code,
-		Operate: operate,
-		Status:  status,
-		Domain:  domain,
-		Data:    data,
+		Name:     c.identity_name,
+		Code:     c.identity_code,
+		Operate:  operate,
+		Status:   status,
+		Domain:   domain,
+		SiteName: sitename,
+		Data:     data,
 	}
 	ntd_b, err := iendecode.StructGobBytes(ntd)
 	if err != nil {

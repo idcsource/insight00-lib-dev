@@ -17,12 +17,13 @@ import (
 
 // The Url basic information for url queue channel
 type UrlBasic struct {
-	Domain string // the url belonged which domain
-	Url    string // the url self
-	Text   string // the url's name
-	Hash   string // the url page last version hash
-	Ver    uint64 // the url page last version
-	Filter bool   // The this is a list url, the bool is true, it will just get all the url but not store the page data.
+	SiteName string // the site name
+	Domain   string // the url belonged which domain
+	Url      string // the url self
+	Text     string // the url's name
+	Hash     string // the url page last version hash
+	Ver      uint64 // the url page last version
+	Filter   bool   // The this is a list url, the bool is true, it will just get all the url but not store the page data.
 }
 
 // The Url's queue channel
@@ -99,12 +100,13 @@ type WordIndex struct {
 
 // The data which transport in network
 type NetTransportData struct {
-	Name    string              // The sender's name
-	Code    string              // The sender's identity code
-	Operate NetTransportOperate // The operate code
-	Status  NetDataStatus       // The data status
-	Domain  string              // The damain if it be need
-	Data    []byte              // The data body, it can be PageData, UrlBasic and so on.
+	Name     string              // The sender's name
+	Code     string              // The sender's identity code
+	Operate  NetTransportOperate // The operate code
+	Status   NetDataStatus       // The data status
+	Domain   string              // The damain if it be need
+	SiteName string              // The site name if it be need
+	Data     []byte              // The data body, it can be PageData, UrlBasic and so on.
 }
 
 // The data which transport in network - the net transport send
