@@ -29,7 +29,7 @@ func NewConfigPool(fname ...string) (*ConfigPool, error) {
 		files: make([]string, 0),
 		lines: make([][]string, 0),
 	}
-	c.rege["block"], _ = regexp.Compile(`^{(.+)}$`)             //匹配{xxxx}
+	c.rege["block"], _ = regexp.Compile(`^{(\s*)(.+)(\s*)}$`)   //匹配{xxxx}
 	c.rege["config"], _ = regexp.Compile(`(.+)(\s*)=(\s*)(.+)`) //匹配xxx=xxx
 	c.rege["section"], _ = regexp.Compile(`\[(\s*)(.+)(\s*)\]`) //匹配[xxx]
 
@@ -305,25 +305,36 @@ func (c *ConfigPool) doLines(filei int) error {
 		if len(lnoc) == 0 || lnoc[0] == '#' || lnoc[0] == '/' || lnoc[0] == '-' || lnoc[0] == ';' {
 			continue
 		}
-		var notes string
-		lnoc, notes = c.stripComments(lnoc)
-		lnoc = strings.TrimSpace(lnoc)
-		notes = strings.TrimSpace(notes)
-		if len(lnoc) == 0 {
+		thetype, thename, thenote, err := c.checkLine(lnoc)
+		if err != nil {
+			return err
+		}
+		if thetype == 1 {
 			continue
 		}
-		if c.rege["block"].MatchString(lnoc) == true {
-			theR := c.rege["block"].FindStringSubmatch(lnoc)
-			theR1 := strings.TrimSpace(theR[1])
+
+		//		var notes string
+		//		lnoc, notes = c.stripComments(lnoc)
+		//		lnoc = strings.TrimSpace(lnoc)
+		//		notes = strings.TrimSpace(notes)
+		//		if len(lnoc) == 0 {
+		//			continue
+		//		}
+		//if c.rege["block"].MatchString(lnoc) == true {
+		if thetype == 2 {
+			//theR := c.rege["block"].FindStringSubmatch(lnoc)
+			//theR1 := strings.TrimSpace(theR[1])
 			if len(c.lines[filei]) >= i+1 {
 				r, j, err1 := c.doSection(filei, i+1) // c.doSection 将所有后续的行放到doSection里处理一个config文件
 				if err1 != nil {
 					return err1
 				}
-				r.key = theR1
-				r.notes = notes
+				//r.key = theR1
+				r.key = thename
+				//r.notes = notes
+				r.notes = thenote
 				ij = j
-				c.block[theR1] = r
+				c.block[thename] = r
 			}
 		}
 	}
@@ -350,27 +361,39 @@ func (c *ConfigPool) doSection(filei int, linei int) (*Block, int, error) {
 		if len(lnoc) == 0 || lnoc[0] == '#' || lnoc[0] == '/' || lnoc[0] == '-' || lnoc[0] == ';' {
 			continue
 		}
-		var notes string
-		lnoc, notes = c.stripComments(lnoc)
-		lnoc = strings.TrimSpace(lnoc)
-		notes = strings.TrimSpace(notes)
-		if len(lnoc) == 0 {
+		thetype, thename, thenote, err := c.checkLine(lnoc)
+		if err != nil {
+			return nil, 0, err
+		}
+		if thetype == 1 {
 			continue
 		}
-		if c.rege["section"].MatchString(lnoc) == true {
-			theR := c.rege["section"].FindStringSubmatch(lnoc)
-			theR1 := strings.TrimSpace(theR[2])
+		//		var notes string
+		//		lnoc, notes = c.stripComments(lnoc)
+		//		lnoc = strings.TrimSpace(lnoc)
+		//		notes = strings.TrimSpace(notes)
+		//		if len(lnoc) == 0 {
+		//			continue
+		//		}
+		//if c.rege["section"].MatchString(lnoc) == true {
+		if thetype == 3 {
+			//theR := c.rege["section"].FindStringSubmatch(lnoc)
+			//theR1 := strings.TrimSpace(theR[2])
 			if len(c.lines[filei][linei:]) >= i+1 {
 				r, j, err1 := c.doConfig(filei, linei+i+1) // 处理每一个 xxx = xxx
 				if err1 != nil {
 					return nil, 0, err1
 				}
-				r.key = theR1
-				r.notes = notes
-				ca.section[theR1] = r
+				//r.key = theR1
+				r.key = thename
+				//r.notes = notes
+				r.notes = thenote
+				//ca.section[theR1] = r
+				ca.section[thename] = r
 				ij = j
 			}
-		} else if c.rege["block"].MatchString(lnoc) == true {
+			//} else if c.rege["block"].MatchString(lnoc) == true {
+		} else if thetype == 2 {
 			ri = i
 			break
 		}
@@ -394,8 +417,15 @@ func (c *ConfigPool) doConfig(filei int, linei int) (*Section, int, error) {
 		if len(lnoc) == 0 || lnoc[0] == '#' || lnoc[0] == '/' || lnoc[0] == '-' || lnoc[0] == ';' {
 			continue
 		}
-
-		if c.rege["config"].MatchString(lnoc) == true {
+		thetype, _, _, err := c.checkLine(lnoc)
+		if err != nil {
+			return nil, 0, err
+		}
+		if thetype == 1 {
+			continue
+		}
+		//if c.rege["config"].MatchString(lnoc) == true {
+		if thetype == 4 {
 			key, value, notes, err := c.splitConfig(lnoc)
 			if err != nil {
 				return nil, 0, err
@@ -410,7 +440,8 @@ func (c *ConfigPool) doConfig(filei int, linei int) (*Section, int, error) {
 				new:   false,
 				del:   false,
 			}
-		} else if c.rege["section"].MatchString(lnoc) == true || c.rege["block"].MatchString(lnoc) == true {
+			//} else if c.rege["section"].MatchString(lnoc) == true || c.rege["block"].MatchString(lnoc) == true {
+		} else if thetype == 2 || thetype == 3 {
 			ri = i
 			break
 		}
@@ -441,6 +472,49 @@ func (c *ConfigPool) doConfig(filei int, linei int) (*Section, int, error) {
 		//		}
 	}
 	return ca, ri, nil
+}
+
+func (c *ConfigPool) checkLine(line string) (thetype uint8, name, note string, err error) {
+	thesplit, err := pubfunc.CommandSplit(line, false)
+	if err != nil {
+		return
+	}
+	now_type := 0
+	for _, onesplit := range thesplit {
+		onesplit2 := strings.TrimSpace(onesplit)
+		if len(onesplit2) == 0 && now_type != 2 {
+			continue
+		}
+		switch now_type {
+		case 0:
+			if onesplit == "#" || onesplit == "//" || onesplit == "--" {
+				thetype = 1 // 1 is comment
+				return
+			} else if c.rege["block"].MatchString(onesplit) == true {
+				thetype = 2 // 2 is block
+				name = strings.TrimSpace(c.rege["block"].FindStringSubmatch(onesplit)[2])
+				now_type = 1
+			} else if c.rege["section"].MatchString(onesplit) == true {
+				thetype = 3 // 3 is section
+				name = strings.TrimSpace(c.rege["section"].FindStringSubmatch(onesplit)[2])
+				now_type = 1
+			} else {
+				thetype = 4 // 4 is config
+				return
+			}
+		case 1:
+			if onesplit == "#" || onesplit == "//" || onesplit == "--" {
+				now_type = 2
+			}
+		case 2:
+			if len(onesplit) == 0 {
+				note += " "
+			} else {
+				note += onesplit
+			}
+		}
+	}
+	return
 }
 
 func (c *ConfigPool) splitConfig(line string) (key string, value []string, note string, err error) {
