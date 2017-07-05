@@ -151,6 +151,7 @@ func (c *ConfigPool) EncodePool() PoolEncode {
 				encode.Blocks[blockkey].Sections[sectionkey].Configs[configkey] = ConfigEncode{
 					Key:   oneconfig.key,
 					Value: oneconfig.value,
+					Enum:  oneconfig.enum,
 					Notes: oneconfig.notes,
 				}
 			}
@@ -218,6 +219,7 @@ func (c *ConfigPool) EncodeBlock(b string) (encode BlockEncode, err error) {
 			encode.Sections[sectionkey].Configs[configkey] = ConfigEncode{
 				Key:   oneconfig.key,
 				Value: oneconfig.value,
+				Enum:  oneconfig.enum,
 				Notes: oneconfig.notes,
 			}
 		}
@@ -254,6 +256,7 @@ func (c *ConfigPool) EncodeSection(s string) (encode SectionEncode, err error) {
 		encode.Configs[configkey] = ConfigEncode{
 			Key:   oneconfig.key,
 			Value: oneconfig.value,
+			Enum:  oneconfig.enum,
 			Notes: oneconfig.notes,
 		}
 	}

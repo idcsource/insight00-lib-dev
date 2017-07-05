@@ -35,6 +35,7 @@ func (se *Section) EncodeSection() (encode SectionEncode) {
 		encode.Configs[configkey] = ConfigEncode{
 			Key:   oneconfig.key,
 			Value: oneconfig.value,
+			Enum:  oneconfig.enum,
 			Notes: oneconfig.notes,
 		}
 	}
