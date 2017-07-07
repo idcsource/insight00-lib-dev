@@ -223,6 +223,7 @@ func (b *Block) SetEnum(s string, n string, v ...string) error {
 	if ok2 == false {
 		rsA.config[csA2] = &Config{
 			key:   csA2,
+			value: v[0],
 			enum:  v,
 			notes: n,
 			new:   true,
@@ -230,6 +231,7 @@ func (b *Block) SetEnum(s string, n string, v ...string) error {
 		}
 	} else {
 		rs.enum = v
+		rs.value = v[0]
 		if len(n) != 0 {
 			rs.notes = n
 		}

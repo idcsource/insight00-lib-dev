@@ -1,9 +1,9 @@
 // Copyright 2016
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
-// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
-// Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
-// Use of this source code is governed by GNU LGPL v3 license
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idecsource@gmail.com
+// Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
+// This source code is governed by GNU LGPL v3 license
 
 package cpool
 
@@ -21,7 +21,7 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/pubfunc"
 )
 
-// 新建一个配置池，并将提供的配置文件读出解析
+// Create new configure pool, and analyze the config files.
 func NewConfigPool(fname ...string) (*ConfigPool, error) {
 	c := &ConfigPool{
 		block: make(map[string]*Block),
@@ -53,8 +53,7 @@ func NewConfigPool(fname ...string) (*ConfigPool, error) {
 	return c, nil
 }
 
-// 新建一个没有文件的空配置池
-// 你可以随后用RegFile()、Reload()等方法动态设置自己的配置池
+// Create a new empty configure pool
 func NewConfigPoolNoFile() *ConfigPool {
 	c := &ConfigPool{
 		block: make(map[string]*Block),
@@ -68,7 +67,7 @@ func NewConfigPoolNoFile() *ConfigPool {
 	return c
 }
 
-// 注册一个文件到配置池，你需要用Reload()方法对载入的文件进行处理
+// Register a file to configure pool
 func (c *ConfigPool) RegFile(fname ...string) error {
 	for _, f := range fname {
 		fs := pubfunc.LocalFile(f)
@@ -80,8 +79,7 @@ func (c *ConfigPool) RegFile(fname ...string) error {
 	return nil
 }
 
-// Reload 重载配置文件
-// 一定小心使用这个功能，它将会把当前的配置全部清空，如果你自己修改添加了配置也将一并消失
+// Reload all config files, be careful all your change will be deleted.
 func (c *ConfigPool) Reload() error {
 	if len(c.files) == 0 {
 		return errors.New("There have no file be registered for configure.")
@@ -103,7 +101,7 @@ func (c *ConfigPool) Reload() error {
 	return nil
 }
 
-// 将配置文件存储到某个文件中
+// Save the configure information to file, it may not be used.
 func (c *ConfigPool) WriteTo(filename string) error {
 	filename = pubfunc.LocalFile(filename)
 	var file string
@@ -130,7 +128,7 @@ func (c *ConfigPool) WriteTo(filename string) error {
 	return e
 }
 
-// 将配置池导出成编码模式
+// Export the configure pool to encode mode.
 func (c *ConfigPool) EncodePool() PoolEncode {
 	encode := PoolEncode{
 		Blocks: make(map[string]BlockEncode),
@@ -160,7 +158,7 @@ func (c *ConfigPool) EncodePool() PoolEncode {
 	return encode
 }
 
-// 解码配置池并装入自身
+// Decode the configure pool and load to self.
 func (c *ConfigPool) DecodePool(pool PoolEncode) {
 	for key, oneblock := range pool.Blocks {
 		_, find := c.block[key]
@@ -174,7 +172,7 @@ func (c *ConfigPool) DecodePool(pool PoolEncode) {
 	}
 }
 
-// 解码一个块并装入相应位置，如果有存在的配置项则会被覆盖
+// Decode a Block and store, if the Block name is exist, cover the old one.
 func (c *ConfigPool) DecodeBlock(bl BlockEncode) {
 	bname := bl.Key
 	_, find := c.block[bname]
@@ -187,7 +185,7 @@ func (c *ConfigPool) DecodeBlock(bl BlockEncode) {
 	}
 }
 
-// 解码一个片并装入相应位置，blockname为指定装入哪个块中，如果块不存在则新建，如果任何配置项已经存在则会覆盖
+// Decode a Section and store, if the Section name is exist, cover the old one.
 func (c *ConfigPool) DecodeSection(blockname string, sectioncode SectionEncode) {
 	_, blockfind := c.block[blockname]
 	if blockfind == false {
@@ -196,7 +194,7 @@ func (c *ConfigPool) DecodeSection(blockname string, sectioncode SectionEncode) 
 	c.block[blockname].DecodeSection(sectioncode)
 }
 
-// 将某个块导出为编码模式，如果块不存在，则返回错误
+// Export a Block to encode mode, if the Block not exist, return error.
 func (c *ConfigPool) EncodeBlock(b string) (encode BlockEncode, err error) {
 	encode = BlockEncode{
 		Sections: make(map[string]SectionEncode),
@@ -227,7 +225,7 @@ func (c *ConfigPool) EncodeBlock(b string) (encode BlockEncode, err error) {
 	return
 }
 
-// 将某个片导出为编码模式，如果片不存在，则返回错误，s为block|section格式
+// Export a Section to encode mode, if the Section not exist, return error.
 func (c *ConfigPool) EncodeSection(s string) (encode SectionEncode, err error) {
 	encode = SectionEncode{
 		Configs: make(map[string]ConfigEncode),
@@ -567,7 +565,7 @@ func (c *ConfigPool) splitConfig(line string) (key string, value []string, note 
 	return
 }
 
-// 获取所有块（Block）的名字
+// Get all Block name.
 func (c *ConfigPool) GetAllBlockName() []string {
 	re := make([]string, 0)
 	for name, _ := range c.block {
@@ -576,7 +574,7 @@ func (c *ConfigPool) GetAllBlockName() []string {
 	return re
 }
 
-// 返回一个块（Block）的配置内容
+// Return one Block information, if not exist return error.
 func (c *ConfigPool) GetBlock(ns string) (*Block, error) {
 	ns = strings.TrimSpace(ns)
 	nils, find := c.block[ns]
@@ -587,7 +585,7 @@ func (c *ConfigPool) GetBlock(ns string) (*Block, error) {
 	}
 }
 
-// 获取一个片(Section)内的配置内容，格式是：block|section
+// Return the Section information, the s format is: block|section
 func (c *ConfigPool) GetSection(s string) (*Section, error) {
 	s = strings.TrimSpace(s)
 	sA := strings.Split(s, "|")
@@ -607,7 +605,7 @@ func (c *ConfigPool) GetSection(s string) (*Section, error) {
 	return rsAs, nil
 }
 
-// 将自己后来添加的Block注册进配置池，如果配置池中已经有同名的则返回错误
+// Register a Block to configure pool.
 func (c *ConfigPool) RegBlock(b *Block) error {
 	bkey := b.key
 	_, find := c.block[bkey]
@@ -618,8 +616,7 @@ func (c *ConfigPool) RegBlock(b *Block) error {
 	return nil
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
+// Set a Config, s format is : block|section.configkey, v is value, n is comment.
 func (c *ConfigPool) SetConfig(s, v, n string) error {
 	s = strings.TrimSpace(s)
 	sA := strings.Split(s, "|")
@@ -648,37 +645,34 @@ func (c *ConfigPool) SetConfig(s, v, n string) error {
 	if ok2 == false {
 		rsB.config[csA2] = &Config{
 			key:   csA2,
-			notes: "#" + n,
+			notes: n,
 			value: v,
 			new:   true,
 		}
 	} else {
 		rs.value = v
 		if len(n) != 0 {
-			rs.notes = "#" + n
+			rs.notes = n
 		}
 	}
 	return nil
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
+// Set a Config, s format is : block|section.configkey, v is value, n is comment.
 func (c *ConfigPool) SetInt64(s string, v int64, n string) error {
 	var vs string
 	vs = strconv.FormatInt(v, 10)
 	return c.SetConfig(s, vs, n)
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
+// Set a Config, s format is : block|section.configkey, v is value, n is comment.
 func (c *ConfigPool) SetFloat(s string, v float64, n string) error {
 	var vs string
 	vs = strconv.FormatFloat(v, 'f', -1, 64)
 	return c.SetConfig(s, vs, n)
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
+// Set a Config, s format is : block|section.configkey, v is value, n is comment.
 func (c *ConfigPool) SetBool(s string, v bool, n string) error {
 	var vs string
 	if v == true {
@@ -689,16 +683,51 @@ func (c *ConfigPool) SetBool(s string, v bool, n string) error {
 	return c.SetConfig(s, vs, n)
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
-// 注意这里的注释为第二个参数
+// Set a Config, s format is : block|section.configkey, v is value, n is comment.
 func (c *ConfigPool) SetEnum(s string, n string, v ...string) error {
-	var vs string
-	vs = strings.Join(v, ",")
-	return c.SetConfig(s, vs, n)
+	s = strings.TrimSpace(s)
+	sA := strings.Split(s, "|")
+	if len(sA) != 2 {
+		return errors.New("cpool: [ConfigPool]SetEnum: Request configuration node error : " + s)
+	}
+	ns := strings.TrimSpace(sA[0]) //block
+	cs := strings.TrimSpace(sA[1])
+	csA := strings.Split(cs, ".")
+	if len(csA) != 2 {
+		return errors.New("cpool: [ConfigPool]SetEnum: Request configuration node error : " + s)
+	}
+	csA1 := strings.TrimSpace(csA[0]) //section
+	csA2 := strings.TrimSpace(csA[1]) //config
+	rsA, err := c.GetBlock(ns)
+	if err != nil {
+		rsA = NewBlock(ns, "")
+		c.block[ns] = rsA
+	}
+	rsB, ok := rsA.section[csA1]
+	if ok == false {
+		rsB = NewSection(csA1, "")
+		rsA.section[csA1] = rsB
+	}
+	rs, ok2 := rsB.config[csA2]
+	if ok2 == false {
+		rsB.config[csA2] = &Config{
+			key:   csA2,
+			notes: n,
+			value: v[0],
+			enum:  v,
+			new:   true,
+		}
+	} else {
+		rs.value = v[0]
+		rs.enum = v
+		if len(n) != 0 {
+			rs.notes = n
+		}
+	}
+	return nil
 }
 
-// 获取一个配置，没有找到将返回错误，s的格式是：block|section.keyname
+// Get a Config, if not exist return error, s format is: block|section.keyname
 func (c *ConfigPool) GetConfig(s string) (string, error) {
 	s = strings.TrimSpace(s)
 	sA := strings.Split(s, "|")
@@ -728,7 +757,7 @@ func (c *ConfigPool) GetConfig(s string) (string, error) {
 	return rs.value, nil
 }
 
-// 获取一个配置，并转换为字符串切片，转换失败或没有找到将返回错误，s的格式是：block|section.keyname
+// Get a Config, if not exist return error, s format is: block|section.keyname
 func (c *ConfigPool) GetEnum(s string) ([]string, error) {
 	s = strings.TrimSpace(s)
 	sA := strings.Split(s, "|")
@@ -771,7 +800,7 @@ func (c *ConfigPool) GetEnum(s string) ([]string, error) {
 	//	return returna, nil
 }
 
-// 获取一个配置，并转换为64位整数，转换失败或没有找到将返回错误，s的格式是：block|section.keyname
+// Get a Config, if not exist return error, s format is: block|section.keyname
 func (c *ConfigPool) TranInt64(s string) (int64, error) {
 	cf, err := c.GetConfig(s)
 	if err != nil {
@@ -785,7 +814,7 @@ func (c *ConfigPool) TranInt64(s string) (int64, error) {
 
 }
 
-// 获取一个配置，并转换为64位浮点，转换失败或没有找到将返回错误，s的格式是：block|section.keyname
+// Get a Config, if not exist return error, s format is: block|section.keyname
 func (c *ConfigPool) TranFloat(s string) (float64, error) {
 	cf, err := c.GetConfig(s)
 	if err != nil {
@@ -799,7 +828,7 @@ func (c *ConfigPool) TranFloat(s string) (float64, error) {
 
 }
 
-// 获取一个配置，并转换为布尔值，转换失败或没有找到将返回错误，s的格式是：block|section.keyname
+// Get a Config, if not exist return error, s format is: block|section.keyname
 func (c *ConfigPool) TranBool(s string) (bool, error) {
 	cf, err := c.GetConfig(s)
 	if err != nil {

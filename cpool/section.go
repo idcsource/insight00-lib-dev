@@ -1,9 +1,9 @@
 // Copyright 2016
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
-// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
-// Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
-// Use of this source code is governed by GNU LGPL v3 license
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idcsource@gmail.com
+// Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
+// This source code is governed by GNU LGPL v3 license
 
 package cpool
 
@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-// 新建一个片配置
+// Create a new Section, the notes is comment.
 func NewSection(name, notes string) *Section {
 	return &Section{
 		key:    name,
@@ -24,7 +24,7 @@ func NewSection(name, notes string) *Section {
 	}
 }
 
-// 将自身导出为编码模式
+// Export self to encode mode.
 func (se *Section) EncodeSection() (encode SectionEncode) {
 	encode = SectionEncode{
 		Key:     se.key,
@@ -42,7 +42,7 @@ func (se *Section) EncodeSection() (encode SectionEncode) {
 	return
 }
 
-// 解码section并装入自己
+// Decode Section and store to self.
 func (se *Section) DecodeSection(s SectionEncode) {
 	se.key = s.Key
 	se.notes = s.Notes
@@ -61,15 +61,14 @@ func (se *Section) DecodeSection(s SectionEncode) {
 	}
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
+// Set a Config, the s is the key, v is the value, n is the comment. if not exist, create new, else cover the old one.
 func (se *Section) SetConfig(s, v, n string) error {
 	s = strings.TrimSpace(s)
 	cf, have := se.config[s]
 	if have == false {
 		se.config[s] = &Config{
 			key:   s,
-			notes: "#" + n,
+			notes: n,
 			value: v,
 			new:   true,
 			del:   false,
@@ -77,30 +76,27 @@ func (se *Section) SetConfig(s, v, n string) error {
 	} else {
 		cf.value = v
 		if len(n) != 0 {
-			cf.notes = "#" + n
+			cf.notes = n
 		}
 	}
 	return nil
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
+// Set a Config, the s is the key, v is the value, n is the comment. if not exist, create new, else cover the old one.
 func (se *Section) SetInt64(s string, v int64, n string) error {
 	var vs string
 	vs = strconv.FormatInt(v, 10)
 	return se.SetConfig(s, vs, n)
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
+// Set a Config, the s is the key, v is the value, n is the comment. if not exist, create new, else cover the old one.
 func (se *Section) SetFloat(s string, v float64, n string) error {
 	var vs string
 	vs = strconv.FormatFloat(v, 'f', -1, 64)
 	return se.SetConfig(s, vs, n)
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
+// Set a Config, the s is the key, v is the value, n is the comment. if not exist, create new, else cover the old one.
 func (se *Section) SetBool(s string, v bool, n string) error {
 	var vs string
 	if v == true {
@@ -111,16 +107,30 @@ func (se *Section) SetBool(s string, v bool, n string) error {
 	return se.SetConfig(s, vs, n)
 }
 
-// 设置一个配置项，s的格式是：block|section.configkey，v设置的值，n为注释
-// 如果配置项已经存在，将改写设置的值，否则新建项目
-// 注意这里的注释为第二个参数
+// Set a Config, the s is the key, v is the value, n is the comment. if not exist, create new, else cover the old one.
 func (se *Section) SetEnum(s string, n string, v ...string) error {
-	var vs string
-	vs = strings.Join(v, ",")
-	return se.SetConfig(s, vs, n)
+	s = strings.TrimSpace(s)
+	cf, have := se.config[s]
+	if have == false {
+		se.config[s] = &Config{
+			key:   s,
+			notes: n,
+			value: v[0],
+			enum:  v,
+			new:   true,
+			del:   false,
+		}
+	} else {
+		cf.value = v[0]
+		cf.enum = v
+		if len(n) != 0 {
+			cf.notes = n
+		}
+	}
+	return nil
 }
 
-// 获取一个配置，没有找到将返回错误，s为配置的键名
+// Get a Config, if not exist return error
 func (se *Section) GetConfig(s string) (string, error) {
 	s = strings.TrimSpace(s)
 	cf, have := se.config[s]
@@ -131,7 +141,7 @@ func (se *Section) GetConfig(s string) (string, error) {
 	}
 }
 
-// 获取一个配置，并转换成字符串切片，转换失败或没有找到将返回错误，s为配置的键名
+// Get a Config, if not exist return error
 func (se *Section) GetEnum(s string) ([]string, error) {
 	s = strings.TrimSpace(s)
 	cf, have := se.config[s]
@@ -155,7 +165,7 @@ func (se *Section) GetEnum(s string) ([]string, error) {
 	//	return returna, nil;
 }
 
-// 获取一个配置，并转换为64为整形，转换失败或没有找到将返回错误，s为配置的键名
+// Get a Config, if not exist return error
 func (se *Section) TranInt64(s string) (int64, error) {
 	cf, err := se.GetConfig(s)
 	if err != nil {
@@ -168,7 +178,7 @@ func (se *Section) TranInt64(s string) (int64, error) {
 	return i, nil
 }
 
-// 获取一个配置，并转换为64为浮点，转换失败或没有找到将返回错误，s为配置的键名
+// Get a Config, if not exist return error
 func (se *Section) TranFloat(s string) (float64, error) {
 	cf, err := se.GetConfig(s)
 	if err != nil {
@@ -181,7 +191,7 @@ func (se *Section) TranFloat(s string) (float64, error) {
 	return i, nil
 }
 
-// 获取一个配置，并转换为布尔值，转换失败或没有找到将返回错误，s为配置的键名
+// Get a Config, if not exist return error
 func (se *Section) TranBool(s string) (bool, error) {
 	cf, err := se.GetConfig(s)
 	if err != nil {
