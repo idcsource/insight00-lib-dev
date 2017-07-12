@@ -144,11 +144,11 @@ func (h *HardStorage) RoleAdd(area string, role roles.Roleer) (err error) {
 
 	roleid := role.ReturnId()
 	// 查看是否存在这个角色
-	have_role, f_name := h.roleExist(area, roleid)
-	if have_role == true {
-		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: The Role already exist.")
-		return
-	}
+	//	have_role, f_name := h.roleExist(area, roleid)
+	//	if have_role == true {
+	//		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: The Role already exist.")
+	//		return
+	//	}
 	// 转码
 	mid, err := roles.EncodeRoleToMiddle(role)
 	if err != nil {
@@ -180,11 +180,11 @@ func (h *HardStorage) RoleAddMiddleData(area string, mid roles.RoleMiddleData) (
 
 	roleid := mid.Version.Id
 	// 查看是否存在这个角色
-	have_role, f_name := h.roleExist(area, roleid)
-	if have_role == true {
-		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: The Role already exist.")
-		return
-	}
+	//	have_role, f_name := h.roleExist(area, roleid)
+	//	if have_role == true {
+	//		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: The Role already exist.")
+	//		return
+	//	}
 	// 去存
 	err = h.storeRoleMiddle(f_name, &mid)
 	if err != nil {

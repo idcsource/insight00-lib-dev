@@ -9,6 +9,7 @@
 package drule
 
 import (
+	"sync"
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
@@ -58,7 +59,8 @@ type loginUser struct {
 	unid       map[string]time.Time   // string为unid，time则为活动时间
 	authority  operator.UserAuthority // 用户权限
 	wrable     map[string]bool        // 与DRuleUser一致
-	activetime time.Time
+	activetime time.Time              // 活动时间
+	lock       *sync.RWMutex          // 锁
 }
 
 type AreasRouterRoot struct {

@@ -62,20 +62,25 @@ func (c *CrawlMachine) crawl() {
 	// get a url
 	re, err = c.sendandreturn(NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_GET, NET_DATA_STATUS_NO, "", "", nil)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("a", err)
+		return
+	}
+	if re.Status != NET_DATA_STATUS_OK {
+		fmt.Println(string(re.Data))
 		return
 	}
 	// decode UrlBasic
 	var url UrlBasic
 	err = iendecode.BytesGobStruct(re.Data, &url)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("b", err)
 		return
 	}
 	// catch the page info
+	fmt.Println(url.Url)
 	resp, err := c.respGet(url.Url)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("c", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -86,6 +91,10 @@ func (c *CrawlMachine) crawl() {
 	if matched == true {
 		// 处理是HTML的情况
 		err = c.crawlHTML(resp, url)
+		if err != nil {
+			fmt.Println("d", err)
+			return
+		}
 	}
 }
 
@@ -104,11 +113,13 @@ func (c *CrawlMachine) crawlHTML(resp *http.Response, url UrlBasic) (err error) 
 	htmltrim := trimHtml(htmlbody)
 	htmltrim_sha1 := random.GetSha1Sum(htmltrim)
 	if htmltrim_sha1 == url.Hash {
+		fmt.Println("hash same")
 		// if the hash not change
 		c.sendandreturn(NET_TRANSPORT_OPERATE_SEND_PAGE_DATA, NET_DATA_STATUS_PAGE_NOT_UPDATE, url.Domain, url.SiteName, nil)
 		return
 	}
 	// get the urls and send
+	fmt.Println("go url")
 	go c.crawlUrl(htmlbody, url)
 	// get keywords
 	keywords := getKeyword(htmlbody)
@@ -134,7 +145,10 @@ func (c *CrawlMachine) crawlHTML(resp *http.Response, url UrlBasic) (err error) 
 	if err != nil {
 		return
 	}
-	c.sendandreturn(NET_TRANSPORT_OPERATE_SEND_PAGE_DATA, NET_DATA_STATUS_PAGE_UPDATE, url.Domain, url.SiteName, page_mid_b)
+	_, err = c.sendandreturn(NET_TRANSPORT_OPERATE_SEND_PAGE_DATA, NET_DATA_STATUS_PAGE_UPDATE, url.Domain, url.SiteName, page_mid_b)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return
 }
 
@@ -178,6 +192,7 @@ func (c *CrawlMachine) sendandreturn(operate NetTransportOperate, status NetData
 	if err != nil {
 		return
 	}
+	re = &NetTransportDataRe{}
 	err = iendecode.BytesGobStruct(re_b, re)
 	return
 }

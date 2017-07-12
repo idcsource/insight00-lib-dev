@@ -8,6 +8,7 @@
 package dspiders
 
 import (
+	"fmt"
 	"net/url"
 	"time"
 
@@ -355,7 +356,10 @@ func (p *PagesProcess) addEntrUrls() {
 		if p.closed == true {
 			return
 		}
-		p.AddUrls(p.entr_url)
+		err := p.AddUrls(p.entr_url)
+		if err != nil {
+			fmt.Println(err)
+		}
 		time.Sleep(time.Second * time.Duration(p.entr_cycle_in))
 	}
 }

@@ -59,6 +59,10 @@ func (w *WordsIndexProcess) ReturnQueue() chan *WordsIndexRequest {
 
 // Add a words index reuest to queue
 func (w *WordsIndexProcess) Add(req *WordsIndexRequest) (err error) {
+	/*
+		这里提前return了
+	*/
+	return
 	if w.count == URL_CRAWL_QUEUE_CAP {
 		err = fmt.Errorf("The queue is full.")
 		return
@@ -132,6 +136,10 @@ func (w *WordsIndexProcess) indexPage(req *WordsIndexRequest) {
 		w.todelindex(req.PageData.Domain, req.PageData.Url, old_split)
 	}
 	errd = w.sentencedb.drule.StoreRole(w.sentencedb.area, page_sentences)
+	if errd.IsError() != nil {
+		fmt.Println(errd.IsError())
+		return
+	}
 	w.toindex(req.PageData.Domain, req.PageData.Url, word_split)
 }
 

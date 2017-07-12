@@ -99,7 +99,7 @@ func (c *Client) OpenConnect() (cc *CConnect, err error) {
 	} else {
 		// if short connect
 		// if connections to much
-		if c.now_count >= c.max_count {
+		if c.now_count > c.max_count {
 			err = fmt.Errorf("The number of connections is exceeded.")
 			return
 		}
@@ -127,7 +127,6 @@ func (c *Client) selectFromPool() (cc *CConnect, err error) {
 		// case c.connect_pool[cnum].lock <- true:
 		if c.connect_pool[cnum].lock == false {
 			cc = c.connect_pool[cnum]
-			cc.lock = true
 			// send the SEND_STAT_DATA_GOON
 			err = cc.conn_exec.Transmission.SendStat(uint8(SEND_STAT_DATA_GOON))
 			if err != nil {
@@ -153,6 +152,7 @@ func (c *Client) selectFromPool() (cc *CConnect, err error) {
 				}
 			} else {
 				selected = true
+				cc.lock = true
 				//breakfor = true
 				break
 			}
@@ -179,7 +179,7 @@ func (c *Client) selectFromPool() (cc *CConnect, err error) {
 	//fmt.Println("now_count2", c.now_count)
 	//fmt.Println("t_count2", len(c.connect_pool))
 	if selected == false {
-		if c.now_count >= c.max_count {
+		if c.now_count > c.max_count {
 			err = fmt.Errorf("The number of connections is exceeded.")
 			return
 		}

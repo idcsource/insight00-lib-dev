@@ -8,9 +8,11 @@
 package dspiders
 
 import (
+	"fmt"
+
 	"github.com/idcsource/Insight-0-0-lib/cpool"
 	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/Insight-0-0-lib/nst2"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
 
@@ -54,47 +56,53 @@ func (n *NetTransportHandle) Close() {
 	n.closed = true
 }
 
-func (n *NetTransportHandle) ExecTCP(ce *nst.ConnExec) (err error) {
+func (n *NetTransportHandle) NSTexec(ce *nst2.ConnExec) (stat nst2.SendStat, err error) {
 	// get the crawl machine send
 	c_send_b, err := ce.GetData()
 	if err != nil {
+		stat = nst2.SEND_STAT_NOT_OK
 		return
 	}
 	// if close
 	if n.closed == true {
-		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("The service was closed."))
+		return nst2.SEND_STAT_NOT_OK, n.sendReceipt(ce, NET_DATA_ERROR, []byte("The service was closed."))
 	}
 	// decode
 	c_send := NetTransportData{}
 	err = iendecode.BytesGobStruct(c_send_b, &c_send)
 	if err != nil {
-		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("The NetTransportData decode error: "+err.Error()))
+		return nst2.SEND_STAT_NOT_OK, n.sendReceipt(ce, NET_DATA_ERROR, []byte("The NetTransportData decode error: "+err.Error()))
 	}
 	// check the identity
 	code, err := n.identityConfig.GetConfig(c_send.Name)
 	if err != nil {
-		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("Can not found the identity."))
+		return nst2.SEND_STAT_NOT_OK, n.sendReceipt(ce, NET_DATA_ERROR, []byte("Can not found the identity."))
 	}
 	if code != c_send.Code {
-		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("Can not found the identity."))
+		return nst2.SEND_STAT_NOT_OK, n.sendReceipt(ce, NET_DATA_ERROR, []byte("Can not found the identity."))
 	}
 	// get the operator name
 	switch c_send.Operate {
 	case NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_ADD:
-		return n.addUrlToCrawlQueue(ce, &c_send)
+		err = n.addUrlToCrawlQueue(ce, &c_send)
 	case NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_GET:
-		return n.getUrlFromCrawlQueue(ce, &c_send)
+		err = n.getUrlFromCrawlQueue(ce, &c_send)
 	case NET_TRANSPORT_OPERATE_SEND_PAGE_DATA:
-		return n.thePageData(ce, &c_send)
+		err = n.thePageData(ce, &c_send)
 	case NET_TRANSPORT_OPERATE_SEND_MEDIA_DATA:
-		return n.theMediaData(ce, &c_send)
+		err = n.theMediaData(ce, &c_send)
 	default:
-		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("Unspecified operation."))
+		return nst2.SEND_STAT_NOT_OK, n.sendReceipt(ce, NET_DATA_ERROR, []byte("Unspecified operation."))
+	}
+	if err != nil {
+		stat = nst2.SEND_STAT_NOT_OK
+	} else {
+		stat = nst2.SEND_STAT_OK
 	}
 	return
 }
 
-func (n *NetTransportHandle) addUrlToCrawlQueue(ce *nst.ConnExec, c_send *NetTransportData) (err error) {
+func (n *NetTransportHandle) addUrlToCrawlQueue(ce *nst2.ConnExec, c_send *NetTransportData) (err error) {
 	// decode data, the type is []UrlBasic
 	var urls []UrlBasic
 	err = iendecode.BytesGobStruct(c_send.Data, &urls)
@@ -114,20 +122,25 @@ func (n *NetTransportHandle) addUrlToCrawlQueue(ce *nst.ConnExec, c_send *NetTra
 	return
 }
 
-func (n *NetTransportHandle) getUrlFromCrawlQueue(ce *nst.ConnExec, c_send *NetTransportData) (err error) {
+func (n *NetTransportHandle) getUrlFromCrawlQueue(ce *nst2.ConnExec, c_send *NetTransportData) (err error) {
 	url, err := n.urlCrawlQueue.Get()
 	if err != nil {
+		fmt.Println(err)
 		return n.sendReceipt(ce, NET_DATA_ERROR, []byte(err.Error()))
 	}
 	url_b, err := iendecode.StructGobBytes(url)
 	if err != nil {
+		fmt.Println(err)
 		return n.sendReceipt(ce, NET_DATA_ERROR, []byte("The UrlBasic decode error: "+err.Error()))
 	}
 	err = n.sendReceipt(ce, NET_DATA_STATUS_OK, url_b)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return
 }
 
-func (n *NetTransportHandle) thePageData(ce *nst.ConnExec, c_send *NetTransportData) (err error) {
+func (n *NetTransportHandle) thePageData(ce *nst2.ConnExec, c_send *NetTransportData) (err error) {
 	// decode data, the type is PageData's middle data
 	mid := roles.RoleMiddleData{}
 	err = iendecode.BytesGobStruct(c_send.Data, &mid)
@@ -155,11 +168,11 @@ func (n *NetTransportHandle) thePageData(ce *nst.ConnExec, c_send *NetTransportD
 	return
 }
 
-func (n *NetTransportHandle) theMediaData(ce *nst.ConnExec, c_send *NetTransportData) (err error) {
+func (n *NetTransportHandle) theMediaData(ce *nst2.ConnExec, c_send *NetTransportData) (err error) {
 	return
 }
 
-func (n *NetTransportHandle) sendReceipt(ce *nst.ConnExec, status NetDataStatus, data []byte) (err error) {
+func (n *NetTransportHandle) sendReceipt(ce *nst2.ConnExec, status NetDataStatus, data []byte) (err error) {
 	n_send := NetTransportDataRe{
 		Status: status,
 		Data:   data,

@@ -197,6 +197,8 @@ func (d *DRule) checkUserLogin(username, unid string) (yes bool) {
 		yes = false
 		return
 	}
+	login.lock.Lock()
+	defer login.lock.Unlock()
 	login_time, find := login.unid[unid]
 	// 找不到unid
 	if find == false {

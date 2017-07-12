@@ -151,9 +151,7 @@ func (d *DRule) operateNormal(conn_exec *nst2.ConnExec, o_send *operator.O_Opera
 		return d.sendReceipt(conn_exec, operator.DATA_DRULE_CLOSED, "The DRule service is already closed.", nil)
 	}
 	// 是否登录了
-	fmt.Println("check user")
 	if login := d.checkUserLogin(o_send.User, o_send.Unid); login == false {
-		fmt.Println("mei you deng lu")
 		return d.sendReceipt(conn_exec, operator.DATA_USER_NOT_LOGIN, "User not login", nil)
 	}
 	switch o_send.Operate {

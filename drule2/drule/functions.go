@@ -9,6 +9,7 @@ package drule
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
@@ -71,6 +72,7 @@ func (d *DRule) UserLogin(username, password string) (unid string, authority ope
 			unid:      make(map[string]time.Time),
 			authority: auth,
 			wrable:    wrable,
+			lock:      new(sync.RWMutex),
 		}
 		loginuser.unid[unid] = time.Now()
 		d.loginuser[username] = loginuser
