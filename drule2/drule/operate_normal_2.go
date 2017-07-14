@@ -1047,7 +1047,7 @@ func (d *DRule) normalCreateContext(conn_exec *nst2.ConnExec, o_send *operator.O
 	// 查看读写权限和角色位置，o_s = operator service
 	havepower, position, o_s := d.getAreaPowerAndRolePosition(o_send.User, ds.Area, ds.Id, true)
 	if havepower == false {
-		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "", nil)
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "User have no authority", nil)
 		return
 	}
 	if position == ROLE_POSITION_IN_LOCAL {

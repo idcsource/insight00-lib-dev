@@ -35,11 +35,12 @@ type DRule struct {
 
 	areas map[string]*AreasRouter // 需要蔓延到其他drule上的区域列表
 
-	// 登录进来的用户,string为用户名
-	loginuser map[string]*loginUser
+	loginuser      map[string]*loginUser // 登录进来的用户,string为用户名
+	loginuser_lock *sync.RWMutex         // loginuser的锁
 
 	// 事务映射
-	transaction_map map[string]*transactionMap // string为外来的id
+	transaction_map      map[string]*transactionMap // string为外来的id
+	transaction_map_lock *sync.RWMutex              // transaction_map的锁
 
 	// 日志
 	logs *ilogs.Logs

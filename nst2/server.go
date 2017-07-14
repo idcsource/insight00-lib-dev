@@ -70,7 +70,7 @@ func (s *Server) Start() {
 	go s.gostart()
 }
 
-func (s *Server) gostart(){
+func (s *Server) gostart() {
 	for {
 		// check if closed
 		if s.closed == true {
@@ -169,7 +169,10 @@ func (s *Server) doLongConn(ce *ConnExec) {
 				}
 				return
 			}
-			s.execer.NSTexec(ce)
+			_, err = s.execer.NSTexec(ce)
+			if err != nil {
+				fmt.Println()
+			}
 		} else if stat == uint8(SEND_STAT_CONN_CLOSE) {
 			// if conn close
 			err = ce.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))

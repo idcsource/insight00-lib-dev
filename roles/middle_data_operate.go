@@ -200,7 +200,7 @@ func (r *RoleMiddleData) NewContext(contextname string) (err error) {
 			Down: make(map[string]Status),
 		}
 	} else {
-		err = fmt.Errorf("The context already exist.")
+		//err = fmt.Errorf("The context already exist.")
 	}
 	return
 }

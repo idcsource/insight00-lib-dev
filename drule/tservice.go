@@ -75,7 +75,7 @@ func (t *tranService) getRole(tran_id, id string, lockmode uint8) (rolec *roleCa
 				// 等待回音
 				fmt.Println("Tran log ", tran_id, "等待", id)
 				<-wait.approved
-				fmt.Println("Tran log ", tran_id, "等到了", id)
+				//fmt.Println("Tran log ", tran_id, "等到了", id)
 				// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以直接返回就可以了
 				return rolec, nil
 			}
@@ -122,9 +122,9 @@ func (t *tranService) addRole(tran_id string, mid roles.RoleMiddleData) (rolec *
 		// 主动解锁
 		t.lock.Unlock()
 		// 等待回音
-		fmt.Println("Tran log ", tran_id, "等待", id)
+		//fmt.Println("Tran log ", tran_id, "等待", id)
 		<-wait.approved
-		fmt.Println("Tran log ", tran_id, "等到了", id)
+		//fmt.Println("Tran log ", tran_id, "等到了", id)
 		// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以就把角色的主体改了吧
 		rolec.role = &mid
 		// 如果被确认删除了还就很麻烦的

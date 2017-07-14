@@ -238,16 +238,13 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 		// this is one sentence
 		for i, word := range sentence {
 			// this is one word
-			fmt.Println("this 0")
 			tran, errd := w.worddb.drule.Begin()
-			fmt.Println("this a")
 			if errd.IsError() != nil {
 				fmt.Println(errd.IsError())
 				break
 			}
 			// check if the word already exist
 			exist, errd := tran.ExistRole(w.worddb.area, word)
-			fmt.Println("this b")
 			if errd.IsError() != nil {
 				tran.Rollback()
 				fmt.Println(errd.IsError())
@@ -258,7 +255,6 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 				wordindex := &WordIndex{}
 				wordindex.New(word)
 				errd = tran.StoreRole(w.worddb.area, wordindex)
-				fmt.Println("this c")
 				if errd.IsError() != nil {
 					tran.Rollback()
 					fmt.Println(errd.IsError())
@@ -270,7 +266,6 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 				next_word := sentence[i+1]
 				// check the context if exist
 				cexist, errd := tran.ExistContext(w.worddb.area, word, next_word)
-				fmt.Println("this d")
 				if errd.IsError() != nil {
 					tran.Rollback()
 					fmt.Println(errd.IsError())
@@ -278,7 +273,6 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 				}
 				if cexist == false {
 					errd = tran.CreateContext(w.worddb.area, word, next_word)
-					fmt.Println("this f")
 					if errd.IsError() != nil {
 						tran.Rollback()
 						fmt.Println(errd.IsError())
@@ -290,7 +284,6 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 				// read already exist index set, is status 0 string
 				var index_set string
 				have, errd := tran.ReadContextStatus(w.worddb.area, word, next_word, roles.CONTEXT_DOWN, url, 0, &index_set)
-				fmt.Println("this g")
 				if errd.IsError() != nil {
 					tran.Rollback()
 					fmt.Println(errd.IsError())
@@ -303,7 +296,6 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 					index_set = index_set + " " + strconv.FormatInt(word_count, 10)
 				}
 				errd = tran.WriteContextStatus(w.worddb.area, word, next_word, roles.CONTEXT_DOWN, url, 0, index_set)
-				fmt.Println("this h")
 				if errd.IsError() != nil {
 					tran.Rollback()
 					fmt.Println(errd.IsError())
@@ -324,7 +316,7 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 				if cexist == false {
 					errd = tran.CreateContext(w.worddb.area, word, prev_word)
 					if errd.IsError() != nil {
-						tran.Rollback()
+						fmt.Println(tran.Rollback())
 						fmt.Println(errd.IsError())
 						break
 					}

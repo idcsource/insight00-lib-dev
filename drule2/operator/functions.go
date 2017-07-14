@@ -941,6 +941,9 @@ func (o *Operator) DRulePause() (errs DRuleError) {
 
 // 创建事务
 func (o *Operator) Begin() (t *OTransaction, errs DRuleError) {
+	o.transaction_lock.Lock()
+	defer o.transaction_lock.Unlock()
+
 	var err error
 	errs = NewDRuleError()
 

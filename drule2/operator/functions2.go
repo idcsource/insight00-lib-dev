@@ -210,9 +210,9 @@ func (o *Operator) StoreRole(area string, role roles.Roleer) (errs DRuleError) {
 		return
 	}
 	defer cprocess.Close()
-	fmt.Println("this")
+	//fmt.Println("this")
 	drule_r, err := o.operatorSend(cprocess, area, roleid, OPERATE_ZONE_NORMAL, OPERATE_WRITE_ROLE, rsend_b)
-	fmt.Println("this2")
+	//fmt.Println("this2")
 	if err != nil {
 		errs.Err = fmt.Errorf("operator[Operator]StoreRole: %v", err)
 		errs.Code = DATA_RETURN_ERROR
@@ -1021,12 +1021,12 @@ func (o *Operator) CreateContext(areaid, roleid, contextname string) (errs DRule
 	defer cprocess.Close()
 	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_ADD_CONTEXT, rc_b)
 	if err != nil {
-		errs.Err = fmt.Errorf("operator[Operator]DeleteFriend: %v", err)
+		errs.Err = fmt.Errorf("operator[Operator]CreateContext: %v", err)
 		return
 	}
 	errs.Code = r.DataStat
 	if r.DataStat != DATA_ALL_OK {
-		errs.Err = fmt.Errorf("operator[Operator]DeleteFriend: %v", r.Error)
+		errs.Err = fmt.Errorf("operator[Operator]CreateContext: %v", r.Error)
 		return
 	}
 	return

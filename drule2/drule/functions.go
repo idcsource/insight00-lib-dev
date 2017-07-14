@@ -28,6 +28,9 @@ func (d *DRule) WorkStatus() (status bool) {
 
 // 登录
 func (d *DRule) UserLogin(username, password string) (unid string, authority operator.UserAuthority, errs operator.DRuleError) {
+	d.loginuser_lock.Lock()
+	defer d.loginuser_lock.Unlock()
+
 	var err error
 	errs = operator.NewDRuleError()
 
@@ -220,6 +223,8 @@ func (d *DRule) UserLogout(o_send *operator.O_OperatorSend) (errs operator.DRule
 		errs.Code = operator.DATA_USER_NOT_LOGIN
 		return
 	}
+	d.loginuser_lock.Lock()
+	defer d.loginuser_lock.Unlock()
 	// 删除相应登陆的信息
 	delete(d.loginuser[o_send.User].unid, o_send.Unid)
 	if len(d.loginuser[o_send.User].unid) == 0 {
@@ -465,6 +470,8 @@ func (d *DRule) AreaAddUser(username, areaname string, add, wrable bool) (errs o
 		return
 	}
 	// 看有没有正在登录的，有的话就改
+	d.loginuser_lock.Lock()
+	defer d.loginuser_lock.Unlock()
 	if _, find := d.loginuser[username]; find == true {
 		d.loginuser[username].wrable = wrable_a
 	}

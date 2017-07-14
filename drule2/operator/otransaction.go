@@ -42,7 +42,7 @@ func (o *OTransaction) operatorSend(process *nst2.CConnect, areaid, roleid strin
 	}
 	receipt = O_DRuleReceipt{}
 	err = iendecode.BytesGobStruct(rdata, &receipt)
-	fmt.Println("b", err)
+	//fmt.Println("b", err)
 	return
 }
 
@@ -1099,18 +1099,21 @@ func (o *OTransaction) CreateContext(areaid, roleid, contextname string) (errs D
 	// 编码
 	rc_b, err := iendecode.StructGobBytes(rc)
 	if err != nil {
+		errs.Code = DATA_RETURN_ERROR
 		errs.Err = fmt.Errorf("operator[OTransaction]CreateContext: %v", err)
 		return
 	}
 	// 传输
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
+		errs.Code = DATA_RETURN_ERROR
 		errs.Err = fmt.Errorf("operator[OTransaction]CreateContext: %v", err)
 		return
 	}
 	defer cprocess.Close()
 	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_ADD_CONTEXT, rc_b)
 	if err != nil {
+		errs.Code = DATA_RETURN_ERROR
 		errs.Err = fmt.Errorf("operator[OTransaction]CreateContext: %v", err)
 		return
 	}
@@ -1143,24 +1146,34 @@ func (o *OTransaction) ExistContext(areaid, roleid, contextname string) (have bo
 	// 编码
 	rc_b, err := iendecode.StructGobBytes(rc)
 	if err != nil {
+		errs.Code = DATA_RETURN_ERROR
 		errs.Err = fmt.Errorf("operator[OTransaction]ExistContext: %v", err)
 		return
 	}
 	// 传输
 	cprocess, err := o.drule.tcpconn.OpenProgress()
 	if err != nil {
+		errs.Code = DATA_RETURN_ERROR
 		errs.Err = fmt.Errorf("operator[OTransaction]ExistContext: %v", err)
 		return
 	}
 	defer cprocess.Close()
 	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_EXIST_CONTEXT, rc_b)
 	if err != nil {
+		errs.Code = DATA_RETURN_ERROR
 		errs.Err = fmt.Errorf("operator[OTransaction]ExistContext: %v", err)
 		return
 	}
 	errs.Code = r.DataStat
 	if r.DataStat != DATA_ALL_OK {
 		errs.Err = fmt.Errorf("operator[OTransaction]ExistContext: %v", r.Error)
+		return
+	}
+	// 解码
+	err = iendecode.BytesGobStruct(r.Data, &rc)
+	if err != nil {
+		errs.Code = DATA_RETURN_ERROR
+		errs.Err = fmt.Errorf("operator[OTransaction]ExistContext: %v", err)
 		return
 	}
 	have = rc.Exist

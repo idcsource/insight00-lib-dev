@@ -52,11 +52,12 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 		// 如果找到了就麻烦了
 		// 看删除
 		if rolec.be_delete != TRAN_ROLE_BE_DELETE_NO {
+			fmt.Println("be delete ", cache_id)
 			err = fmt.Errorf("The Role already be delete.")
 			return nil, err
 		}
 		//看tran_id是否被指定
-		if rolec.tran_id == "" {
+		if rolec.tran_id == "" || rolec.tran_id == tran_id {
 			// 没有指定就简单了
 			if lockmode == TRAN_LOCK_MODE_WRITE {
 				rolec.tran_id = tran_id
@@ -84,7 +85,7 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 				fmt.Println("Tran log ", tran_id, "等待", id)
 				ifhave := <-wait.approved
 				if ifhave == true {
-					fmt.Println("Tran log ", tran_id, "等到了", id)
+					//fmt.Println("Tran log ", tran_id, "等到了", id)
 					// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以直接返回就可以了
 					return rolec, nil
 				} else {
@@ -122,6 +123,7 @@ func (t *tranService) addRole(tran_id, area string, mid roles.RoleMiddleData) (r
 		rolec.tran_id = tran_id
 		t.role_cache[cache_id] = rolec
 		t.lock.Unlock()
+		fmt.Println("-----------tranadd")
 		return rolec, nil
 	} else {
 		// 找到
@@ -147,7 +149,7 @@ func (t *tranService) addRole(tran_id, area string, mid roles.RoleMiddleData) (r
 			// 等待回音
 			fmt.Println("Tran log ", tran_id, "等待", id)
 			<-wait.approved
-			fmt.Println("Tran log ", tran_id, "等到了", id)
+			//fmt.Println("Tran log ", tran_id, "等到了", id)
 			// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以就把角色的主体改了吧
 			rolec.role = &mid
 			rolec.tran_time = time.Now()

@@ -207,7 +207,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			// 将这个角色保存或删除
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
 				if rolec.be_change == true {
-					fmt.Println("Tran log, 真写入 ", rolec.role.ReturnId())
+					//fmt.Println("Tran log, 真写入 ", rolec.role.ReturnId())
 					t.local_store.RoleStoreMiddleData(rolec.area, *rolec.role)
 					rolec.be_change = false
 				}
@@ -225,7 +225,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			if rolec.be_delete == TRAN_ROLE_BE_DELETE_NO {
 				rolec.role_store = *rolec.role
 				if rolec.be_change == true {
-					fmt.Println("Tran log, 真写入 ", rolec.role.ReturnId())
+					//fmt.Println("Tran log, 真写入 ", rolec.role.ReturnId())
 					t.local_store.RoleStoreMiddleData(rolec.area, *rolec.role)
 					rolec.be_change = false
 				}
@@ -365,7 +365,9 @@ func (t *TRule) Begin() (tran *Transaction, err error) {
 		err = fmt.Errorf("trule[TRule]Begin: The TRule is paused.")
 		return
 	}
+	fmt.Println("tran_begin")
 	t.tran_lock.Lock()
+	fmt.Println("tran_begin2")
 	defer t.tran_lock.Unlock()
 	unid := random.GetRand(40)
 	tran = &Transaction{
@@ -379,7 +381,9 @@ func (t *TRule) Begin() (tran *Transaction, err error) {
 	}
 	t.transaction[unid] = tran
 	t.count_transaction++
+	fmt.Println("tran_wait")
 	t.tran_wait.Add(1)
+	fmt.Println("tran_wait_o")
 	return
 }
 

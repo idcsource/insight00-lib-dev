@@ -49,15 +49,16 @@ func NewOperatorNoTLS(selfname string, addr string, conn_num int, username, pass
 		tran_signal: make(chan tranService, 10),
 	}
 	o = &Operator{
-		selfname:        selfname,
-		drule:           drule,
-		service:         operatorS,
-		transaction:     make(map[string]*OTransaction),
-		login:           false,
-		runstatus:       OPERATOR_RUN_RUNNING,
-		closeing_signal: make(chan bool),
-		closed_signal:   make(chan bool),
-		tran_wait:       &sync.WaitGroup{},
+		selfname:         selfname,
+		drule:            drule,
+		service:          operatorS,
+		transaction:      make(map[string]*OTransaction),
+		transaction_lock: new(sync.RWMutex),
+		login:            false,
+		runstatus:        OPERATOR_RUN_RUNNING,
+		closeing_signal:  make(chan bool),
+		closed_signal:    make(chan bool),
+		tran_wait:        &sync.WaitGroup{},
 	}
 	// 自动登陆
 	err = o.autoLogin()
@@ -95,15 +96,16 @@ func NewOperatorTLS(selfname string, addr string, conn_num int, username, passwo
 		tran_signal: make(chan tranService, 10),
 	}
 	o = &Operator{
-		selfname:        selfname,
-		drule:           drule,
-		service:         operatorS,
-		transaction:     make(map[string]*OTransaction),
-		login:           false,
-		runstatus:       OPERATOR_RUN_RUNNING,
-		closeing_signal: make(chan bool),
-		closed_signal:   make(chan bool),
-		tran_wait:       &sync.WaitGroup{},
+		selfname:         selfname,
+		drule:            drule,
+		service:          operatorS,
+		transaction:      make(map[string]*OTransaction),
+		transaction_lock: new(sync.RWMutex),
+		login:            false,
+		runstatus:        OPERATOR_RUN_RUNNING,
+		closeing_signal:  make(chan bool),
+		closed_signal:    make(chan bool),
+		tran_wait:        &sync.WaitGroup{},
 	}
 	// 自动登陆
 	err = o.autoLogin()
@@ -151,16 +153,23 @@ func (o *Operator) transactionSignalHandle() {
 		if o.runstatus == OPERATOR_RUN_CLOSED {
 			return
 		}
-		switch tran_signal.askfor {
-		case TRANSACTION_ASKFOR_KEEPLIVE:
-			if _, find := o.transaction[tran_signal.unid]; find == true {
-				o.transaction[tran_signal.unid].activetime = time.Now()
-			}
-		case TRANSACTION_ASKFOR_END:
-			if _, find := o.transaction[tran_signal.unid]; find == true {
-				delete(o.transaction, tran_signal.unid)
-				o.tran_wait.Done()
-			}
+		o.transactionSignalHandleDo(tran_signal)
+	}
+}
+
+func (o *Operator) transactionSignalHandleDo(tran_signal tranService) {
+	o.transaction_lock.Lock()
+	defer o.transaction_lock.Unlock()
+
+	switch tran_signal.askfor {
+	case TRANSACTION_ASKFOR_KEEPLIVE:
+		if _, find := o.transaction[tran_signal.unid]; find == true {
+			o.transaction[tran_signal.unid].activetime = time.Now()
+		}
+	case TRANSACTION_ASKFOR_END:
+		if _, find := o.transaction[tran_signal.unid]; find == true {
+			delete(o.transaction, tran_signal.unid)
+			o.tran_wait.Done()
 		}
 	}
 }
@@ -197,9 +206,9 @@ func (o *Operator) autoLogin() (err error) {
 	}
 
 	// 发送
-	fmt.Println("lthis")
+	//fmt.Println("lthis")
 	cprocess, err := o.drule.tcpconn.OpenProgress()
-	fmt.Println("lthis2")
+	//fmt.Println("lthis2")
 	if err != nil {
 		return
 	}

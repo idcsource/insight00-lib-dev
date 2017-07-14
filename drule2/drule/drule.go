@@ -9,6 +9,7 @@ package drule
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
@@ -22,15 +23,17 @@ import (
 // 自身的名字，工作模式，trule，日志
 func NewDRule(selfname string, mode operator.DRuleOperateMode, t *trule.TRule, log *ilogs.Logs) (d *DRule, err error) {
 	d = &DRule{
-		selfname:        selfname,
-		dmode:           mode,
-		trule:           t,
-		closed:          true,
-		operators:       make(map[string]*operator.Operator),
-		areas:           make(map[string]*AreasRouter),
-		loginuser:       make(map[string]*loginUser),
-		transaction_map: make(map[string]*transactionMap),
-		logs:            log,
+		selfname:             selfname,
+		dmode:                mode,
+		trule:                t,
+		closed:               true,
+		operators:            make(map[string]*operator.Operator),
+		areas:                make(map[string]*AreasRouter),
+		loginuser:            make(map[string]*loginUser),
+		loginuser_lock:       new(sync.RWMutex),
+		transaction_map:      make(map[string]*transactionMap),
+		transaction_map_lock: new(sync.RWMutex),
+		logs:                 log,
 	}
 	var have bool
 	// 查看又无自己的区域，没有就建立
@@ -191,6 +194,8 @@ func (d *DRule) WorkMode() (mode operator.DRuleOperateMode) {
 
 // 查看用户是否登陆，如果登陆了就续期
 func (d *DRule) checkUserLogin(username, unid string) (yes bool) {
+	d.loginuser_lock.RLock()
+	defer d.loginuser_lock.RUnlock()
 	login, find := d.loginuser[username]
 	// 找不到用户登陆信息
 	if find == false {
@@ -240,6 +245,10 @@ func (d *DRule) GetUserAuthority(username, unid string) (authoriy operator.UserA
 
 // 查看用户一般权限，也就是针对area的权限,wr为true则检查是否可写，否则为是否可读
 func (d *DRule) checkUserNormalPower(username, areaname string, wr bool) (have bool) {
+	fmt.Println("checkUserNormalPower 1")
+	d.loginuser_lock.RLock()
+	defer d.loginuser_lock.RUnlock()
+	fmt.Println("checkUserNormalPower 2")
 	// 找到loginuser中的权限项目
 	wrable, find := d.loginuser[username].wrable[areaname]
 	if find == false {
