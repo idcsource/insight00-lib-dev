@@ -250,7 +250,9 @@ func (d *DRule) checkUserNormalPower(username, areaname string, wr bool) (have b
 	fmt.Println("checkUserNormalPower 2")
 	// 找到loginuser中的权限项目
 	wrable, find := d.loginuser[username].wrable[areaname]
+	fmt.Println("checkUserNormalPower 3")
 	d.loginuser_lock.RUnlock()
+	fmt.Println("checkUserNormalPower 4")
 	if find == false {
 		// 找不到
 		have = false

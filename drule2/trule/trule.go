@@ -165,9 +165,9 @@ func (t *TRule) tranSignalHandle() {
 		signal := <-t.tran_commit_signal
 		switch signal.ask {
 		case TRAN_COMMIT_ASK_COMMIT:
-			t.handleCommitSignal(signal)
+			go t.handleCommitSignal(signal)
 		case TRAN_COMMIT_ASK_ROLLBACK:
-			t.handleRollbackSignal(signal)
+			go t.handleRollbackSignal(signal)
 		default:
 		}
 	}
@@ -175,15 +175,14 @@ func (t *TRule) tranSignalHandle() {
 
 // 处理commit信号
 func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
-	// 给事务加锁
-	t.tran_lock.Lock()
-	defer t.tran_lock.Unlock()
 
 	// 构造返回
 	returnHan := tranReturnHandle{}
 
 	//找到这个事务
+	t.tran_lock.Lock()
 	tran, find := t.transaction[signal.tran_id]
+	t.tran_lock.Unlock()
 	if find == false {
 		// 如果找不到
 		returnHan.Status = TRAN_RETURN_HANDLE_ERROR
@@ -191,6 +190,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 		signal.return_handle <- returnHan
 		return
 	}
+	fmt.Println("handel this 1")
 	// 开始大量的执行
 	// 给这个事务本身加锁
 	tran.lock.Lock()
@@ -245,10 +245,10 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 				rolec.tran_id = wait_first.tran_id
 				// 修改占用时间
 				rolec.tran_time = time.Now()
-				// 发送允许的信息，接收者要自行判断是否被删除
-				wait_first.approved <- alreadyhave
 				// 给这个角色解锁
 				rolec.lock.Unlock()
+				// 发送允许的信息，接收者要自行判断是否被删除
+				wait_first.approved <- alreadyhave
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
 				// 如果删除了怎么办
 				t.local_store.RoleDelete(rolec.area, rolec.role.Version.Id)
@@ -266,8 +266,10 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 		}
 	}
 	// 发送回执
+	fmt.Println("handel this 2")
 	returnHan.Status = TRAN_RETURN_HANDLE_OK
 	signal.return_handle <- returnHan
+	fmt.Println("handel this 3")
 	// 删除这个事务
 	tran.tran_service = nil
 	tran.tran_cache = nil
