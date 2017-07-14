@@ -20,11 +20,6 @@ import (
 
 // 创建事务
 func (d *DRule) normalTranBigen(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
-	fmt.Println("normalTranBigen 1")
-	d.transaction_map_lock.Lock()
-	fmt.Println("normalTranBigen 2")
-	defer d.transaction_map_lock.Unlock()
-
 	var err error
 	// 解码
 	o_t := operator.O_Transaction{}
@@ -68,7 +63,11 @@ func (d *DRule) normalTranBigen(conn_exec *nst2.ConnExec, o_send *operator.O_Ope
 		return
 	}
 	d_t.alivetime = time.Now()
+	fmt.Println("normalTranBigen 1")
+	d.transaction_map_lock.Lock()
+	fmt.Println("normalTranBigen 2")
 	d.transaction_map[o_t.TransactionId] = d_t
+	d.transaction_map_lock.Unlock()
 	fmt.Println("normalTranBigen 7")
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
 	fmt.Println("normalTranBigen 8")
@@ -77,10 +76,6 @@ func (d *DRule) normalTranBigen(conn_exec *nst2.ConnExec, o_send *operator.O_Ope
 
 // 执行事务
 func (d *DRule) normalTranCommit(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
-	fmt.Println("normalTranCommit 1")
-	d.transaction_map_lock.Lock()
-	fmt.Println("normalTranCommit 2")
-	defer d.transaction_map_lock.Unlock()
 	var err error
 	// 如果不事务中
 	if o_send.InTransaction == false || len(o_send.TransactionId) == 0 {
@@ -89,7 +84,11 @@ func (d *DRule) normalTranCommit(conn_exec *nst2.ConnExec, o_send *operator.O_Op
 		return
 	}
 	fmt.Println("normalTranCommit 4")
+	fmt.Println("normalTranCommit 1")
+	d.transaction_map_lock.RLock()
+	fmt.Println("normalTranCommit 2")
 	tran_map, find := d.transaction_map[o_send.TransactionId]
+	d.transaction_map_lock.RUnlock()
 	fmt.Println("normalTranCommit 5")
 	if find == false {
 		fmt.Println("normalTranCommit 6")
@@ -116,7 +115,9 @@ func (d *DRule) normalTranCommit(conn_exec *nst2.ConnExec, o_send *operator.O_Op
 	}
 	fmt.Println("normalTranCommit 10")
 	// 删除
+	d.transaction_map_lock.Lock()
 	delete(d.transaction_map, o_send.TransactionId)
+	d.transaction_map_lock.Unlock()
 	fmt.Println("normalTranCommit 11")
 	if len(errd_a) != 0 {
 		errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, strings.Join(errd_a, " | "), nil)
@@ -130,15 +131,15 @@ func (d *DRule) normalTranCommit(conn_exec *nst2.ConnExec, o_send *operator.O_Op
 
 // 回滚事务
 func (d *DRule) normalTranRollback(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
-	d.transaction_map_lock.Lock()
-	defer d.transaction_map_lock.Unlock()
 	var err error
 	// 如果不事务中
 	if o_send.InTransaction == false || len(o_send.TransactionId) == 0 {
 		errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, "Not in a transaction.", nil)
 		return
 	}
+	d.transaction_map_lock.RLock()
 	tran_map, find := d.transaction_map[o_send.TransactionId]
+	d.transaction_map_lock.RUnlock()
 	if find == false {
 		errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, "Can not find transaction.", nil)
 		return
@@ -162,8 +163,9 @@ func (d *DRule) normalTranRollback(conn_exec *nst2.ConnExec, o_send *operator.O_
 	}
 
 	// 删除
+	d.transaction_map_lock.Lock()
 	delete(d.transaction_map, o_send.TransactionId)
-
+	d.transaction_map_lock.Unlock()
 	if len(errd_a) != 0 {
 		errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, strings.Join(errd_a, " | "), nil)
 		return
@@ -236,15 +238,13 @@ func (d *DRule) normalLockRole(conn_exec *nst2.ConnExec, o_send *operator.O_Oper
 func (d *DRule) checkTranOrNoTran(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend) (errs error) {
 	var tran *transactionMap
 
-	d.transaction_map_lock.Lock()
-	defer d.transaction_map_lock.Unlock()
-
 	// 查看事务情况
 	if o_send.InTransaction == true && len(o_send.TransactionId) != 0 {
 		// 找到tran
 		var find bool
-
+		d.transaction_map_lock.Lock()
 		tran, find = d.transaction_map[o_send.TransactionId]
+		d.transaction_map_lock.Unlock()
 
 		if find == false {
 			errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, "Can not find transaction.", nil)

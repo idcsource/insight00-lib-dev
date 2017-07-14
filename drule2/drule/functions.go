@@ -28,8 +28,6 @@ func (d *DRule) WorkStatus() (status bool) {
 
 // 登录
 func (d *DRule) UserLogin(username, password string) (unid string, authority operator.UserAuthority, errs operator.DRuleError) {
-	d.loginuser_lock.Lock()
-	defer d.loginuser_lock.Unlock()
 
 	var err error
 	errs = operator.NewDRuleError()
@@ -65,6 +63,8 @@ func (d *DRule) UserLogin(username, password string) (unid string, authority ope
 	unid = random.Unid(1, time.Now().String(), username)
 
 	// 查看是否已经有登录的了，并写入登录的乱七八糟
+	d.loginuser_lock.Lock()
+	defer d.loginuser_lock.Unlock()
 	_, find := d.loginuser[username]
 	if find {
 		d.loginuser[username].wrable = wrable

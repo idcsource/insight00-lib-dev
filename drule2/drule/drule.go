@@ -195,8 +195,8 @@ func (d *DRule) WorkMode() (mode operator.DRuleOperateMode) {
 // 查看用户是否登陆，如果登陆了就续期
 func (d *DRule) checkUserLogin(username, unid string) (yes bool) {
 	d.loginuser_lock.RLock()
-	defer d.loginuser_lock.RUnlock()
 	login, find := d.loginuser[username]
+	d.loginuser_lock.RUnlock()
 	// 找不到用户登陆信息
 	if find == false {
 		yes = false
@@ -247,10 +247,10 @@ func (d *DRule) GetUserAuthority(username, unid string) (authoriy operator.UserA
 func (d *DRule) checkUserNormalPower(username, areaname string, wr bool) (have bool) {
 	fmt.Println("checkUserNormalPower 1")
 	d.loginuser_lock.RLock()
-	defer d.loginuser_lock.RUnlock()
 	fmt.Println("checkUserNormalPower 2")
 	// 找到loginuser中的权限项目
 	wrable, find := d.loginuser[username].wrable[areaname]
+	d.loginuser_lock.RUnlock()
 	if find == false {
 		// 找不到
 		have = false
