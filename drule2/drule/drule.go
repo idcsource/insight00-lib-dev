@@ -245,14 +245,10 @@ func (d *DRule) GetUserAuthority(username, unid string) (authoriy operator.UserA
 
 // 查看用户一般权限，也就是针对area的权限,wr为true则检查是否可写，否则为是否可读
 func (d *DRule) checkUserNormalPower(username, areaname string, wr bool) (have bool) {
-	fmt.Println("checkUserNormalPower 1")
 	d.loginuser_lock.RLock()
-	fmt.Println("checkUserNormalPower 2")
 	// 找到loginuser中的权限项目
 	wrable, find := d.loginuser[username].wrable[areaname]
-	fmt.Println("checkUserNormalPower 3")
 	d.loginuser_lock.RUnlock()
-	fmt.Println("checkUserNormalPower 4")
 	if find == false {
 		// 找不到
 		have = false

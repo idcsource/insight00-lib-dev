@@ -88,73 +88,91 @@ func (t *TRule) tranTimeOutMonitor() {
 
 // 实际是监测的tserver中的角色
 func (t *TRule) tranTimeOutMonitorToDo() {
-	t.tran_service.lock.Lock()
 	t.tran_lock.Lock()
-	defer t.tran_service.lock.Unlock()
-	defer t.tran_lock.Unlock()
-
-	for key, rolec := range t.tran_service.role_cache {
-		del := t.tranTimeOutMonitorToOneRoleC(rolec)
-		if del == true {
-			delete(t.tran_service.role_cache, key)
+	keys := make([]string, 0)
+	for key, tran := range t.transaction {
+		if tran.tran_time.Unix()+t.tran_timeout > time.Now().Unix() {
+			keys = append(keys, key)
 		}
+	}
+	t.tran_lock.Unlock()
+
+	for _, key := range keys {
+		t.transaction[key].Rollback()
 	}
 }
 
-func (t *TRule) tranTimeOutMonitorToOneRoleC(rolec *roleCache) (del bool) {
-	del = false
-	rolec.lock.Lock()
-	defer rolec.lock.Unlock()
-	wait_count := len(rolec.wait_line)
-	if wait_count == 0 {
-		// 如果没有在排队的，超时就延长10倍
-		if rolec.tran_time.Unix()+(t.tran_timeout) > time.Now().Unix() {
-			// 找到这个事务
-			tran, find := t.transaction[rolec.tran_id]
-			if find == false {
-				// 如果事务已经不存在了怎么办，得强制释放
-				rolec.tran_id = ""
-				del = true
-			} else {
-				if tran.tran_time.Unix()+(t.tran_timeout) > time.Now().Unix() {
-					// 强制回滚
-					tran.Rollback()
-				}
-			}
-		}
-	} else {
-		// 有排队的
-		if rolec.tran_time.Unix()+t.tran_timeout > time.Now().Unix() {
-			// 找到这个事务
-			tran, find := t.transaction[rolec.tran_id]
-			if find == false {
-				// 如果事务已经不存在了怎么办，得强制释放占用呀
-				// 得到第一个等待的队列
-				wait_first := rolec.wait_line[0]
-				// 构造新的waitline
-				if wait_count == 1 {
-					rolec.wait_line = make([]*tranAskGetRole, 0)
-				} else {
-					new_wait_line := make([]*tranAskGetRole, 0)
-					new_wait_line = rolec.wait_line[1:]
-					rolec.wait_line = new_wait_line
-				}
-				// 修改占用标记
-				rolec.tran_id = wait_first.tran_id
-				// 修改占用时间
-				rolec.tran_time = time.Now()
-				// 发送允许的信息，接收者要自行判断是否被删除
-				wait_first.approved <- true
-			} else {
-				if tran.tran_time.Unix()+t.tran_timeout > time.Now().Unix() {
-					// 强制回滚
-					tran.Rollback()
-				}
-			}
-		}
-	}
-	return
-}
+//func (t *TRule) tranTimeOutMonitorToDo() {
+//	t.tran_service.lock.Lock()
+//	defer t.tran_service.lock.Unlock()
+//	t.tran_lock.Lock()
+//	defer t.tran_lock.Unlock()
+//	keys := make([]string, 0)
+//	for key, rolec := range t.tran_service.role_cache {
+//		del := t.tranTimeOutMonitorToOneRoleC(rolec)
+//		if del == true {
+//			keys = append(keys, key)
+//		}
+//	}
+//	for _, key := range keys {
+//		delete(t.tran_service.role_cache, key)
+//	}
+//}
+
+//func (t *TRule) tranTimeOutMonitorToOneRoleC(rolec *roleCache) (del bool) {
+//	del = false
+//	rolec.lock.Lock()
+//	defer rolec.lock.Unlock()
+//	wait_count := len(rolec.wait_line)
+//	if wait_count == 0 {
+//		// 如果没有在排队的，超时就延长10倍
+//		if rolec.tran_time.Unix()+(t.tran_timeout) > time.Now().Unix() {
+//			// 找到这个事务
+//			tran, find := t.transaction[rolec.tran_id]
+//			if find == false {
+//				// 如果事务已经不存在了怎么办，得强制释放
+//				rolec.tran_id = ""
+//				del = true
+//			} else {
+//				if tran.tran_time.Unix()+(t.tran_timeout) > time.Now().Unix() {
+//					// 强制回滚
+//					tran.Rollback()
+//				}
+//			}
+//		}
+//	} else {
+//		// 有排队的
+//		if rolec.tran_time.Unix()+t.tran_timeout > time.Now().Unix() {
+//			// 找到这个事务
+//			tran, find := t.transaction[rolec.tran_id]
+//			if find == false {
+//				// 如果事务已经不存在了怎么办，得强制释放占用呀
+//				// 得到第一个等待的队列
+//				wait_first := rolec.wait_line[0]
+//				// 构造新的waitline
+//				if wait_count == 1 {
+//					rolec.wait_line = make([]*tranAskGetRole, 0)
+//				} else {
+//					new_wait_line := make([]*tranAskGetRole, 0)
+//					new_wait_line = rolec.wait_line[1:]
+//					rolec.wait_line = new_wait_line
+//				}
+//				// 修改占用标记
+//				rolec.tran_id = wait_first.tran_id
+//				// 修改占用时间
+//				rolec.tran_time = time.Now()
+//				// 发送允许的信息，接收者要自行判断是否被删除
+//				wait_first.approved <- true
+//			} else {
+//				if tran.tran_time.Unix()+t.tran_timeout > time.Now().Unix() {
+//					// 强制回滚
+//					tran.Rollback()
+//				}
+//			}
+//		}
+//	}
+//	return
+//}
 
 // 处理事务的信号
 func (t *TRule) tranSignalHandle() {
@@ -165,9 +183,9 @@ func (t *TRule) tranSignalHandle() {
 		signal := <-t.tran_commit_signal
 		switch signal.ask {
 		case TRAN_COMMIT_ASK_COMMIT:
-			go t.handleCommitSignal(signal)
+			t.handleCommitSignal(signal)
 		case TRAN_COMMIT_ASK_ROLLBACK:
-			go t.handleRollbackSignal(signal)
+			t.handleRollbackSignal(signal)
 		default:
 		}
 	}
@@ -180,9 +198,12 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	returnHan := tranReturnHandle{}
 
 	//找到这个事务
+	fmt.Println("handel this 0")
 	t.tran_lock.Lock()
+	fmt.Println("handel this 01")
 	tran, find := t.transaction[signal.tran_id]
 	t.tran_lock.Unlock()
+	fmt.Println("handel this 02")
 	if find == false {
 		// 如果找不到
 		returnHan.Status = TRAN_RETURN_HANDLE_ERROR
@@ -198,7 +219,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	// 遍历这里面所有的缓存角色
 	for cacheid, rolec := range tran.tran_cache {
 		// 给这个角色加锁
-		rolec.lock.Lock()
+		//rolec.lock.Lock()
 
 		// 检查等待队列
 		wait_count := len(rolec.wait_line)
@@ -215,10 +236,12 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
 				t.local_store.RoleDelete(rolec.area, rolec.role.Version.Id)
 				// 将这个角色从缓存中移除
+				t.tran_service.lock.Lock()
 				t.tran_service.role_cache[cacheid] = nil
 				delete(t.tran_service.role_cache, cacheid)
+				t.tran_service.lock.Unlock()
 			}
-			rolec.lock.Unlock()
+			//rolec.lock.Unlock()
 		} else {
 			alreadyhave := true
 			// 替换本尊或删除
@@ -260,8 +283,10 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 				for _, wait := range rolec.wait_line {
 					wait.approved <- alreadyhave
 				}
-				rolec.lock.Unlock()
+				//rolec.lock.Unlock()
+				t.tran_service.lock.Lock()
 				delete(t.tran_service.role_cache, cacheid)
+				t.tran_service.lock.Unlock()
 			}
 		}
 	}
@@ -276,21 +301,25 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	tran.tran_commit_signal = nil
 	tran.be_delete = true
 	t.transaction[signal.tran_id] = nil
+	t.tran_lock.Lock()
 	delete(t.transaction, signal.tran_id)
+	t.tran_lock.Unlock()
+	fmt.Println("handel this 4")
 	t.count_transaction--
+	fmt.Println("handel this 5")
 	t.tran_wait.Done()
+	fmt.Println("handel this 6")
 }
 
 // 处理rollback信号
 func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
-	// 给事务加锁
-	t.tran_lock.Lock()
-	defer t.tran_lock.Unlock()
 
 	// 构造返回
 	returnHan := tranReturnHandle{}
 	//找到这个事务
+	t.tran_lock.Lock()
 	tran, find := t.transaction[signal.tran_id]
+	t.tran_lock.Unlock()
 	if find == false {
 		// 如果找不到
 		returnHan.Status = TRAN_RETURN_HANDLE_ERROR
@@ -305,7 +334,7 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 	// 遍历这里面所有的缓存角色
 	for roleid, rolec := range tran.tran_cache {
 		// 给这个角色加锁
-		rolec.lock.Lock()
+		//rolec.lock.Lock()
 
 		// 检查等待队列
 		wait_count := len(rolec.wait_line)
@@ -343,9 +372,10 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 			rolec.tran_id = wait_first.tran_id
 			// 发送允许的信息
 			wait_first.approved <- true
-			// 给这个角色解锁
-			rolec.lock.Unlock()
+
 		}
+		// 给这个角色解锁
+		//rolec.lock.Unlock()
 	}
 	// 发送回执
 	returnHan.Status = TRAN_RETURN_HANDLE_OK
@@ -356,7 +386,9 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 	tran.tran_commit_signal = nil
 	t.transaction[signal.tran_id] = nil
 	tran.be_delete = true
+	t.tran_lock.Lock()
 	delete(t.transaction, signal.tran_id)
+	t.tran_lock.Unlock()
 	t.count_transaction--
 	t.tran_wait.Done()
 }
@@ -367,10 +399,6 @@ func (t *TRule) Begin() (tran *Transaction, err error) {
 		err = fmt.Errorf("trule[TRule]Begin: The TRule is paused.")
 		return
 	}
-	fmt.Println("tran_begin")
-	t.tran_lock.Lock()
-	fmt.Println("tran_begin2")
-	defer t.tran_lock.Unlock()
 	unid := random.GetRand(40)
 	tran = &Transaction{
 		unid:               unid,
@@ -381,8 +409,12 @@ func (t *TRule) Begin() (tran *Transaction, err error) {
 		tran_commit_signal: t.tran_commit_signal,
 		be_delete:          false,
 	}
+
+	fmt.Println("tran_begin")
+	t.tran_lock.Lock()
 	t.transaction[unid] = tran
 	t.count_transaction++
+	t.tran_lock.Unlock()
 	fmt.Println("tran_wait")
 	t.tran_wait.Add(1)
 	fmt.Println("tran_wait_o")

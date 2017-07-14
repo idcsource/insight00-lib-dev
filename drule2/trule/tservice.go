@@ -123,7 +123,6 @@ func (t *tranService) addRole(tran_id, area string, mid roles.RoleMiddleData) (r
 		rolec.tran_id = tran_id
 		t.role_cache[cache_id] = rolec
 		t.lock.Unlock()
-		fmt.Println("-----------tranadd")
 		return rolec, nil
 	} else {
 		// 找到

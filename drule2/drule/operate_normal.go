@@ -79,23 +79,16 @@ func (d *DRule) normalTranCommit(conn_exec *nst2.ConnExec, o_send *operator.O_Op
 	var err error
 	// 如果不事务中
 	if o_send.InTransaction == false || len(o_send.TransactionId) == 0 {
-		fmt.Println("normalTranCommit 3")
 		errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, "Not in a transaction.", nil)
 		return
 	}
-	fmt.Println("normalTranCommit 4")
-	fmt.Println("normalTranCommit 1")
 	d.transaction_map_lock.RLock()
-	fmt.Println("normalTranCommit 2")
 	tran_map, find := d.transaction_map[o_send.TransactionId]
 	d.transaction_map_lock.RUnlock()
-	fmt.Println("normalTranCommit 5")
 	if find == false {
-		fmt.Println("normalTranCommit 6")
 		errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, "Can not find transaction.", nil)
 		return
 	}
-	fmt.Println("normalTranCommit 7")
 	errd_a := make([]string, 0)
 	// 去蔓延
 	if d.dmode == operator.DRULE_OPERATE_MODE_MASTER {
@@ -113,19 +106,15 @@ func (d *DRule) normalTranCommit(conn_exec *nst2.ConnExec, o_send *operator.O_Op
 	if err != nil {
 		errd_a = append(errd_a, err.Error())
 	}
-	fmt.Println("normalTranCommit 10")
 	// 删除
 	d.transaction_map_lock.Lock()
 	delete(d.transaction_map, o_send.TransactionId)
 	d.transaction_map_lock.Unlock()
-	fmt.Println("normalTranCommit 11")
 	if len(errd_a) != 0 {
 		errs = d.sendReceipt(conn_exec, operator.DATA_TRAN_ERROR, strings.Join(errd_a, " | "), nil)
 		return
 	}
-	fmt.Println("normalTranCommit 12")
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
-	fmt.Println("normalTranCommit 1")
 	return
 }
 

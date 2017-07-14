@@ -17,14 +17,12 @@ import (
 
 // ExecTCP nst的ConnExecer接口
 func (d *DRule) NSTexec(conn_exec *nst2.ConnExec) (stat nst2.SendStat, err error) {
-	fmt.Println("开始---")
 	// 接收operator发送
 	o_send_b, err := conn_exec.GetData()
 	if err != nil {
 		return
 	}
 	// 解码接受的信息
-	fmt.Println("开始2---")
 	o_send := operator.O_OperatorSend{}
 	err = iendecode.BytesGobStruct(o_send_b, &o_send)
 	if err != nil {
@@ -35,7 +33,6 @@ func (d *DRule) NSTexec(conn_exec *nst2.ConnExec) (stat nst2.SendStat, err error
 	//	if d.trule.WorkStatus() != trule.TRULE_RUN_RUNNING {
 	//		return d.sendReceipt(conn_exec, operator.DATA_DRULE_CLOSED, "The DRule service is already closed.", nil)
 	//	}
-	fmt.Println("开始3 ", o_send.Operate)
 	switch o_send.OperateZone {
 	case operator.OPERATE_ZONE_SYSTEM:
 		err = d.operateSys(conn_exec, &o_send)
@@ -47,7 +44,6 @@ func (d *DRule) NSTexec(conn_exec *nst2.ConnExec) (stat nst2.SendStat, err error
 		err = d.sendReceipt(conn_exec, operator.DATA_NOT_EXPECT, "No operate.", nil)
 		return
 	}
-	fmt.Println("开始4 ", o_send.Operate, " ", err)
 	// 判断是否被暂停再看剩余的命令
 	if err != nil {
 		return

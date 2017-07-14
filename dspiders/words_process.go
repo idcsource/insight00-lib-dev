@@ -316,7 +316,7 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 				if cexist == false {
 					errd = tran.CreateContext(w.worddb.area, word, prev_word)
 					if errd.IsError() != nil {
-						fmt.Println(tran.Rollback())
+						tran.Rollback()
 						fmt.Println(errd.IsError())
 						break
 					}
