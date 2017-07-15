@@ -66,7 +66,7 @@ func (c *CenterSmcs) AddNode(nodename, disname, code string, types uint8, groupn
 	}
 	node_id := c.name + "_" + nodename
 	tran, _ := c.store.Begin()
-	haverole := tran.ExistRole(c.area, node_id)
+	haverole, _ := tran.ExistRole(c.area, node_id)
 	if haverole == true {
 		tran.Rollback()
 		return fmt.Errorf("smcs[CenterSmcs]AddNode: The Node " + nodename + " is exist.")

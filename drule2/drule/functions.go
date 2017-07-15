@@ -497,7 +497,7 @@ func (d *DRule) OperatorSet(odo *operator.O_DRuleOperator) (errs operator.DRuleE
 	odo_r.New(odo_id)
 	// 开始保存
 	tran, _ := d.trule.Begin()
-	if have := tran.ExistRole(INSIDE_DMZ, odo_id); have == false {
+	if have, _ := tran.ExistRole(INSIDE_DMZ, odo_id); have == false {
 		err = tran.StoreRole(INSIDE_DMZ, odo_r)
 		if err != nil {
 			tran.Rollback()
@@ -581,7 +581,7 @@ func (d *DRule) OperatorDelete(oname string) (errs operator.DRuleError) {
 	odo_id := OPERATOR_PREFIX + oname
 	// 开始执行
 	tran, _ := d.trule.Begin()
-	have := tran.ExistRole(INSIDE_DMZ, odo_id)
+	have, _ := tran.ExistRole(INSIDE_DMZ, odo_id)
 	if have == true {
 		err = tran.DeleteRole(INSIDE_DMZ, odo_id)
 		if err != nil {

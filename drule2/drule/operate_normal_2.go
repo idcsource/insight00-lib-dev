@@ -38,7 +38,7 @@ func (d *DRule) normalExitRole(conn_exec *nst2.ConnExec, o_send *operator.O_Oper
 		if tran == nil {
 			ds.IfHave = d.trule.ExistRole(ds.Area, ds.RoleID)
 		} else {
-			ds.IfHave = tran.tran.ExistRole(ds.Area, ds.RoleID)
+			ds.IfHave, _ = tran.tran.ExistRole(ds.Area, ds.RoleID)
 		}
 	} else {
 		var errd operator.DRuleError

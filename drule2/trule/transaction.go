@@ -22,9 +22,13 @@ func (t *Transaction) TransactionID() (id string) {
 }
 
 // 是否存在这个角色
-func (t *Transaction) ExistRole(area, id string) (have bool) {
-	have = t.tran_service.local_store.RoleExist(area, id)
-	return
+func (t *Transaction) ExistRole(area, id string) (have bool, err error) {
+	if t.be_delete == true {
+		return false, fmt.Errorf("drule[Transaction]ReadRole: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	_, exist, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	return exist, err
 }
 
 // 读取一个角色
@@ -35,7 +39,7 @@ func (t *Transaction) ReadRole(area, id string, role roles.Roleer) (err error) {
 		return fmt.Errorf("drule[Transaction]ReadRole: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transacion]ReadRole: %v", err)
 		return
@@ -54,7 +58,7 @@ func (t *Transaction) ReadRoleMiddleData(area, id string) (mid roles.RoleMiddleD
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transacion]readRoleByte: %v", err)
 		return
@@ -68,7 +72,7 @@ func (t *Transaction) ReadRoleByte(area, id string) (b []byte, err error) {
 		return nil, fmt.Errorf("drule[Transaction]readRoleByte: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transacion]readRoleByte: %v", err)
 		return
@@ -171,7 +175,7 @@ func (t *Transaction) DeleteRole(area, id string) (err error) {
 		return fmt.Errorf("drule[Transaction]DeleteRole: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		return err
 	}
@@ -185,7 +189,7 @@ func (t *Transaction) WriteFather(area, id, father string) (err error) {
 		return fmt.Errorf("drule[Transaction]WriteFather: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteFather:  %v", err)
 		return
@@ -203,7 +207,7 @@ func (t *Transaction) ReadFather(area, id string) (father string, err error) {
 		return "", fmt.Errorf("drule[Transaction]ReadFather: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadFather: %v", err)
 		return
@@ -224,7 +228,7 @@ func (t *Transaction) ReadChildren(area, id string) (children []string, err erro
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadChildren: %v", err)
 		return
@@ -240,7 +244,7 @@ func (t *Transaction) WriteChildren(area, id string, children []string) (err err
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteChildren: %v", err)
 		return
@@ -264,7 +268,7 @@ func (t *Transaction) WriteChild(area, id, child string) (err error) {
 		return fmt.Errorf("drule[Transaction]WriteChild: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteChild: %v", err)
 		return
@@ -282,7 +286,7 @@ func (t *Transaction) DeleteChild(area, id, child string) (err error) {
 		return fmt.Errorf("drule[Transaction]DeleteChild: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]DeleteChild: %v", err)
 		return
@@ -301,7 +305,7 @@ func (t *Transaction) ExistChild(area, id, child string) (have bool, err error) 
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ExistChild: %v", err)
 		return
@@ -317,7 +321,7 @@ func (t *Transaction) ReadFriends(area, id string) (friends map[string]roles.Sta
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadFriends: %v", err)
 		return
@@ -333,7 +337,7 @@ func (t *Transaction) WriteFriends(area, id string, friends map[string]roles.Sta
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteFriends: %v", err)
 		return
@@ -364,7 +368,7 @@ func (t *Transaction) WriteFriendStatus(area, id, friend string, bindbit int, va
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteFriendStatus: %v", err)
 		return
@@ -384,7 +388,7 @@ func (t *Transaction) ReadFriendStatus(area, id, friend string, bindbit int, val
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadFriendStatus: %v", err)
 		return
@@ -403,7 +407,7 @@ func (t *Transaction) DeleteFriend(area, id, friend string) (err error) {
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]DeleteFriend: %v", err)
 		return
@@ -420,7 +424,7 @@ func (t *Transaction) CreateContext(area, id, contextname string) (err error) {
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]CreateContext: %v", err)
 		return
@@ -440,7 +444,7 @@ func (t *Transaction) ExistContext(area, id, contextname string) (have bool, err
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ExistContext: %v", err)
 		return
@@ -456,7 +460,7 @@ func (t *Transaction) DropContext(area, id, contextname string) (err error) {
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]DropContext: %v", err)
 		return
@@ -473,7 +477,7 @@ func (t *Transaction) ReadContext(area, id, contextname string) (context roles.C
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContext: %v", err)
 		return
@@ -489,7 +493,7 @@ func (t *Transaction) DeleteContextBind(area, id, contextname string, upordown r
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]DeleteContextBind: %v", err)
 		return
@@ -512,7 +516,7 @@ func (t *Transaction) ReadContextSameBind(area, id, contextname string, upordown
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContextSameBind: %v", err)
 		return
@@ -534,7 +538,7 @@ func (t *Transaction) ReadContextsName(area, id string) (names []string, err err
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContextsName: %v", err)
 		return
@@ -550,7 +554,7 @@ func (t *Transaction) WriteContextStatus(area, id, contextname string, upordown 
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteContextStatus: %v", err)
 		return
@@ -570,7 +574,7 @@ func (t *Transaction) ReadContextStatus(area, id, contextname string, upordown r
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContextStatus: %v", err)
 		return
@@ -589,7 +593,7 @@ func (t *Transaction) WriteContexts(area, id string, contexts map[string]roles.C
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteContexts: %v", err)
 		return
@@ -606,7 +610,7 @@ func (t *Transaction) ReadContexts(area, id string) (contexts map[string]roles.C
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadContexts: %v", err)
 		return
@@ -628,7 +632,7 @@ func (t *Transaction) WriteData(area, id, name string, data interface{}) (err er
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteData: %v", err)
 		return
@@ -648,7 +652,7 @@ func (t *Transaction) WriteDataFromByte(area, id, name string, data_b []byte) (e
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_WRITE)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
 		return
@@ -669,7 +673,7 @@ func (t *Transaction) ReadData(area, id, name string, data interface{}) (err err
 	}
 	t.tran_time = time.Now()
 
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
 		return
@@ -687,7 +691,7 @@ func (t *Transaction) ReadDataToByte(area, id, name string) (data []byte, err er
 		return
 	}
 	t.tran_time = time.Now()
-	rolec, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]ReadData: %v", err)
 		return
@@ -764,7 +768,7 @@ func (t *Transaction) LockRole(area string, roleids ...string) (err error) {
 func (t *Transaction) prepare(area string, roleids []string) (err error) {
 	errall := make([]string, 0)
 	for _, oneid := range roleids {
-		_, errn := t.getrole(area, oneid, TRAN_LOCK_MODE_WRITE)
+		_, _, errn := t.getrole(area, oneid, TRAN_LOCK_MODE_WRITE)
 		if errn != nil {
 			errall = append(errall, errn.Error())
 		}
@@ -776,10 +780,10 @@ func (t *Transaction) prepare(area string, roleids []string) (err error) {
 	return
 }
 
-func (t *Transaction) getrole(area, id string, lockmode uint8) (rolec *roleCache, err error) {
+func (t *Transaction) getrole(area, id string, lockmode uint8) (rolec *roleCache, exist bool, err error) {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
-
+	exist = true
 	var find bool
 	cache_id := area + id
 	rolec, find = t.tran_cache[cache_id]
@@ -787,12 +791,12 @@ func (t *Transaction) getrole(area, id string, lockmode uint8) (rolec *roleCache
 		rolec.tran_time = time.Now()
 		return
 	} else {
-		rolec, err = t.tran_service.getRole(t.unid, area, id, lockmode)
+		rolec, exist, err = t.tran_service.getRole(t.unid, area, id, lockmode)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if rolec.be_delete == TRAN_ROLE_BE_DELETE_COMMIT {
-			return nil, fmt.Errorf("The role %v has already be deleted.", id)
+			return nil, false, fmt.Errorf("The role %v has already be deleted.", id)
 		}
 		if err == nil && lockmode == TRAN_LOCK_MODE_WRITE {
 			t.tran_cache[cache_id] = rolec

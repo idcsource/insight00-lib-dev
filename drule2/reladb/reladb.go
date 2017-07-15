@@ -264,7 +264,7 @@ func (rdb *RelaDB) DropTable(tablename string) (err error) {
 		// travel the increment id and delete
 		for i := uint64(0); i <= max_count; i++ {
 			id := TABLE_NAME_PREFIX + tablename + TABLE_COLUMN_PREFIX + strconv.FormatUint(i, 10)
-			existid := tran.ExistRole(rdb.service.areaname, id)
+			existid, _ := tran.ExistRole(rdb.service.areaname, id)
 			if existid == true {
 				err = tran.DeleteRole(rdb.service.areaname, id)
 				if err != nil {
@@ -276,7 +276,7 @@ func (rdb *RelaDB) DropTable(tablename string) (err error) {
 		// travel index fields and delete
 		for i := range indexfields {
 			id := TABLE_NAME_PREFIX + tablename + TABLE_INDEX_PREFIX + indexfields[i]
-			existid := tran.ExistRole(rdb.service.areaname, id)
+			existid, _ := tran.ExistRole(rdb.service.areaname, id)
 			if existid == true {
 				err = tran.DeleteRole(rdb.service.areaname, id)
 				if err != nil {
@@ -1337,7 +1337,7 @@ func (rdb *RelaDB) Delete(tablename string, id uint64) (err error) {
 			tran.Rollback()
 			return
 		}
-		exist := tran.ExistRole(rdb.service.areaname, rolesid)
+		exist, _ := tran.ExistRole(rdb.service.areaname, rolesid)
 		if exist == false {
 			tran.Rollback()
 			return
@@ -1517,7 +1517,7 @@ func (rdb *RelaDB) UpdateFields(tablename string, id uint64, parameter ...interf
 			return
 		}
 		// check if the id exist
-		have := tran.ExistRole(rdb.service.areaname, rolesid)
+		have, _ := tran.ExistRole(rdb.service.areaname, rolesid)
 		if have == false {
 			tran.Rollback()
 			err = fmt.Errorf("The id %v not exist.", id)
@@ -1698,7 +1698,7 @@ func (rdb *RelaDB) Update(tablename string, id uint64, instance roles.Roleer) (e
 	if rdb.service.dtype == DRULE2_USE_TRULE {
 		tran, _ := rdb.service.trule.Begin()
 		// check if the column exist
-		exist := tran.ExistRole(rdb.service.areaname, colunmnid)
+		exist, _ := tran.ExistRole(rdb.service.areaname, colunmnid)
 		if exist == false {
 			tran.Rollback()
 			err = fmt.Errorf("The id %v not exist.", id)

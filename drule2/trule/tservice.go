@@ -16,7 +16,8 @@ import (
 )
 
 // 读取角色，lockmode为TRAN_LOCK_MODE_*
-func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *roleCache, err error) {
+func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *roleCache, exist bool, err error) {
+	exist = true
 	t.lock.Lock()
 	//defer t.lock.Unlock()
 	cache_id := area + id
@@ -25,10 +26,14 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 
 	if find == false {
 		// 找不到就从硬盘上读取角色
+		exist = t.local_store.RoleExist(area, id)
+		if exist == false {
+			return nil, false, fmt.Errorf("The Role not exist.")
+		}
 		mid, err := t.local_store.RoleReadMiddleData(area, id)
 		if err != nil {
 			t.lock.Unlock()
-			return nil, err
+			return nil, false, err
 		}
 		// 将tran_id定为自己
 		rolec = &roleCache{
@@ -47,14 +52,14 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 		}
 		t.role_cache[cache_id] = rolec
 		t.lock.Unlock()
-		return rolec, nil
+		return rolec, false, nil
 	} else {
 		// 如果找到了就麻烦了
 		// 看删除
 		if rolec.be_delete != TRAN_ROLE_BE_DELETE_NO {
 			fmt.Println("be delete ", cache_id)
 			err = fmt.Errorf("The Role already be delete.")
-			return nil, err
+			return nil, false, err
 		}
 		//看tran_id是否被指定
 		if rolec.tran_id == "" || rolec.tran_id == tran_id {
@@ -87,10 +92,10 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 				if ifhave == true {
 					//fmt.Println("Tran log ", tran_id, "等到了", id)
 					// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以直接返回就可以了
-					return rolec, nil
+					return rolec, true, nil
 				} else {
 					err = fmt.Errorf("The Role already be delete.")
-					return nil, err
+					return nil, false, err
 				}
 
 			}
