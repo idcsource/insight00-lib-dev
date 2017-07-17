@@ -32,7 +32,7 @@ type WordsIndexProcess struct {
 
 func NewWordsIndexProcess(sentencedb *operator.Operator, sentencedbname string, worddb *operator.Operator, worddbname string) (w *WordsIndexProcess) {
 	w = &WordsIndexProcess{
-		queue:      make(chan *WordsIndexRequest, URL_CRAWL_QUEUE_CAP),
+		queue:      make(chan *WordsIndexRequest, WORDS_PROCESS_QUEUE_CAP),
 		count:      0,
 		closed:     true,
 		sentencedb: &dbinfo{area: sentencedbname, drule: sentencedb},
@@ -59,11 +59,7 @@ func (w *WordsIndexProcess) ReturnQueue() chan *WordsIndexRequest {
 
 // Add a words index reuest to queue
 func (w *WordsIndexProcess) Add(req *WordsIndexRequest) (err error) {
-	/*
-		这里提前return了
-	*/
-	//return
-	if w.count == URL_CRAWL_QUEUE_CAP {
+	if w.count == WORDS_PROCESS_QUEUE_CAP {
 		err = fmt.Errorf("The queue is full.")
 		return
 	}
@@ -232,6 +228,129 @@ func (w *WordsIndexProcess) todelindex(domain, url string, split map[uint64][]st
 
 // to do the word index
 func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]string) {
+	tmproles := make(map[string]*WordIndex)
+	for count, sentence := range split {
+		// the sentence len
+		slen := len(sentence)
+		// this is one sentence
+		for i, word := range sentence {
+			// check if have the word
+			_, exist := tmproles[word]
+			if exist == false {
+				theindex := &WordIndex{}
+				theindex.New(word)
+				tmproles[word] = theindex
+			}
+
+			// add the next word index
+			if i < slen-1 {
+				next_word := sentence[i+1]
+				exist := tmproles[word].ExistContext(next_word)
+				if exist == false {
+					err = tmproles[word].NewContext(next_word)
+					if err != nil {
+						fmt.Println(err)
+						break
+					}
+				}
+				// the word's count
+				word_count := int64(count) + int64(i+1)
+				// read already exist index set, is status 0 string
+				var index_set string
+				have, err := tmproles[word].GetContextStatus(next_word, roles.CONTEXT_DOWN, url, 0, &index_set)
+				if err != nil {
+					fmt.Println(err)
+					break
+				}
+				if have == false {
+					index_set = strconv.FormatInt(word_count, 10)
+				} else {
+					index_set = index_set + " " + strconv.FormatInt(word_count, 10)
+				}
+				err = tmproles[word].SetContextStatus(next_word, roles.CONTEXT_DOWN, url, 0, index_set)
+				if err != nil {
+					fmt.Println(err)
+					break
+				}
+			}
+			// add the prev word index
+			if i > 1 {
+				prev_word := sentence[i-1]
+				exist := tmproles[word].ExistContext(prev_word)
+				if exist == false {
+					err = tmproles[word].NewContext(prev_word)
+					if err != nil {
+						fmt.Println(err)
+						break
+					}
+				}
+				// the word's count
+				word_count := int64(count) + int64(i-1)
+				// read already exist index set, is status 0 string
+				var index_set string
+				have, err := tmproles[word].GetContextStatus(prev_word, roles.CONTEXT_UP, url, 0, &index_set)
+				if err != nil {
+					fmt.Println(err)
+					break
+				}
+				if have == false {
+					index_set = strconv.FormatInt(word_count, 10)
+				} else {
+					index_set = index_set + " " + strconv.FormatInt(word_count, 10)
+				}
+				err = tmproles[word].SetContextStatus(prev_word, roles.CONTEXT_UP, url, 0, index_set)
+				if err != nil {
+					fmt.Println(err)
+					break
+				}
+			}
+		}
+	}
+
+	for word, _ := range tmproles {
+		// this is one word
+		tran, errd := w.worddb.drule.Begin()
+		if errd.IsError() != nil {
+			fmt.Println(errd.IsError())
+			break
+		}
+
+		// check if the word already exist
+		exist, errd := tran.ExistRole(w.worddb.area, word)
+		if errd.IsError() != nil {
+			tran.Rollback()
+			fmt.Println(errd.IsError())
+			break
+		}
+
+		if exist == false {
+			errd = tran.StoreRole(w.worddb.area, tmproles[word])
+			if errd.IsError() != nil {
+				tran.Rollback()
+				fmt.Println(errd.IsError())
+				break
+			}
+		} else {
+			allcontext := tmproles[word].GetContextsName()
+			for _, onecontext := range allcontext {
+				// check the context if exist
+				cexist, errd := tran.ExistContext(w.worddb.area, word, next_word)
+				if errd.IsError() != nil {
+					tran.Rollback()
+					fmt.Println(errd.IsError())
+					break
+				}
+				if cexist == false {
+
+				} else {
+
+				}
+			}
+		}
+
+		tran.Commit()
+	}
+
 	for count, sentence := range split {
 		// the sentence len
 		slen := len(sentence)

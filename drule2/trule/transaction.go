@@ -720,13 +720,13 @@ func (t *Transaction) Commit() (err error) {
 		ask:           TRAN_COMMIT_ASK_COMMIT,
 		return_handle: make(chan tranReturnHandle),
 	}
-	fmt.Println("Commit send 1")
+	//fmt.Println("Commit send 1")
 	// 发送出去
 	t.tran_commit_signal <- commit_signal
-	fmt.Println("Commit send 2")
+	//fmt.Println("Commit send 2")
 	// 开始等返回
 	return_sigle := <-commit_signal.return_handle
-	fmt.Println("Commit send 3")
+	//fmt.Println("Commit send 3")
 	//fmt.Println("等到了返回：", t.unid)
 	if return_sigle.Status != TRAN_RETURN_HANDLE_OK {
 		return return_sigle.Error

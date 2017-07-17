@@ -32,12 +32,12 @@ func (o *OTransaction) operatorSend(process *nst2.CConnect, areaid, roleid strin
 	}
 	statbyte, err := iendecode.StructGobBytes(thestat)
 	if err != nil {
-		fmt.Println("a", err)
+		//fmt.Println("a", err)
 		return
 	}
 	rdata, err := process.SendAndReturn(statbyte)
 	if err != nil {
-		fmt.Println("b", err)
+		//fmt.Println("b", err)
 		return
 	}
 	receipt = O_DRuleReceipt{}

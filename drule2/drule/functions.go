@@ -451,7 +451,7 @@ func (d *DRule) AreaAddUser(username, areaname string, add, wrable bool) (errs o
 	wrable_a := make(map[string]bool)
 	err = d.trule.ReadData(INSIDE_DMZ, userid, "WRable", &wrable_a)
 	if err != nil {
-		fmt.Println("这里吗")
+		//fmt.Println("这里吗")
 		errs.Code = operator.DATA_RETURN_ERROR
 		errs.Err = err
 		return

@@ -184,10 +184,16 @@ func (o *Operator) tranTimeOutMonitor() {
 		if o.runstatus == OPERATOR_RUN_CLOSED {
 			return
 		}
+		o.transaction_lock.Lock()
+		keys := make([]string, 0)
 		for key, _ := range o.transaction {
 			if o.transaction[key].activetime.Unix()+trule.TRAN_TIME_OUT < time.Now().Unix() {
-				o.transaction[key].Commit()
+				keys = append(keys, key)
 			}
+		}
+		o.transaction_lock.Unlock()
+		for _, key := range keys {
+			o.transaction[key].Rollback()
 		}
 	}
 }

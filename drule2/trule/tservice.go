@@ -61,7 +61,7 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 		// 如果找到了就麻烦了
 		// 看删除
 		if rolec.be_delete != TRAN_ROLE_BE_DELETE_NO {
-			fmt.Println("be delete ", cache_id)
+			//fmt.Println("be delete ", cache_id)
 			err = fmt.Errorf("The Role already be delete.")
 			return nil, false, err
 		}
@@ -91,7 +91,7 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 				// 主动解锁
 				t.lock.Unlock()
 				// 等待回音
-				fmt.Println("Tran log ", tran_id, "等待", id)
+				//fmt.Println("Tran log ", tran_id, "等待", id)
 				ifhave := <-wait.approved
 				if ifhave == true {
 					//fmt.Println("Tran log ", tran_id, "等到了", id)
@@ -155,7 +155,7 @@ func (t *tranService) addRole(tran_id, area string, mid roles.RoleMiddleData) (r
 			// 主动解锁
 			t.lock.Unlock()
 			// 等待回音
-			fmt.Println("Tran log ", tran_id, "等待", id)
+			//fmt.Println("Tran log ", tran_id, "等待", id)
 			<-wait.approved
 			//fmt.Println("Tran log ", tran_id, "等到了", id)
 			// 如果等到了回音，在收到回音的时候，已经得到了被独占的设定，所以就把角色的主体改了吧

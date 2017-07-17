@@ -62,18 +62,18 @@ func (c *CrawlMachine) crawl() {
 	// get a url
 	re, err = c.sendandreturn(NET_TRANSPORT_OPERATE_URL_CRAWL_QUEUE_GET, NET_DATA_STATUS_NO, "", "", nil)
 	if err != nil {
-		fmt.Println("a", err)
+		//fmt.Println("a", err)
 		return
 	}
 	if re.Status != NET_DATA_STATUS_OK {
-		fmt.Println(string(re.Data))
+		//fmt.Println(string(re.Data))
 		return
 	}
 	// decode UrlBasic
 	var url UrlBasic
 	err = iendecode.BytesGobStruct(re.Data, &url)
 	if err != nil {
-		fmt.Println("b", err)
+		//fmt.Println("b", err)
 		return
 	}
 	// catch the page info
@@ -92,7 +92,7 @@ func (c *CrawlMachine) crawl() {
 		// 处理是HTML的情况
 		err = c.crawlHTML(resp, url)
 		if err != nil {
-			fmt.Println("d", err)
+			//fmt.Println("d", err)
 			return
 		}
 	}

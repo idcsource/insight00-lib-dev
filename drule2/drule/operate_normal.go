@@ -8,7 +8,6 @@
 package drule
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -24,12 +23,12 @@ func (d *DRule) normalTranBigen(conn_exec *nst2.ConnExec, o_send *operator.O_Ope
 	// 解码
 	o_t := operator.O_Transaction{}
 	err = iendecode.BytesGobStruct(o_send.Data, &o_t)
-	fmt.Println("normalTranBigen 3")
+	//fmt.Println("normalTranBigen 3")
 	if err != nil {
 		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
 		return
 	}
-	fmt.Println("normalTranBigen 4")
+	//fmt.Println("normalTranBigen 4")
 	// 生成本地事务
 	d_t := &transactionMap{
 		tran_unid: o_t.TransactionId,
@@ -54,23 +53,23 @@ func (d *DRule) normalTranBigen(conn_exec *nst2.ConnExec, o_send *operator.O_Ope
 			}
 		}
 	}
-	fmt.Println("normalTranBigen 5")
+	//fmt.Println("normalTranBigen 5")
 	// 生成本地的事务
 	d_t.tran, err = d.trule.Begin()
-	fmt.Println("normalTranBigen 6")
+	//fmt.Println("normalTranBigen 6")
 	if err != nil {
 		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
 		return
 	}
 	d_t.alivetime = time.Now()
-	fmt.Println("normalTranBigen 1")
+	//fmt.Println("normalTranBigen 1")
 	d.transaction_map_lock.Lock()
-	fmt.Println("normalTranBigen 2")
+	//fmt.Println("normalTranBigen 2")
 	d.transaction_map[o_t.TransactionId] = d_t
 	d.transaction_map_lock.Unlock()
-	fmt.Println("normalTranBigen 7")
+	//fmt.Println("normalTranBigen 7")
 	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
-	fmt.Println("normalTranBigen 8")
+	//fmt.Println("normalTranBigen 8")
 	return
 }
 
@@ -99,10 +98,10 @@ func (d *DRule) normalTranCommit(conn_exec *nst2.ConnExec, o_send *operator.O_Op
 			}
 		}
 	}
-	fmt.Println("normalTranCommit 8")
+	//fmt.Println("normalTranCommit 8")
 	// 本地的
 	err = tran_map.tran.Commit()
-	fmt.Println("normalTranCommit 9")
+	//fmt.Println("normalTranCommit 9")
 	if err != nil {
 		errd_a = append(errd_a, err.Error())
 	}

@@ -91,7 +91,7 @@ func (t *TRule) tranTimeOutMonitorToDo() {
 	t.tran_lock.Lock()
 	keys := make([]string, 0)
 	for key, tran := range t.transaction {
-		if tran.tran_time.Unix()+t.tran_timeout > time.Now().Unix() {
+		if tran.tran_time.Unix()+t.tran_timeout < time.Now().Unix() {
 			keys = append(keys, key)
 		}
 	}
@@ -198,13 +198,13 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	returnHan := tranReturnHandle{}
 
 	//找到这个事务
-	fmt.Println("handel this 0")
+	//fmt.Println("handel this 0")
 	t.tran_lock.Lock()
-	fmt.Println("handel this 01")
+	//fmt.Println("handel this 01")
 	defer t.tran_lock.Unlock()
 	tran, find := t.transaction[signal.tran_id]
 	//t.tran_lock.Unlock()
-	fmt.Println("handel this 02")
+	//fmt.Println("handel this 02")
 	if find == false {
 		// 如果找不到
 		returnHan.Status = TRAN_RETURN_HANDLE_ERROR
@@ -212,7 +212,7 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 		signal.return_handle <- returnHan
 		return
 	}
-	fmt.Println("handel this 1")
+	//fmt.Println("handel this 1")
 	// 开始大量的执行
 	// 给这个事务本身加锁
 	tran.lock.Lock()
@@ -292,10 +292,10 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 		}
 	}
 	// 发送回执
-	fmt.Println("handel this 2")
+	//fmt.Println("handel this 2")
 	returnHan.Status = TRAN_RETURN_HANDLE_OK
 	signal.return_handle <- returnHan
-	fmt.Println("handel this 3")
+	//fmt.Println("handel this 3")
 	// 删除这个事务
 	tran.tran_service = nil
 	tran.tran_cache = nil
@@ -305,11 +305,11 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	//t.tran_lock.Lock()
 	delete(t.transaction, signal.tran_id)
 	//t.tran_lock.Unlock()
-	fmt.Println("handel this 4")
+	//fmt.Println("handel this 4")
 	t.count_transaction--
-	fmt.Println("handel this 5")
+	//fmt.Println("handel this 5")
 	t.tran_wait.Done()
-	fmt.Println("handel this 6")
+	//fmt.Println("handel this 6")
 }
 
 // 处理rollback信号
@@ -413,14 +413,14 @@ func (t *TRule) Begin() (tran *Transaction, err error) {
 		be_delete:          false,
 	}
 
-	fmt.Println("tran_begin")
+	//fmt.Println("tran_begin")
 
 	t.transaction[unid] = tran
 	t.count_transaction++
 
-	fmt.Println("tran_wait")
+	//fmt.Println("tran_wait")
 	t.tran_wait.Add(1)
-	fmt.Println("tran_wait_o")
+	//fmt.Println("tran_wait_o")
 	return
 }
 
