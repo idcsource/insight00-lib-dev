@@ -201,8 +201,9 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	fmt.Println("handel this 0")
 	t.tran_lock.Lock()
 	fmt.Println("handel this 01")
+	defer t.tran_lock.Unlock()
 	tran, find := t.transaction[signal.tran_id]
-	t.tran_lock.Unlock()
+	//t.tran_lock.Unlock()
 	fmt.Println("handel this 02")
 	if find == false {
 		// 如果找不到
@@ -301,9 +302,9 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 	tran.tran_commit_signal = nil
 	tran.be_delete = true
 	t.transaction[signal.tran_id] = nil
-	t.tran_lock.Lock()
+	//t.tran_lock.Lock()
 	delete(t.transaction, signal.tran_id)
-	t.tran_lock.Unlock()
+	//t.tran_lock.Unlock()
 	fmt.Println("handel this 4")
 	t.count_transaction--
 	fmt.Println("handel this 5")
@@ -395,6 +396,8 @@ func (t *TRule) handleRollbackSignal(signal *tranCommitSignal) {
 
 // 创建事务
 func (t *TRule) Begin() (tran *Transaction, err error) {
+	t.tran_lock.Lock()
+	defer t.tran_lock.Unlock()
 	if t.work_status != TRULE_RUN_RUNNING {
 		err = fmt.Errorf("trule[TRule]Begin: The TRule is paused.")
 		return
@@ -411,10 +414,10 @@ func (t *TRule) Begin() (tran *Transaction, err error) {
 	}
 
 	fmt.Println("tran_begin")
-	t.tran_lock.Lock()
+
 	t.transaction[unid] = tran
 	t.count_transaction++
-	t.tran_lock.Unlock()
+
 	fmt.Println("tran_wait")
 	t.tran_wait.Add(1)
 	fmt.Println("tran_wait_o")
@@ -471,7 +474,7 @@ func (t *TRule) StoreRoleFromMiddleData(area string, mid roles.RoleMiddleData) (
 
 // 从永久存储读出一个角色
 func (t *TRule) ReadRole(area, id string, role roles.Roleer) (err error) {
-	mid, err := t.local_store.RoleReadMiddleData(area, id)
+	mid, _, err := t.local_store.RoleReadMiddleData(area, id)
 	if err != nil {
 		err = fmt.Errorf("trule[TRule]RoleRead: %v", err)
 		return
@@ -486,7 +489,7 @@ func (t *TRule) ReadRole(area, id string, role roles.Roleer) (err error) {
 
 // 从永久存储读出角色的MiddleData格式
 func (t *TRule) ReadRoleMiddleData(area, id string) (mid roles.RoleMiddleData, err error) {
-	mid, err = t.local_store.RoleReadMiddleData(area, id)
+	mid, _, err = t.local_store.RoleReadMiddleData(area, id)
 	if err != nil {
 		err = fmt.Errorf("trule[TRule]RoleReadMiddleData: %v", err)
 	}

@@ -26,11 +26,15 @@ func (t *tranService) getRole(tran_id, area, id string, lockmode uint8) (rolec *
 
 	if find == false {
 		// 找不到就从硬盘上读取角色
-		exist = t.local_store.RoleExist(area, id)
+		//		exist = t.local_store.RoleExist(area, id)
+		//		if exist == false {
+		//			return nil, false, fmt.Errorf("The Role not exist.")
+		//		}
+		mid, exist, err := t.local_store.RoleReadMiddleData(area, id)
 		if exist == false {
-			return nil, false, fmt.Errorf("The Role not exist.")
+			t.lock.Unlock()
+			return nil, false, err
 		}
-		mid, err := t.local_store.RoleReadMiddleData(area, id)
 		if err != nil {
 			t.lock.Unlock()
 			return nil, false, err

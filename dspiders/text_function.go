@@ -221,15 +221,17 @@ func getAllUrl(sitename string, htmlbody string, fatherurl string) (urls []UrlBa
 		linka, err := url.Parse(link)
 		if err != nil {
 			return
+		} else {
+			linkComplete(linka, fatherpre)
+			url := UrlBasic{
+				SiteName: sitename,
+				Url:      linka.String(),
+				Text:     se.Text(),
+				Domain:   linka.Hostname(),
+			}
+			urls = append(urls, url)
 		}
-		linkComplete(linka, fatherpre)
-		url := UrlBasic{
-			SiteName: sitename,
-			Url:      linka.String(),
-			Text:     se.Text(),
-			Domain:   linka.Hostname(),
-		}
-		urls = append(urls, url)
+
 	})
 	return
 }

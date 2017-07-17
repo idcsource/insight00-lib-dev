@@ -71,10 +71,11 @@ func (h *HardStorage) roleExist(area, roleid string) (have bool, filename string
 }
 
 // 读取角色的中间数据格式
-func (h *HardStorage) RoleReadMiddleData(area, roleid string) (rolemid roles.RoleMiddleData, err error) {
+func (h *HardStorage) RoleReadMiddleData(area, roleid string) (rolemid roles.RoleMiddleData, exist bool, err error) {
 	// 查看角色是否存在
 	have, f_name := h.roleExist(area, roleid)
 	if have == false {
+		exist = false
 		err = fmt.Errorf("hardstorage[HardStorage]RoleReadMiddleData: The role not exist: %v", roleid)
 		return
 	}
@@ -84,36 +85,42 @@ func (h *HardStorage) RoleReadMiddleData(area, roleid string) (rolemid roles.Rol
 
 	f_version_b, err := ioutil.ReadFile(f_name)
 	if err != nil {
+		exist = false
 		err = fmt.Errorf("hardstorage[HardStorage]RoleReadMiddleData: %v ", err)
 		return
 	}
 	f_version := roles.RoleVersion{}
 	err = iendecode.BytesGobStruct(f_version_b, &f_version)
 	if err != nil {
+		exist = false
 		err = fmt.Errorf("hardstorage[HardStorage]RoleReadMiddleData: %v ", err)
 		return
 	}
 
 	f_relation_b, err := ioutil.ReadFile(f_ralation_name)
 	if err != nil {
+		exist = false
 		err = fmt.Errorf("hardstorage[HardStorage]RoleReadMiddleData: %v ", err)
 		return
 	}
 	f_relation := roles.RoleRelation{}
 	err = iendecode.BytesGobStruct(f_relation_b, &f_relation)
 	if err != nil {
+		exist = false
 		err = fmt.Errorf("hardstorage[HardStorage]RoleReadMiddleData: %v ", err)
 		return
 	}
 
 	f_data_b, err := ioutil.ReadFile(f_data_name)
 	if err != nil {
+		exist = false
 		err = fmt.Errorf("hardstorage[HardStorage]RoleReadMiddleData: %v ", err)
 		return
 	}
 	f_data := roles.RoleDataPoint{}
 	err = iendecode.BytesGobStruct(f_data_b, &f_data)
 	if err != nil {
+		exist = false
 		err = fmt.Errorf("hardstorage[HardStorage]RoleReadMiddleData: %v ", err)
 		return
 	}
@@ -124,6 +131,7 @@ func (h *HardStorage) RoleReadMiddleData(area, roleid string) (rolemid roles.Rol
 		Relation: f_relation,
 		Data:     f_data,
 	}
+	exist = true
 	return
 }
 
