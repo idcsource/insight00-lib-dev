@@ -197,6 +197,7 @@ func (t *Transaction) WriteFather(area, id, father string) (err error) {
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
 	rolec.role.Relation.Father = father
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -252,6 +253,7 @@ func (t *Transaction) WriteChildren(area, id string, children []string) (err err
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
 	rolec.role.SetChildren(children)
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -276,6 +278,7 @@ func (t *Transaction) WriteChild(area, id, child string) (err error) {
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
 	rolec.role.AddChild(child)
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -294,6 +297,7 @@ func (t *Transaction) DeleteChild(area, id, child string) (err error) {
 	rolec.lock.Lock()
 	defer rolec.lock.Unlock()
 	rolec.role.DeleteChild(child)
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -343,6 +347,7 @@ func (t *Transaction) WriteFriends(area, id string, friends map[string]roles.Sta
 		return
 	}
 	rolec.role.SetFriends(friends)
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -377,6 +382,7 @@ func (t *Transaction) WriteFriendStatus(area, id, friend string, bindbit int, va
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteFriendStatus: %v", err)
 	}
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -413,6 +419,7 @@ func (t *Transaction) DeleteFriend(area, id, friend string) (err error) {
 		return
 	}
 	rolec.role.DeleteFriend(friend)
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -433,6 +440,7 @@ func (t *Transaction) CreateContext(area, id, contextname string) (err error) {
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]CreateContext: %v", err)
 	}
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -466,6 +474,7 @@ func (t *Transaction) DropContext(area, id, contextname string) (err error) {
 		return
 	}
 	rolec.role.DelContext(contextname)
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -483,6 +492,22 @@ func (t *Transaction) ReadContext(area, id, contextname string) (context roles.C
 		return
 	}
 	context, have = rolec.role.GetContext(contextname)
+	return
+}
+
+func (t *Transaction) WriteContext(area, id, contextname string, context roles.Context) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteContext: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	rolec, _, err := t.getrole(area, id, TRAN_LOCK_MODE_READ)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContext: %v", err)
+		return
+	}
+	rolec.role.Relation.Contexts[contextname] = context
+	rolec.role.RelationChange = true
 	return
 }
 
@@ -505,6 +530,7 @@ func (t *Transaction) DeleteContextBind(area, id, contextname string, upordown r
 	} else {
 		err = fmt.Errorf("drule[Transaction]DeleteContextBind: Must CONTEXT_UP or CONTEXT_DOWN.")
 	}
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -563,6 +589,7 @@ func (t *Transaction) WriteContextStatus(area, id, contextname string, upordown 
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteContextStatus: %v", err)
 	}
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -599,6 +626,7 @@ func (t *Transaction) WriteContexts(area, id string, contexts map[string]roles.C
 		return
 	}
 	rolec.role.SetContexts(contexts)
+	rolec.role.RelationChange = true
 	rolec.be_change = true
 	return
 }
@@ -641,6 +669,7 @@ func (t *Transaction) WriteData(area, id, name string, data interface{}) (err er
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]WriteData: %v", err)
 	}
+	rolec.role.DataChange = true
 	rolec.be_change = true
 	return
 }
@@ -661,6 +690,7 @@ func (t *Transaction) WriteDataFromByte(area, id, name string, data_b []byte) (e
 	if err != nil {
 		err = fmt.Errorf("drule[Transaction]writeDataFromByte: %v", err)
 	}
+	rolec.role.DataChange = true
 	rolec.be_change = true
 	return
 }

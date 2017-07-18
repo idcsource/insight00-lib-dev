@@ -1224,6 +1224,51 @@ func (o *OTransaction) DropContext(areaid, roleid, contextname string) (errs DRu
 	return
 }
 
+// 写一个上下文
+func (o *OTransaction) WriteContext(areaid, roleid, contextname string, context roles.Context) (errs DRuleError) {
+	var err error
+	errs = NewDRuleError()
+	// 查看是否删除
+	if o.bedelete == true {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContext: This transaction has been deleted.")
+		return
+	}
+	// 事务续期
+	o.activetime = time.Now()
+
+	// 构建
+	rc := O_RoleAndContext_Data{
+		Area:        areaid,
+		Id:          roleid,
+		Context:     contextname,
+		ContextBody: context,
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContext: %v", err)
+		return
+	}
+	// 传输
+	cprocess, err := o.drule.tcpconn.OpenProgress()
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContext: %v", err)
+		return
+	}
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_WRITE_CONTEXT, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContext: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[OTransaction]WriteContext: %v", r.Error)
+		return
+	}
+	return
+}
+
 // 返回某个上下文的全部信息
 func (o *OTransaction) ReadContext(areaid, roleid, contextname string) (context roles.Context, have bool, errs DRuleError) {
 	var err error

@@ -127,9 +127,12 @@ func (h *HardStorage) RoleReadMiddleData(area, roleid string) (rolemid roles.Rol
 
 	// 合成中间数据
 	rolemid = roles.RoleMiddleData{
-		Version:  f_version,
-		Relation: f_relation,
-		Data:     f_data,
+		Version:        f_version,
+		VersionChange:  false,
+		Relation:       f_relation,
+		RelationChange: false,
+		Data:           f_data,
+		DataChange:     false,
 	}
 	exist = true
 	return
@@ -299,34 +302,40 @@ func (h *HardStorage) storeRoleMiddle(f_name string, mid *roles.RoleMiddleData) 
 	f_ralation_name := f_name + HARDSTORAGE_FILE_NAME_RELATION
 	f_data_name := f_name + HARDSTORAGE_FILE_NAME_DATA
 
-	// 保存Version
-	version_b, err := iendecode.StructGobBytes(mid.Version)
-	if err != nil {
-		return
-	}
-	err = ioutil.WriteFile(f_name, version_b, 0600)
-	if err != nil {
-		return
-	}
-
-	// 存数据
-	data_b, err := iendecode.StructGobBytes(mid.Data)
-	if err != nil {
-		return
-	}
-	err = ioutil.WriteFile(f_data_name, data_b, 0600)
-	if err != nil {
-		return
+	if mid.VersionChange == true {
+		// 保存Version
+		version_b, err := iendecode.StructGobBytes(mid.Version)
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(f_name, version_b, 0600)
+		if err != nil {
+			return err
+		}
 	}
 
-	// 保存关系
-	relation_b, err := iendecode.StructGobBytes(mid.Relation)
-	if err != nil {
-		return
+	if mid.DataChange == true {
+		// 存数据
+		data_b, err := iendecode.StructGobBytes(mid.Data)
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(f_data_name, data_b, 0600)
+		if err != nil {
+			return err
+		}
 	}
-	err = ioutil.WriteFile(f_ralation_name, relation_b, 0600)
-	if err != nil {
-		return
+
+	if mid.RelationChange == true {
+		// 保存关系
+		relation_b, err := iendecode.StructGobBytes(mid.Relation)
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(f_ralation_name, relation_b, 0600)
+		if err != nil {
+			return err
+		}
 	}
 	return
 }

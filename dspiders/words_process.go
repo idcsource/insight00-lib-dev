@@ -247,7 +247,7 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 				next_word := sentence[i+1]
 				exist := tmproles[word].ExistContext(next_word)
 				if exist == false {
-					err = tmproles[word].NewContext(next_word)
+					err := tmproles[word].NewContext(next_word)
 					if err != nil {
 						fmt.Println(err)
 						break
@@ -278,7 +278,7 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 				prev_word := sentence[i-1]
 				exist := tmproles[word].ExistContext(prev_word)
 				if exist == false {
-					err = tmproles[word].NewContext(prev_word)
+					err := tmproles[word].NewContext(prev_word)
 					if err != nil {
 						fmt.Println(err)
 						break
@@ -331,19 +331,58 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 				break
 			}
 		} else {
+			// lock the role
+			errd = tran.LockRole(w.worddb.area, word)
+			if errd.IsError() != nil {
+				tran.Rollback()
+				fmt.Println(errd.IsError())
+				break
+			}
 			allcontext := tmproles[word].GetContextsName()
 			for _, onecontext := range allcontext {
 				// check the context if exist
-				cexist, errd := tran.ExistContext(w.worddb.area, word, next_word)
+				cexist, errd := tran.ExistContext(w.worddb.area, word, onecontext)
 				if errd.IsError() != nil {
 					tran.Rollback()
 					fmt.Println(errd.IsError())
 					break
 				}
+				contextbody, _ := tmproles[word].GetContext(onecontext)
 				if cexist == false {
-
+					errd = tran.WriteContext(w.worddb.area, word, onecontext, contextbody)
+					if errd.IsError() != nil {
+						tran.Rollback()
+						fmt.Println(errd.IsError())
+						break
+					}
 				} else {
+					oldbody, _, errd := tran.ReadContext(w.worddb.area, word, onecontext)
+					if errd.IsError() != nil {
+						tran.Rollback()
+						fmt.Println(errd.IsError())
+						break
+					}
+					newdownone, have := contextbody.Down[url]
+					if have == true {
+						oldone, have2 := oldbody.Down[url]
+						if have2 == true {
+							oldbody.Down[url].String[0] = oldone.String[0] + " " + newdownone.String[0]
+						}
+					}
+					newupone, have := contextbody.Up[url]
+					if have == true {
+						oldone, have2 := oldbody.Up[url]
+						if have2 == true {
+							oldbody.Up[url].String[0] = oldone.String[0] + " " + newupone.String[0]
+						}
+					}
 
+					errd = tran.WriteContext(w.worddb.area, word, onecontext, oldbody)
+					if errd.IsError() != nil {
+						tran.Rollback()
+						fmt.Println(errd.IsError())
+						break
+					}
 				}
 			}
 		}
@@ -351,122 +390,122 @@ func (w *WordsIndexProcess) toindex(domain, url string, split map[uint64][]strin
 		tran.Commit()
 	}
 
-	for count, sentence := range split {
-		// the sentence len
-		slen := len(sentence)
-		// this is one sentence
-		for i, word := range sentence {
-			// this is one word
-			tran, errd := w.worddb.drule.Begin()
-			if errd.IsError() != nil {
-				fmt.Println(errd.IsError())
-				break
-			}
-			// check if the word already exist
-			exist, errd := tran.ExistRole(w.worddb.area, word)
-			if errd.IsError() != nil {
-				tran.Rollback()
-				fmt.Println(errd.IsError())
-				break
-			}
-			if exist == false {
-				// if not exist, create it
-				wordindex := &WordIndex{}
-				wordindex.New(word)
-				errd = tran.StoreRole(w.worddb.area, wordindex)
-				if errd.IsError() != nil {
-					tran.Rollback()
-					fmt.Println(errd.IsError())
-					break
-				}
-			}
-			// add the next word index
-			if i < slen-1 {
-				next_word := sentence[i+1]
-				// check the context if exist
-				cexist, errd := tran.ExistContext(w.worddb.area, word, next_word)
-				if errd.IsError() != nil {
-					tran.Rollback()
-					fmt.Println(errd.IsError())
-					break
-				}
-				if cexist == false {
-					errd = tran.CreateContext(w.worddb.area, word, next_word)
-					if errd.IsError() != nil {
-						tran.Rollback()
-						fmt.Println(errd.IsError())
-						break
-					}
-				}
-				// the word's count
-				word_count := int64(count) + int64(i+1)
-				// read already exist index set, is status 0 string
-				var index_set string
-				have, errd := tran.ReadContextStatus(w.worddb.area, word, next_word, roles.CONTEXT_DOWN, url, 0, &index_set)
-				if errd.IsError() != nil {
-					tran.Rollback()
-					fmt.Println(errd.IsError())
-					break
-				}
-				if have == false {
-					// if not have
-					index_set = strconv.FormatInt(word_count, 10)
-				} else {
-					index_set = index_set + " " + strconv.FormatInt(word_count, 10)
-				}
-				errd = tran.WriteContextStatus(w.worddb.area, word, next_word, roles.CONTEXT_DOWN, url, 0, index_set)
-				if errd.IsError() != nil {
-					tran.Rollback()
-					fmt.Println(errd.IsError())
-					break
-				}
-			}
+	//	for count, sentence := range split {
+	//		// the sentence len
+	//		slen := len(sentence)
+	//		// this is one sentence
+	//		for i, word := range sentence {
+	//			// this is one word
+	//			tran, errd := w.worddb.drule.Begin()
+	//			if errd.IsError() != nil {
+	//				fmt.Println(errd.IsError())
+	//				break
+	//			}
+	//			// check if the word already exist
+	//			exist, errd := tran.ExistRole(w.worddb.area, word)
+	//			if errd.IsError() != nil {
+	//				tran.Rollback()
+	//				fmt.Println(errd.IsError())
+	//				break
+	//			}
+	//			if exist == false {
+	//				// if not exist, create it
+	//				wordindex := &WordIndex{}
+	//				wordindex.New(word)
+	//				errd = tran.StoreRole(w.worddb.area, wordindex)
+	//				if errd.IsError() != nil {
+	//					tran.Rollback()
+	//					fmt.Println(errd.IsError())
+	//					break
+	//				}
+	//			}
+	//			// add the next word index
+	//			if i < slen-1 {
+	//				next_word := sentence[i+1]
+	//				// check the context if exist
+	//				cexist, errd := tran.ExistContext(w.worddb.area, word, next_word)
+	//				if errd.IsError() != nil {
+	//					tran.Rollback()
+	//					fmt.Println(errd.IsError())
+	//					break
+	//				}
+	//				if cexist == false {
+	//					errd = tran.CreateContext(w.worddb.area, word, next_word)
+	//					if errd.IsError() != nil {
+	//						tran.Rollback()
+	//						fmt.Println(errd.IsError())
+	//						break
+	//					}
+	//				}
+	//				// the word's count
+	//				word_count := int64(count) + int64(i+1)
+	//				// read already exist index set, is status 0 string
+	//				var index_set string
+	//				have, errd := tran.ReadContextStatus(w.worddb.area, word, next_word, roles.CONTEXT_DOWN, url, 0, &index_set)
+	//				if errd.IsError() != nil {
+	//					tran.Rollback()
+	//					fmt.Println(errd.IsError())
+	//					break
+	//				}
+	//				if have == false {
+	//					// if not have
+	//					index_set = strconv.FormatInt(word_count, 10)
+	//				} else {
+	//					index_set = index_set + " " + strconv.FormatInt(word_count, 10)
+	//				}
+	//				errd = tran.WriteContextStatus(w.worddb.area, word, next_word, roles.CONTEXT_DOWN, url, 0, index_set)
+	//				if errd.IsError() != nil {
+	//					tran.Rollback()
+	//					fmt.Println(errd.IsError())
+	//					break
+	//				}
+	//			}
 
-			// add the prev word index
-			if i > 1 {
-				prev_word := sentence[i-1]
-				// check the context if exist
-				cexist, errd := tran.ExistContext(w.worddb.area, word, prev_word)
-				if errd.IsError() != nil {
-					tran.Rollback()
-					fmt.Println(errd.IsError())
-					break
-				}
-				if cexist == false {
-					errd = tran.CreateContext(w.worddb.area, word, prev_word)
-					if errd.IsError() != nil {
-						tran.Rollback()
-						fmt.Println(errd.IsError())
-						break
-					}
-				}
-				// the word's count
-				word_count := int64(count) + int64(i-1)
-				// read already exist index set, is status 0 string
-				var index_set string
-				have, errd := tran.ReadContextStatus(w.worddb.area, word, prev_word, roles.CONTEXT_UP, url, 0, &index_set)
-				if errd.IsError() != nil {
-					tran.Rollback()
-					fmt.Println(errd.IsError())
-					break
-				}
-				if have == false {
-					// if not have
-					index_set = strconv.FormatInt(word_count, 10)
-				} else {
-					index_set = index_set + " " + strconv.FormatInt(word_count, 10)
-				}
-				errd = tran.WriteContextStatus(w.worddb.area, word, prev_word, roles.CONTEXT_UP, url, 0, index_set)
-				if errd.IsError() != nil {
-					tran.Rollback()
-					fmt.Println(errd.IsError())
-					break
-				}
-			}
+	//			// add the prev word index
+	//			if i > 1 {
+	//				prev_word := sentence[i-1]
+	//				// check the context if exist
+	//				cexist, errd := tran.ExistContext(w.worddb.area, word, prev_word)
+	//				if errd.IsError() != nil {
+	//					tran.Rollback()
+	//					fmt.Println(errd.IsError())
+	//					break
+	//				}
+	//				if cexist == false {
+	//					errd = tran.CreateContext(w.worddb.area, word, prev_word)
+	//					if errd.IsError() != nil {
+	//						tran.Rollback()
+	//						fmt.Println(errd.IsError())
+	//						break
+	//					}
+	//				}
+	//				// the word's count
+	//				word_count := int64(count) + int64(i-1)
+	//				// read already exist index set, is status 0 string
+	//				var index_set string
+	//				have, errd := tran.ReadContextStatus(w.worddb.area, word, prev_word, roles.CONTEXT_UP, url, 0, &index_set)
+	//				if errd.IsError() != nil {
+	//					tran.Rollback()
+	//					fmt.Println(errd.IsError())
+	//					break
+	//				}
+	//				if have == false {
+	//					// if not have
+	//					index_set = strconv.FormatInt(word_count, 10)
+	//				} else {
+	//					index_set = index_set + " " + strconv.FormatInt(word_count, 10)
+	//				}
+	//				errd = tran.WriteContextStatus(w.worddb.area, word, prev_word, roles.CONTEXT_UP, url, 0, index_set)
+	//				if errd.IsError() != nil {
+	//					tran.Rollback()
+	//					fmt.Println(errd.IsError())
+	//					break
+	//				}
+	//			}
 
-			tran.Commit()
-		}
-	}
+	//			tran.Commit()
+	//		}
+	//	}
 }
 
 // the around link index

@@ -301,6 +301,9 @@ func (d *DRule) checkTranOrNoTran(conn_exec *nst2.ConnExec, o_send *operator.O_O
 	case operator.OPERATE_READ_CONTEXT:
 		// 读上下文
 		errs = d.normalReadContext(conn_exec, o_send, tran)
+	case operator.OPERATE_WRITE_CONTEXT:
+		// 写上下文
+		errs = d.normalWriteContext(conn_exec, o_send, tran)
 	case operator.OPERATE_DEL_CONTEXT_BIND:
 		// 删上下文绑定
 		errs = d.normalDeleteContextBind(conn_exec, o_send, tran)

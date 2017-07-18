@@ -1123,6 +1123,52 @@ func (o *Operator) DropContext(areaid, roleid, contextname string) (errs DRuleEr
 	return
 }
 
+// 写一个上下文
+func (o *Operator) WriteContext(areaid, roleid, contextname string, context roles.Context) (errs DRuleError) {
+	errs = NewDRuleError()
+	if o.runstatus != OPERATOR_RUN_RUNNING {
+		errs.Err = fmt.Errorf("The Operator is colosed.")
+		return
+	}
+
+	errs = o.checkLogin()
+	if errs.IsError() != nil {
+		return
+	}
+
+	// 构建
+	rc := O_RoleAndContext_Data{
+		Area:        areaid,
+		Id:          roleid,
+		Context:     contextname,
+		ContextBody: context,
+	}
+	// 编码
+	rc_b, err := iendecode.StructGobBytes(rc)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]WriteContext: %v", err)
+		return
+	}
+	// 传输
+	cprocess, err := o.drule.tcpconn.OpenProgress()
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]WriteContext: %v", err)
+		return
+	}
+	defer cprocess.Close()
+	r, err := o.operatorSend(cprocess, areaid, roleid, OPERATE_ZONE_NORMAL, OPERATE_WRITE_CONTEXT, rc_b)
+	if err != nil {
+		errs.Err = fmt.Errorf("operator[Operator]WriteContext: %v", err)
+		return
+	}
+	errs.Code = r.DataStat
+	if r.DataStat != DATA_ALL_OK {
+		errs.Err = fmt.Errorf("operator[Operator]WriteContext: %v", r.Error)
+		return
+	}
+	return
+}
+
 // 返回某个上下文的全部信息
 func (o *Operator) ReadContext(areaid, roleid, contextname string) (context roles.Context, have bool, errs DRuleError) {
 	errs = NewDRuleError()

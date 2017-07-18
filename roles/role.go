@@ -463,6 +463,12 @@ func (r *Role) GetContext(contextname string) (context Context, have bool) {
 	}
 }
 
+// 设置某个上下文的全部信息
+func (r *Role) SetContext(contextname string, context Context) {
+	r._context[contextname] = context
+	r._context_changed = true
+}
+
 // 返回某个上下文中的上游同样绑定值的所有
 func (r *Role) GetContextUpSameBind(contextname string, bind int64) (rolesid []string, have bool) {
 	if _, find := r._context[contextname]; find == true {
@@ -543,6 +549,7 @@ func (r *Role) SetFriendStatus(id string, bit int, value interface{}) (err error
 	default:
 		return errors.New("The value's type must int64, float64, complex128 or string.")
 	}
+	r._friends_changed = true
 	return nil
 }
 

@@ -97,6 +97,8 @@ type Roleer interface {
 	GetContextDown(contextname, downname string) (bind int64, have bool)
 	// 返回某个上下文的全部信息
 	GetContext(contextname string) (context Context, have bool)
+	// 设置某个上下文的全部信息
+	SetContext(contextname string, context Context)
 	// 返回某个上下文中的上游同样绑定值的所有
 	GetContextUpSameBind(contextname string, bind int64) (rolesid []string, have bool)
 	// 返回某个上下文中的下游同样绑定值的所有

@@ -23,7 +23,11 @@ func EncodeRoleToMiddle(role Roleer) (mid RoleMiddleData, err error) {
 		}
 	}()
 
-	mid = RoleMiddleData{}
+	mid = RoleMiddleData{
+		VersionChange:  true,
+		DataChange:     true,
+		RelationChange: true,
+	}
 
 	// 这里是生成relation
 	mid.Relation = RoleRelation{

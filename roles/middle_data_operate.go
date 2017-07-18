@@ -23,6 +23,7 @@ func (r *RoleMiddleData) ReturnVersion() (version int) {
 // 设置自己的版本（通常这个是在存储（如HardStore）来处理的时候才需要）
 func (r *RoleMiddleData) SetVersion(version int) {
 	r.Version.Version = version
+	r.VersionChange = true
 }
 
 // 返回角色自身的ID
@@ -33,6 +34,7 @@ func (r *RoleMiddleData) ReturnId() string {
 // 设置角色自身的ID
 func (r *RoleMiddleData) SetId(id string) {
 	r.Version.Id = id
+	r.VersionChange = true
 }
 
 // 返回自己的父亲是谁
@@ -53,31 +55,37 @@ func (r *RoleMiddleData) GetFriends() map[string]Status {
 // 重置父关系，也就是将父关系清空
 func (r *RoleMiddleData) ResetFather() {
 	r.Relation.Father = ""
+	r.RelationChange = true
 }
 
 // 重置子关系，也就是将子关系清空
 func (r *RoleMiddleData) ResetChilren() {
 	r.Relation.Children = make([]string, 0)
+	r.RelationChange = true
 }
 
 // 重置朋友关系，也就是将朋友关系清空
 func (r *RoleMiddleData) ResetFriends() {
 	r.Relation.Friends = make(map[string]Status)
+	r.RelationChange = true
 }
 
 // 设置父关系
 func (r *RoleMiddleData) SetFather(id string) {
 	r.Relation.Father = id
+	r.RelationChange = true
 }
 
 // 设置整个子关系
 func (r *RoleMiddleData) SetChildren(children []string) {
 	r.Relation.Children = children
+	r.RelationChange = true
 }
 
 // 设置整个朋友关系
 func (r *RoleMiddleData) SetFriends(friends map[string]Status) {
 	r.Relation.Friends = friends
+	r.RelationChange = true
 }
 
 // 看是否存在某个子角色，如果存在返回true
@@ -108,6 +116,7 @@ func (r *RoleMiddleData) AddChild(cid string) error {
 		return err
 	} else {
 		r.Relation.Children = append(r.Relation.Children, cid)
+		r.RelationChange = true
 		return nil
 	}
 }
@@ -127,6 +136,7 @@ func (r *RoleMiddleData) DeleteChild(child string) error {
 			}
 		}
 		r.Relation.Children = append(r.Relation.Children[:count], r.Relation.Children[count+1:]...)
+		r.RelationChange = true
 		return nil
 	}
 }
@@ -141,6 +151,7 @@ func (r *RoleMiddleData) AddFriend(id string, bind int64) error {
 	}
 	r.Relation.Friends[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10)}
 	r.Relation.Friends[id].Int[0] = bind
+	r.RelationChange = true
 	return nil
 }
 
@@ -153,6 +164,7 @@ func (r *RoleMiddleData) DeleteFriend(id string) error {
 		return err
 	}
 	delete(r.Relation.Friends, id)
+	r.RelationChange = true
 	return nil
 }
 
@@ -167,6 +179,7 @@ func (r *RoleMiddleData) ChangeFriend(id string, bind int64) error {
 		return nil
 	}
 	r.Relation.Friends[id].Int[0] = bind
+	r.RelationChange = true
 	return nil
 }
 
@@ -184,6 +197,7 @@ func (r *RoleMiddleData) GetSameBindFriendsId(bind int64) []string {
 // 设定全部上下文，存储实例调用
 func (r *RoleMiddleData) SetContexts(context map[string]Context) {
 	r.Relation.Contexts = context
+	r.RelationChange = true
 }
 
 // 获取全部上下文，存储实例调用
@@ -202,6 +216,7 @@ func (r *RoleMiddleData) NewContext(contextname string) (err error) {
 	} else {
 		//err = fmt.Errorf("The context already exist.")
 	}
+	r.RelationChange = true
 	return
 }
 
@@ -222,6 +237,7 @@ func (r *RoleMiddleData) AddContextUp(contextname, upname string, bind int64) {
 		r.Relation.Contexts[contextname].Up[upname] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10)}
 	}
 	r.Relation.Contexts[contextname].Up[upname].Int[0] = bind
+	r.RelationChange = true
 }
 
 // 设定一个上下文的下游
@@ -235,6 +251,7 @@ func (r *RoleMiddleData) AddContextDown(contextname, downname string, bind int64
 		r.Relation.Contexts[contextname].Down[downname] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10)}
 	}
 	r.Relation.Contexts[contextname].Down[downname].Int[0] = bind
+	r.RelationChange = true
 }
 
 // 删除一个上下文的上游
@@ -245,6 +262,7 @@ func (r *RoleMiddleData) DelContextUp(contextname, upname string) {
 			delete(r.Relation.Contexts[contextname].Up, upname)
 		}
 	}
+	r.RelationChange = true
 }
 
 // 删除一个上下文的下游
@@ -255,6 +273,7 @@ func (r *RoleMiddleData) DelContextDown(contextname, downname string) {
 			delete(r.Relation.Contexts[contextname].Down, downname)
 		}
 	}
+	r.RelationChange = true
 }
 
 // 清除一个上下文
@@ -389,6 +408,7 @@ func (r *RoleMiddleData) SetFriendStatus(id string, bit int, value interface{}) 
 	default:
 		return fmt.Errorf("roles[RoleMiddleData]SetFriendStatus: The value's type must int64, float64, complex128 or string.")
 	}
+	r.RelationChange = true
 	return nil
 }
 
@@ -497,6 +517,7 @@ func (r *RoleMiddleData) SetContextStatus(contextname string, upordown ContextUp
 	} else {
 		return fmt.Errorf("roles:[RoleMiddleData]SetContextStatus:The upordown must CONTEXT_UP or CONTEXT_DOWN.")
 	}
+	r.RelationChange = true
 	return nil
 }
 
@@ -593,7 +614,6 @@ func (r *RoleMiddleData) GetData(name string, datas interface{}) (err error) {
 	if err != nil {
 		err = fmt.Errorf("roles[RoleMiddleData]GetData: %v", err)
 	}
-
 	return
 }
 
@@ -605,13 +625,13 @@ func (r *RoleMiddleData) SetData(name string, datas interface{}) (err error) {
 		return
 	}
 	r.Data.Point[name] = data_b
-
+	r.DataChange = true
 	return
 }
 
 // 从[]byte设置数据点数据
 func (r *RoleMiddleData) SetDataFromByte(name string, data_b []byte) (err error) {
 	r.Data.Point[name] = data_b
-
+	r.DataChange = true
 	return
 }

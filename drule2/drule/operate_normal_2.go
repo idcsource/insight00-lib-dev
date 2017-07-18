@@ -1213,6 +1213,68 @@ func (d *DRule) normalDropContext(conn_exec *nst2.ConnExec, o_send *operator.O_O
 	return
 }
 
+// 写一个上下文
+func (d *DRule) normalWriteContext(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
+	var err error
+	// 解码，ds = data struct
+	ds := operator.O_RoleAndContext_Data{}
+	err = iendecode.BytesGobStruct(o_send.Data, &ds)
+	if err != nil {
+		errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+		return
+	}
+	// 查看读写权限和角色位置，o_s = operator service
+	havepower, position, o_s := d.getAreaPowerAndRolePosition(o_send.User, ds.Area, ds.Id, true)
+	if havepower == false {
+		errs = d.sendReceipt(conn_exec, operator.DATA_USER_NO_AREA_AUTHORITY, "", nil)
+		return
+	}
+	if position == ROLE_POSITION_IN_LOCAL {
+		if tran == nil {
+			err = d.trule.WriteContext(ds.Area, ds.Id, ds.Context, ds.ContextBody)
+		} else {
+			err = tran.tran.WriteContext(ds.Area, ds.Id, ds.Context, ds.ContextBody)
+		}
+		if err != nil {
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, err.Error(), nil)
+			return
+		}
+	} else {
+		var errd operator.DRuleError
+		erra := make([]string, 0)
+		if tran == nil {
+			for _, one := range o_s {
+				if _, find := d.operators[one]; find == false {
+					erra = append(erra, "Can not find remote operator "+one)
+					continue
+				}
+				errd = d.operators[one].WriteContext(ds.Area, ds.Id, ds.Context, ds.ContextBody)
+				if errd.IsError() != nil {
+					erra = append(erra, errd.String())
+				}
+			}
+		} else {
+			for _, one := range o_s {
+				if _, find := tran.operators[one]; find == false {
+					erra = append(erra, "Can not find remote operator "+one)
+					continue
+				}
+				errd = tran.operators[one].WriteContext(ds.Area, ds.Id, ds.Context, ds.ContextBody)
+				if errd.IsError() != nil {
+					erra = append(erra, errd.String())
+				}
+			}
+		}
+		if len(erra) != 0 {
+			errstr := strings.Join(erra, " | ")
+			errs = d.sendReceipt(conn_exec, operator.DATA_RETURN_ERROR, errstr, nil)
+			return
+		}
+	}
+	errs = d.sendReceipt(conn_exec, operator.DATA_ALL_OK, "", nil)
+	return
+}
+
 // 读context
 func (d *DRule) normalReadContext(conn_exec *nst2.ConnExec, o_send *operator.O_OperatorSend, tran *transactionMap) (errs error) {
 	var err error

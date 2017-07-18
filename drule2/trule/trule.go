@@ -236,12 +236,12 @@ func (t *TRule) handleCommitSignal(signal *tranCommitSignal) {
 				rolec.tran_id = ""
 			} else if rolec.be_delete == TRAN_ROLE_BE_DELETE_YES {
 				t.local_store.RoleDelete(rolec.area, rolec.role.Version.Id)
-				// 将这个角色从缓存中移除
-				t.tran_service.lock.Lock()
-				t.tran_service.role_cache[cacheid] = nil
-				delete(t.tran_service.role_cache, cacheid)
-				t.tran_service.lock.Unlock()
 			}
+			// 将这个角色从缓存中移除
+			t.tran_service.lock.Lock()
+			t.tran_service.role_cache[cacheid] = nil
+			delete(t.tran_service.role_cache, cacheid)
+			t.tran_service.lock.Unlock()
 			//rolec.lock.Unlock()
 		} else {
 			alreadyhave := true
@@ -769,6 +769,19 @@ func (t *TRule) ReadContext(area, id, contextname string) (context roles.Context
 	context, have, err = tran.ReadContext(area, id, contextname)
 	if err != nil {
 		err = fmt.Errorf("trule[TRule]ReadContext: %v", err)
+		tran.Rollback()
+		return
+	}
+	tran.Commit()
+	return
+}
+
+// 设置某个上下文全部的信息
+func (t *TRule) WriteContext(area, id, contextname string, context roles.Context) (err error) {
+	tran, _ := t.Begin()
+	err = tran.WriteContext(area, id, contextname, context)
+	if err != nil {
+		err = fmt.Errorf("trule[TRule]WriteContext: %v", err)
 		tran.Rollback()
 		return
 	}

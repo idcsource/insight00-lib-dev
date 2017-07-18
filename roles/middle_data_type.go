@@ -27,7 +27,10 @@ type RoleDataPoint struct {
 
 // 角色的中期存储类型
 type RoleMiddleData struct {
-	Version  RoleVersion
-	Relation RoleRelation
-	Data     RoleDataPoint
+	Version        RoleVersion
+	VersionChange  bool
+	Relation       RoleRelation
+	RelationChange bool
+	Data           RoleDataPoint
+	DataChange     bool
 }

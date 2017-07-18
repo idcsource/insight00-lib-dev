@@ -195,6 +195,8 @@ const (
 	// 获取一个上下文中同样绑定值的角色id
 	OPERATE_SAME_BIND_CONTEXT
 
+	// 写入一个上下文的全部
+	OPERATE_WRITE_CONTEXT
 	// 添加一个上下文绑定
 	OPERATE_ADD_CONTEXT_BIND
 	// 删除一个上下文绑定
