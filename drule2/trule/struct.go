@@ -38,17 +38,21 @@ type roleCache struct {
 	// 被事务的占用开始时间
 	tran_time time.Time
 	// 请求排队队列
-	wait_line []*tranAskGetRole
+	wait_line []*cacheAskRole
 	// 排队锁
-	wait_line_lock *sync.RWMutex
-	// 角色缓存处理锁
+	wait_line_sig chan *cacheAskRole
+	// 角色缓存处理锁，由roleCacheOp来操作
 	op_lock *sync.RWMutex
 }
 
 // 事务的等待角色排队
-type tranAskGetRole struct {
+type cacheAskRole struct {
+	// 操作类型，ROLE_CACHE_ASK_*的部分项目
+	optype uint8
 	// 事务ID
 	tran_id string
+	// 是为了写吗
+	forwrite bool
 	// 返回句柄
 	approved chan bool
 	// 请求的时间

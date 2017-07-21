@@ -67,6 +67,8 @@ const (
 	ROLE_CACHE_ASK_RESET
 	// 请求删除
 	ROLE_CACHE_ASK_DELETE
+	// 请求释放
+	ROLE_CACHE_ASK_RELEASE
 	// 请求清理
 	ROLE_CACHE_ASK_CLEAN
 )
