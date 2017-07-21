@@ -1,13 +1,10 @@
 // Copyright 2016-2017
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
-// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idcsource@gmail.com
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
-// Use of this source code is governed by GNU LGPL v3 license
+// This source code is governed by GNU LGPL v3 license
 
-// drule2的事务统治者
-//
-// 需要配合drule2的hardstorage包实现本地的存储。
 package trule
 
 import (
@@ -19,6 +16,121 @@ import (
 	"github.com/idcsource/Insight-0-0-lib/ilogs"
 	"github.com/idcsource/Insight-0-0-lib/roles"
 )
+
+// 单个角色缓存
+type roleCache struct {
+	// 角色所在分区
+	area string
+	// 角色的id
+	id string
+	// 角色是否真正存在
+	exist bool
+	// 当前角色
+	role *roles.RoleMiddleData
+	// 是否为写模式
+	bewrite bool
+	// 被删除，TRAN_ROLE_BE_DELETE_*
+	be_delete uint8
+	// 被修改
+	be_change bool
+	// 占用的事务id
+	tran_id string
+	// 被事务的占用开始时间
+	tran_time time.Time
+	// 请求排队队列
+	wait_line []*tranAskGetRole
+	// 排队锁
+	wait_line_lock *sync.RWMutex
+	// 角色缓存处理锁
+	op_lock *sync.RWMutex
+}
+
+// 事务的等待角色排队
+type tranAskGetRole struct {
+	// 事务ID
+	tran_id string
+	// 返回句柄
+	approved chan bool
+	// 请求的时间
+	ask_time time.Time
+}
+
+// 角色信号的返回
+type roleCacheReturn struct {
+	status uint8      // 状态，ROLE_CACHE_RETURN_HANDLE_*
+	err    error      // 错误
+	role   *roleCache // 获得这个角色
+}
+
+// 角色的处理信号
+type roleCacheSig struct {
+	ask    uint8                 // 请求什么 ROLE_CACHE_ASK_*
+	area   string                // 角色的区域
+	id     string                // 角色的id
+	tranid string                // 事务id
+	re     chan *roleCacheReturn // 角色信号的返回
+}
+
+// 角色缓存处理机
+type roleCacheOp struct {
+	local_store *hardstorage.HardStorage         // 本地存储
+	signal      chan *roleCacheSig               // 角色的请求
+	cache       map[string]map[string]*roleCache // 缓存池
+	clean_count int                              // 清理计数器
+	log         *ilogs.Logs                      // the Log
+	closed      bool                             // 如果关闭就是true
+	closesig    chan bool                        // 关闭的信号
+}
+
+// 事务的请求处理信号
+type transactionSig struct {
+	ask uint8                  // 请求TRANSACTION_ASK_*
+	id  string                 // transaction的id
+	re  chan transactionReturn // 返回值的channel
+}
+
+// 事务请求处理的返回值
+type transactionReturn struct {
+	status uint8        // 状态，TRAN_RETURN_HANDLE_*
+	err    error        // 错误
+	tran   *Transaction // 事务
+}
+
+// 事务
+type Transaction struct {
+	// 事务id
+	id string
+	// 事务内缓存
+	tran_cache map[string]*roleCache
+	// 事务内缓存锁
+	tran_cache_lock *sync.RWMutex
+	// 事务服务
+	tran_service *tranService
+	// 事务的活动日期
+	tran_time time.Time
+	// 事务的信号，要发给transactionOp
+	tran_commit_signal chan *transactionSig
+	// 被删除标记
+	be_delete bool
+}
+
+// 事务的处理机
+type transactionOp struct {
+	signal             chan *transactionSig    // 事务的处理信号
+	transaction        map[string]*Transaction // 事务池
+	max_transaction    int                     // 最大允许事务数
+	count_transaction  int                     // 当前事务数
+	tran_timeout       int64                   // 事务超时时间，单位秒
+	tran_timeout_check int64                   // 事务超时监测时间，单位秒
+	closed             bool                    // 如果关闭就是true
+}
+
+// 事务服务
+type tranService struct {
+	tranop    *transactionOp // 事务处理机
+	rolecache *roleCacheOp   // 角色缓存处理机
+	lock      *sync.RWMutex  // 锁
+}
 
 // 事务统治者
 type TRule struct {
@@ -35,20 +147,8 @@ type TRule struct {
 
 	// 事务服务
 	tran_service *tranService
-	// 事务列表，string为事务的unid
-	transaction map[string]*Transaction
-	// 最大允许事务数
-	max_transaction int
-	// 当前事务数
-	count_transaction int
-	// 事务超时时间，单位秒
-	tran_timeout int64
-	// 事务超时监测时间
-	tran_timeout_check int64
-	// 事务列表锁
-	tran_lock *sync.RWMutex
 	// 事务的信号
-	tran_commit_signal chan *tranCommitSignal
+	transaction_signal chan *transactionSig
 
 	// 正在暂停信号
 	pausing_signal chan bool
@@ -58,89 +158,4 @@ type TRule struct {
 	work_status uint8
 	// 事务等待计数
 	tran_wait *sync.WaitGroup
-}
-
-// 事务
-type Transaction struct {
-	// 事务id
-	unid string
-	// 事务内缓存
-	tran_cache map[string]*roleCache
-	// 事务内缓存锁
-	lock *sync.RWMutex
-	// 事务服务
-	tran_service *tranService
-	// 事务的开始时间
-	tran_time time.Time
-	// 事务的信号，其实是发送给ZrStorage的
-	tran_commit_signal chan *tranCommitSignal
-	// 被删除标记
-	be_delete bool
-}
-
-// 事务服务
-type tranService struct {
-	// 本地存储
-	local_store *hardstorage.HardStorage
-	// 全事务角色缓存
-	role_cache map[string]*roleCache
-	// 全事务角色缓存锁
-	lock *sync.RWMutex
-}
-
-// 角色缓存
-type roleCache struct {
-	// 角色所在分区
-	area string
-	// 当前角色
-	role *roles.RoleMiddleData
-	// 角色的本尊
-	role_store roles.RoleMiddleData
-	// 被删除
-	be_delete uint8
-	// 被修改
-	be_change bool
-	// 占用的事务id
-	tran_id string
-	// 被事务的占用开始时间
-	tran_time time.Time
-	// 请求排队队列
-	wait_line []*tranAskGetRole
-	// 排队锁
-	lock *sync.RWMutex
-}
-
-// 角色的存储类型，也就是角色编码后的内容（使用hardstore中的编码方案）
-type roleStore struct {
-	body []byte
-	rela []byte
-	vers []byte
-}
-
-// 事务的请求角色排队
-type tranAskGetRole struct {
-	// 事务ID
-	tran_id string
-	// 返回句柄
-	approved chan bool
-	// 请求的时间
-	ask_time time.Time
-}
-
-// 事务执行的处理信号
-type tranCommitSignal struct {
-	// 事务ID
-	tran_id string
-	// 请求内容，TRAN_COMMIT_ASK_*
-	ask uint8
-	// 返回句柄
-	return_handle chan tranReturnHandle
-}
-
-// 事务的返回句柄
-type tranReturnHandle struct {
-	// 状态，TRAN_RETURN_HANDLE_*
-	Status uint8
-	// 错误
-	Error error
 }
