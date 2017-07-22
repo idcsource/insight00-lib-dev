@@ -17,72 +17,82 @@ import (
 // 初始化一个空的角色缓存
 func initRoleC(area, id string) (rolec *roleCache) {
 	rolec = &roleCache{
-		area:          area,
-		id:            id,
-		exist:         false,
-		be_delete:     TRAN_ROLE_BE_DELETE_NO,
-		be_change:     false,
-		tran_time:     time.Now(),
-		wait_line:     make([]*cacheAskRole, 0),
-		wait_line_sig: make(chan *cacheAskRole),
-		op_lock:       new(sync.RWMutex),
+		area:           area,
+		id:             id,
+		exist:          false,
+		be_delete:      TRAN_ROLE_BE_DELETE_NO,
+		be_change:      false,
+		tran_time:      time.Now(),
+		wait_line:      make([]*cacheAskRole, 0),
+		wait_line_lock: new(sync.RWMutex),
+		op_lock:        new(sync.RWMutex),
 	}
-	go rolec.listen()
+	//go rolec.listen()
 	return
 }
 
 // 排队信号监听
-func (r *roleCache) listen() {
-	for {
-		wait_sig := <-r.wait_line_sig
-		switch wait_sig.optype {
-		case ROLE_CACHE_ASK_GET:
-			// 请求获取
-			r.askToGet(wait_sig)
-		case ROLE_CACHE_ASK_RELEASE:
-			// 请求释放
-			r.askToRelease(wait_sig)
-		}
-	}
-}
+//func (r *roleCache) listen() {
+//	for {
+//		wait_sig := <-r.wait_line_sig
+//		switch wait_sig.optype {
+//		case ROLE_CACHE_ASK_GET:
+//			// 请求获取
+//			r.askToGet(wait_sig)
+//		case ROLE_CACHE_ASK_RELEASE:
+//			// 请求释放
+//			r.askToRelease(wait_sig)
+//		}
+//	}
+//}
 
 // 处理请求获取的信号
-func (r *roleCache) askToGet(wait_sig *cacheAskRole) {
+func (r *roleCache) askToGet(wait *cacheAskRole) (approved bool) {
+	r.wait_line_lock.Lock()
+	defer r.wait_line_lock.Unlock()
 	towait := false
-	if wait_sig.forwrite == true {
+	if wait.forwrite == true {
 		if r.tran_id == "" {
-			r.tran_id = wait_sig.tran_id
+			r.tran_id = wait.tran_id
 			r.tran_time = time.Now()
-			r.bewrite = true
+			r.forwrite = true
 		} else {
 			towait = true
 		}
 	} else {
-		if r.tran_id != "" || r.bewrite == true {
+		if r.tran_id != "" || r.forwrite == true {
 			towait = true
 		} else {
 			r.tran_time = time.Now()
 		}
 	}
 	if towait == false {
-		// 发送
-		wait_sig.approved <- true
+		// 如果可以给予就发送
+		approved = true
 	} else {
-		r.addWait(wait_sig)
+		// 否则就加入等待，并返回false
+		r.wait_line = append(r.wait_line, wait)
+		approved = false
 	}
+	return
 }
 
-// 处理请求释放的信号
-func (r *roleCache) askToRelease(wait_sig *cacheAskRole) {
+// 处理请求释放的信号，等待队列空就返回true，否则返回false
+func (r *roleCache) askToRelease(wait *cacheAskRole) (approved bool) {
+	r.wait_line_lock.Lock()
+	defer r.wait_line_lock.Unlock()
+
 	r.tran_id = ""
-	r.bewrite = false
+	r.forwrite = false
 
 	waitlen := len(r.wait_line)
 	if waitlen == 0 {
 		// 队列空，就发true给发出释放信号的家伙
-		wait_sig.approved <- true
+		approved = true
 	} else {
 		thenext := r.wait_line[0]
+		// 队列没空，就发false给发出释放信号的家伙
+		approved = false
 		if thenext.forwrite == true {
 			r.tran_id = thenext.tran_id
 		}
@@ -95,9 +105,8 @@ func (r *roleCache) askToRelease(wait_sig *cacheAskRole) {
 			r.wait_line = new_wait_line
 		}
 		thenext.approved <- true
-		// 队列没空，就发false给发出释放信号的家伙
-		wait_sig.approved <- false
 	}
+	return
 }
 
 // 设置角色

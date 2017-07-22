@@ -28,7 +28,7 @@ type roleCache struct {
 	// 当前角色
 	role *roles.RoleMiddleData
 	// 是否为写模式
-	bewrite bool
+	forwrite bool
 	// 被删除，TRAN_ROLE_BE_DELETE_*
 	be_delete uint8
 	// 被修改
@@ -40,7 +40,7 @@ type roleCache struct {
 	// 请求排队队列
 	wait_line []*cacheAskRole
 	// 排队锁
-	wait_line_sig chan *cacheAskRole
+	wait_line_lock *sync.RWMutex
 	// 角色缓存处理锁，由roleCacheOp来操作
 	op_lock *sync.RWMutex
 }
@@ -68,11 +68,13 @@ type roleCacheReturn struct {
 
 // 角色的处理信号
 type roleCacheSig struct {
-	ask    uint8                 // 请求什么 ROLE_CACHE_ASK_*
-	area   string                // 角色的区域
-	id     string                // 角色的id
-	tranid string                // 事务id
-	re     chan *roleCacheReturn // 角色信号的返回
+	ask      uint8                 // 请求什么 ROLE_CACHE_ASK_*
+	area     string                // 角色的区域
+	id       string                // 角色的id
+	tranid   string                // 事务id
+	forwrite bool                  // 是否为了写操作
+	ask_time time.Time             // 请求的时间
+	re       chan *roleCacheReturn // 角色信号的返回
 }
 
 // 角色缓存处理机

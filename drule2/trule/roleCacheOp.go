@@ -100,14 +100,16 @@ func (rco *roleCacheOp) askGetRole(signal *roleCacheSig, write bool) {
 		rco.cache[signal.area][signal.id] = initRoleC(signal.area, signal.id)
 	}
 	// 交给协程去处理，但要先加锁，getRoleFromStorage中要释放这个锁
-	rolec.op_lock.Lock()
 	go rco.getRoleFromStorage(signal, rolec, write)
 }
 
 // get role from hardstorage
 func (rco *roleCacheOp) getRoleFromStorage(signal *roleCacheSig, rolec *roleCache, write bool) {
-	re := &roleCacheReturn{}
+	rolec.op_lock.Lock()
+	// 解锁这个缓存
+	rolec.op_lock.Unlock()
 
+	re := &roleCacheReturn{}
 	if rolec.exist == false && rolec.role == nil {
 		// 如果确定是没有
 		therole, exist, err := rco.local_store.RoleReadMiddleData(signal.area, signal.id)
@@ -138,10 +140,22 @@ func (rco *roleCacheOp) getRoleFromStorage(signal *roleCacheSig, rolec *roleCach
 		re.status = ROLE_CACHE_RETURN_HANDLE_OK
 		re.role = rolec
 	}
+	// 尝试排队
+	askrole := &cacheAskRole{
+		tran_id:  signal.tranid,
+		forwrite: signal.forwrite,
+		approved: make(chan bool),
+		ask_time: signal.ask_time,
+	}
+	approved := rolec.askToGet(askrole)
+	if approved == false {
+		// 进入排队的话就去监听等待
+		<-askrole.approved
+	}
+
 	// 发送这个re
 	signal.re <- re
-	// 解锁这个缓存
-	rolec.op_lock.Unlock()
+
 	// 在这里构建清理规则
 	//	if rco.clean_count >= ROLE_CACHE_CLEAN_CYCLE {
 	//		go rco.consCleanSig()
