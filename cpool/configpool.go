@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/pubfunc"
 )
 
 // Create new configure pool, and analyze the config files.

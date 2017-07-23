@@ -69,10 +69,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/hardstore"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/hardstore"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/nst"
 )
 
 // 创建一个锆存储，config的实例见源代码的zrstorage.cfg

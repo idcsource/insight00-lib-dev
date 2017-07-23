@@ -10,7 +10,7 @@
 package smcs
 
 import(
-	"github.com/idcsource/Insight-0-0-lib/cpool"
+	"github.com/idcsource/insight00-lib/cpool"
 )
 
 const (

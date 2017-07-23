@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 // Split the string, if trim is true, the split with out space.

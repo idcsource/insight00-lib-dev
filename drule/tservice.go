@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 读取角色，lockmode为TRAN_LOCK_MODE_*

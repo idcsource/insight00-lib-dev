@@ -9,7 +9,7 @@
 package rolesio
 
 import (
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // RolesInOutManager 是一个角色永久存储的读写接口。

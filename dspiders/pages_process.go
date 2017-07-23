@@ -12,9 +12,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/pubfunc"
 )
 
 // Handle the store for pages when the crawler get the page.

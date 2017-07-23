@@ -10,9 +10,9 @@ package webs2
 import (
 	"regexp"
 
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/pubfunc"
 )
 
 // 创建路由器，在NewWeb()中调用，不需要手动调用

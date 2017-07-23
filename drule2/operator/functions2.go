@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/iendecode"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 是否存在这个角色

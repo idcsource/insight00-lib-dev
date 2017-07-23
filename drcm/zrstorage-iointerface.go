@@ -12,9 +12,9 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/random"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/nst"
+	"github.com/idcsource/insight00-lib/random"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 从永久存储读出一个角色

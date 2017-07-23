@@ -10,9 +10,9 @@ package hardstore
 import (
 	"fmt"
 
-	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/random"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/nst"
+	"github.com/idcsource/insight00-lib/random"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 解码一个角色，将二进制的角色存储进行解码

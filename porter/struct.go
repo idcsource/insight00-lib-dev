@@ -60,11 +60,11 @@
 package porter
 
 import (
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesio"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/nst"
+	"github.com/idcsource/insight00-lib/roles"
+	"github.com/idcsource/insight00-lib/rolesio"
 )
 
 // 接收者接收后的处理方法，保存还是交由处理函数处理

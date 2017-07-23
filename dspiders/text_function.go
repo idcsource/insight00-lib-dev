@@ -18,8 +18,8 @@ import (
 	iconv "github.com/djimenez/iconv-go"
 	"github.com/saintfish/chardet"
 
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 // let string to index char

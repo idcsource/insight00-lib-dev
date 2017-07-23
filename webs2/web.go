@@ -12,13 +12,13 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/drule"
-	drule2 "github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	trule2 "github.com/idcsource/Insight-0-0-lib/drule2/trule"
-	"github.com/idcsource/Insight-0-0-lib/idb"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/drule"
+	drule2 "github.com/idcsource/insight00-lib/drule2/operator"
+	trule2 "github.com/idcsource/insight00-lib/drule2/trule"
+	"github.com/idcsource/insight00-lib/idb"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/pubfunc"
 )
 
 // 创建一个Web，db数据库和log日志可以为nil

@@ -13,7 +13,7 @@ import(
 	"strings"
 	"os"
 	
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/pubfunc"
 )
 
 // FloorInterface 此为控制器接口的定义

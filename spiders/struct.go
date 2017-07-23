@@ -13,12 +13,12 @@ package spiders
 import (
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/bridges"
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/rcontrol"
-	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesplus"
-	"github.com/idcsource/Insight-0-0-lib/smcs2"
+	"github.com/idcsource/insight00-lib/bridges"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/rcontrol"
+	"github.com/idcsource/insight00-lib/roles"
+	"github.com/idcsource/insight00-lib/rolesplus"
+	"github.com/idcsource/insight00-lib/smcs2"
 )
 
 const (

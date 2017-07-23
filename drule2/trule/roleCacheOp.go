@@ -10,8 +10,8 @@ package trule
 import (
 	"fmt"
 
-	"github.com/idcsource/Insight-0-0-lib/drule2/hardstorage"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/insight00-lib/drule2/hardstorage"
+	"github.com/idcsource/insight00-lib/ilogs"
 )
 
 // 初始化roleCacheOp

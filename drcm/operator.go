@@ -12,11 +12,11 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/idcsource/Insight-0-0-lib/hardstore"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/random"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/hardstore"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/nst"
+	"github.com/idcsource/insight00-lib/random"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 新建一个操作机，addr和code是默认的ZrStorage的地址（含端口号）和身份码，conn_num为连接池的个数

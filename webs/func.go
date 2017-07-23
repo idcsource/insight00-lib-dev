@@ -11,7 +11,7 @@ import (
 	"strings"
 	"regexp"
 	
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 func strpos(str,substr string) int {  

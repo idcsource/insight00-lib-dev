@@ -11,13 +11,13 @@ import (
 	"encoding/gob"
 	"fmt"
 
-	"github.com/idcsource/Insight-0-0-lib/bridges"
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/random"
-	"github.com/idcsource/Insight-0-0-lib/rcontrol"
-	"github.com/idcsource/Insight-0-0-lib/rolesplus"
-	"github.com/idcsource/Insight-0-0-lib/smcs2"
+	"github.com/idcsource/insight00-lib/bridges"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/random"
+	"github.com/idcsource/insight00-lib/rcontrol"
+	"github.com/idcsource/insight00-lib/rolesplus"
+	"github.com/idcsource/insight00-lib/smcs2"
 )
 
 // 注册"encoding/gob"所用的类型，如果调用了NewSpider()方法，则不需要再使用这个方法

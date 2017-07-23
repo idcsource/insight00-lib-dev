@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst2"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/drule2/trule"
+	"github.com/idcsource/insight00-lib/iendecode"
+	"github.com/idcsource/insight00-lib/nst2"
 )
 
 // 新建一个中央蔓延点，这里的name也将作为配置节点的名称前缀

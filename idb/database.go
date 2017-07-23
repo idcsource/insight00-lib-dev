@@ -14,8 +14,8 @@ import (
 
 	_ "github.com/lib/pq"
 
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/ilogs"
 )
 
 type DB struct {

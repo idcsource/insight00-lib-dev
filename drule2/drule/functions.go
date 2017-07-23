@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 // 工作状态

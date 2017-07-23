@@ -11,9 +11,9 @@
 package webs
 
 import (
-	"github.com/idcsource/Insight-0-0-lib/idb"
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/insight00-lib/idb"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/ilogs"
 )
 
 const (

@@ -13,8 +13,8 @@ import (
 )
 
 import (
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/iendecode"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 // 设置或修改用户的密码

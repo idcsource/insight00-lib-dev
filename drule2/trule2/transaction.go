@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/iendecode"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 返回事务的ID

@@ -26,13 +26,13 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
-	"github.com/idcsource/Insight-0-0-lib/random"
-	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesio"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/iendecode"
+	"github.com/idcsource/insight00-lib/nst"
+	"github.com/idcsource/insight00-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/random"
+	"github.com/idcsource/insight00-lib/roles"
+	"github.com/idcsource/insight00-lib/rolesio"
 )
 
 // 新建一个存储实例，如果配置文件缺失必须的配置项或配置项中指定路径无法操作都将返回错误

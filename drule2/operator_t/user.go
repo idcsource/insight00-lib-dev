@@ -10,7 +10,7 @@ package operator_t
 import (
 	"fmt"
 
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/drule2/operator"
 )
 
 // user的命令执行器，从split[1]开始

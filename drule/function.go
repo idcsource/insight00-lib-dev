@@ -8,7 +8,7 @@
 package drule
 
 import (
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/insight00-lib/nst"
 )
 
 // 向slave发送前导状态，也就是身份验证码和要操作的状态，并获取slave是否可以继续传输的要求

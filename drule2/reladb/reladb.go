@@ -12,12 +12,12 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
-	"github.com/idcsource/Insight-0-0-lib/random"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/drule2/trule"
+	"github.com/idcsource/insight00-lib/iendecode"
+	"github.com/idcsource/insight00-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/random"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // Use TRule to create new relational database.

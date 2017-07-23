@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/drule2/trule"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 // 新建一个分布式统治者

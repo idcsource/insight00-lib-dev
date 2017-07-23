@@ -8,7 +8,7 @@
 package drule
 
 import (
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/insight00-lib/ilogs"
 )
 
 // 这叫做“操作机”，是用来远程连接DRule的。

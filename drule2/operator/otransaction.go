@@ -12,9 +12,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst2"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/iendecode"
+	"github.com/idcsource/insight00-lib/nst2"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 func (o *OTransaction) operatorSend(process *nst2.CConnect, areaid, roleid string, oz OperateZone, operate OperatorType, data []byte) (receipt O_DRuleReceipt, err error) {

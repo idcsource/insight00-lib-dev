@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
+	"github.com/idcsource/insight00-lib/iendecode"
 )
 
 // 编码角色，将角色编码为中期存储格式

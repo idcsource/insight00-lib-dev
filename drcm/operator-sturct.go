@@ -10,7 +10,7 @@ package drcm
 import (
 	"sync"
 
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/insight00-lib/ilogs"
 )
 
 // 这是“操作机”，也就是具体对控制器进行操作的方法。可以对配置中所有的主控制器进行镜像访问。

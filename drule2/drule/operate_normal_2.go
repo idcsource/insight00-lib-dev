@@ -10,10 +10,10 @@ package drule
 import (
 	"strings"
 
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst2"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/iendecode"
+	"github.com/idcsource/insight00-lib/nst2"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 存在角色吗

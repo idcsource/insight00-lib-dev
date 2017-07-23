@@ -10,8 +10,8 @@ package drule
 import (
 	"fmt"
 
-	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/nst"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 为WriteSometing的设置父角色（事务版）

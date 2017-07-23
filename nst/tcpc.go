@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/bridges"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/bridges"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 // TCP的客户端

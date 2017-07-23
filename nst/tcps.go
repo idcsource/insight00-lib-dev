@@ -13,7 +13,7 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/insight00-lib/ilogs"
 )
 
 // 这是一个使用Tcp协议的服务器端监听组件。

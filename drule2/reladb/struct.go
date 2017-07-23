@@ -8,9 +8,9 @@
 package reladb
 
 import (
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	"github.com/idcsource/Insight-0-0-lib/drule2/trule"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/drule2/trule"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // The tables control Role. id:TABLE_CONTROL_NAME

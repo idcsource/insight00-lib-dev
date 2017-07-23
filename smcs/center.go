@@ -10,9 +10,9 @@ package smcs
 import (
 	"fmt"
 
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/nst"
 )
 
 // 实现了nst.ConnExecer的接口。可以接收Tcp Server所传回的连接。

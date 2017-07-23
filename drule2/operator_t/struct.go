@@ -17,7 +17,7 @@ package operator_t
 import (
 	"regexp"
 
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/drule2/operator"
 )
 
 type OperatorT struct {

@@ -10,9 +10,9 @@ package smcs2
 import (
 	"fmt"
 
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
-	"github.com/idcsource/Insight-0-0-lib/nst2"
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/iendecode"
+	"github.com/idcsource/insight00-lib/nst2"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 // 新建一个为节点使用的配置蔓延

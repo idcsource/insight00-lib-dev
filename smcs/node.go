@@ -11,11 +11,11 @@ import (
 	"time"
 	"fmt"
 	
-	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/rolesplus"
-	"github.com/idcsource/Insight-0-0-lib/random"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/bridges"
+	"github.com/idcsource/insight00-lib/nst"
+	"github.com/idcsource/insight00-lib/rolesplus"
+	"github.com/idcsource/insight00-lib/random"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/bridges"
 )
 
 // NodeSmcs 节点状态的设置以及定期的发送。

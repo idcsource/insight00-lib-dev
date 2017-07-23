@@ -14,10 +14,10 @@ import (
 	"reflect"
 	"os"
 	
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/idb"
+	"github.com/idcsource/insight00-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/idb"
 )
 
 // 建立一个新的Web，其中name是config中block的名字

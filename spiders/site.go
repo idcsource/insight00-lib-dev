@@ -21,13 +21,13 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	opencc "github.com/stevenyao/go-opencc"
 	
-	"github.com/idcsource/Insight-0-0-lib/rcontrol"
-	"github.com/idcsource/Insight-0-0-lib/random"
-	"github.com/idcsource/Insight-0-0-lib/bridges"
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
-	"github.com/idcsource/Insight-0-0-lib/rolesplus"
+	"github.com/idcsource/insight00-lib/rcontrol"
+	"github.com/idcsource/insight00-lib/random"
+	"github.com/idcsource/insight00-lib/bridges"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/roles"
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/rolesplus"
 )
 
 // 由运行中的Spider调用，新建对某个站点的抓取。

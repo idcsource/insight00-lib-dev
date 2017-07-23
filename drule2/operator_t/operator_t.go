@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/drule2/operator"
 )
 
 // 创建

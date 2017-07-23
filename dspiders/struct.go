@@ -10,9 +10,9 @@ package dspiders
 import (
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/drule2/operator"
-	"github.com/idcsource/Insight-0-0-lib/drule2/reladb"
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/drule2/operator"
+	"github.com/idcsource/insight00-lib/drule2/reladb"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // The Url basic information for url queue channel

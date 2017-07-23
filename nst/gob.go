@@ -12,7 +12,7 @@ import (
 	"encoding/gob"
 	"reflect"
 
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 将结构体数据转成Gob再转成[]Byte

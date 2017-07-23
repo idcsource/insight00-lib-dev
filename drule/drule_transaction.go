@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/idcsource/Insight-0-0-lib/hardstore"
-	"github.com/idcsource/Insight-0-0-lib/nst"
+	"github.com/idcsource/insight00-lib/hardstore"
+	"github.com/idcsource/insight00-lib/nst"
 )
 
 // 创建事务

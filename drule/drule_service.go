@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/nst"
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/nst"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 // ExecTCP nst的ConnExecer接口

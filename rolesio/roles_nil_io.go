@@ -8,7 +8,7 @@
 package rolesio
 
 import (
-	"github.com/idcsource/Insight-0-0-lib/roles"
+	"github.com/idcsource/insight00-lib/roles"
 
 	"errors"
 )

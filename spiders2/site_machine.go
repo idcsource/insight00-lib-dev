@@ -21,8 +21,8 @@ import (
 	"github.com/saintfish/chardet"
 	opencc "github.com/stevenyao/go-opencc"
 
-	"github.com/idcsource/Insight-0-0-lib/drule"
-	"github.com/idcsource/Insight-0-0-lib/random"
+	"github.com/idcsource/insight00-lib/drule"
+	"github.com/idcsource/insight00-lib/random"
 )
 
 // 启动站点机器

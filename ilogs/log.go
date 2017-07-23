@@ -14,7 +14,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/idcsource/Insight-0-0-lib/pubfunc"
+	"github.com/idcsource/insight00-lib/pubfunc"
 )
 
 // ilogs日志结构

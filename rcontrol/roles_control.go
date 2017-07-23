@@ -28,9 +28,9 @@ import(
 	"errors"
 	"sync"
 	
-	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesio"
-	"github.com/idcsource/Insight-0-0-lib/ilogs"
+	"github.com/idcsource/insight00-lib/roles"
+	"github.com/idcsource/insight00-lib/rolesio"
+	"github.com/idcsource/insight00-lib/ilogs"
 )
 
 

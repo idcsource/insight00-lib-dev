@@ -10,9 +10,9 @@ package hardstore
 import (
 	"time"
 
-	"github.com/idcsource/Insight-0-0-lib/cpool"
-	"github.com/idcsource/Insight-0-0-lib/roles"
-	"github.com/idcsource/Insight-0-0-lib/rolesio"
+	"github.com/idcsource/insight00-lib/cpool"
+	"github.com/idcsource/insight00-lib/roles"
+	"github.com/idcsource/insight00-lib/rolesio"
 )
 
 // 存储器类型

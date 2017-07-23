@@ -8,7 +8,7 @@
 package webs2
 
 import (
-	"github.com/idcsource/Insight-0-0-lib/cpool"
+	"github.com/idcsource/insight00-lib/cpool"
 )
 
 // 创建根节点，内部调用使用，不需要直接新建

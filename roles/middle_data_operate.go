@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
+	"github.com/idcsource/insight00-lib/iendecode"
 )
 
 // 获取自己的版本

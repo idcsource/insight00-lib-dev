@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/idcsource/Insight-0-0-lib/iendecode"
+	"github.com/idcsource/insight00-lib/iendecode"
 )
 
 // 发送接收数据结构。发送数据的方法必须使用对应类型的接收方法进行接收
