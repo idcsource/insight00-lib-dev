@@ -29,6 +29,10 @@ func initRoleCacheOp(local_store *hardstorage.HardStorage, log *ilogs.Logs) (rco
 	return
 }
 
+func (rco *roleCacheOp) ReturnSig() (sig chan *roleCacheSig) {
+	return rco.signal
+}
+
 // Start
 func (rco *roleCacheOp) Start() {
 	rco.closed = false
@@ -223,6 +227,11 @@ func (rco *roleCacheOp) getRoleFromStorage(signal *roleCacheSig, rolec *roleCach
 
 	// 发送这个re
 	signal.re <- re
+
+	// 查看是否清理
+	if rco.clean_count >= ROLE_CACHE_CLEAN_CYCLE {
+		go rco.consCleanSig()
+	}
 }
 
 // ask clean roles

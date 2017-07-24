@@ -91,9 +91,9 @@ type roleCacheOp struct {
 
 // 事务的请求处理信号
 type transactionSig struct {
-	ask uint8                  // 请求TRANSACTION_ASK_*
-	id  string                 // transaction的id
-	re  chan transactionReturn // 返回值的channel
+	ask uint8                   // 请求TRANSACTION_ASK_*
+	id  string                  // transaction的id
+	re  chan *transactionReturn // 返回值的channel
 }
 
 // 事务请求处理的返回值
@@ -111,12 +111,12 @@ type Transaction struct {
 	tran_cache map[string]*roleCache
 	// 事务内缓存锁
 	tran_cache_lock *sync.RWMutex
-	// 事务服务
-	tran_service *tranService
+	// 缓存处理机的信号
+	role_cache chan *roleCacheSig
+	// 事务处理机的信号
+	tran_sig chan *transactionSig
 	// 事务的活动日期
 	tran_time time.Time
-	// 事务的信号，要发给transactionOp
-	tran_commit_signal chan *transactionSig
 	// 被删除标记
 	be_delete bool
 }
@@ -125,18 +125,13 @@ type Transaction struct {
 type transactionOp struct {
 	signal             chan *transactionSig    // 事务的处理信号
 	transaction        map[string]*Transaction // 事务池
+	roleCache          chan *roleCacheSig      // 缓存处理机的信号
 	max_transaction    int                     // 最大允许事务数
 	count_transaction  int                     // 当前事务数
 	tran_timeout       int64                   // 事务超时时间，单位秒
 	tran_timeout_check int64                   // 事务超时监测时间，单位秒
-	closed             bool                    // 如果关闭就是true
-}
-
-// 事务服务
-type tranService struct {
-	tranop    *transactionOp // 事务处理机
-	rolecache *roleCacheOp   // 角色缓存处理机
-	lock      *sync.RWMutex  // 锁
+	closed             uint8                   // 真正关闭是2,配置成关闭是1,正常运行是0
+	closesig           chan bool               // 关闭的信号
 }
 
 // 事务统治者
@@ -152,8 +147,8 @@ type TRule struct {
 
 	/* 下面是事务相关部分 */
 
-	// 事务服务
-	tran_service *tranService
+	// 角色缓存的信号
+	role_cache_sig chan *roleCacheSig
 	// 事务的信号
 	transaction_signal chan *transactionSig
 
