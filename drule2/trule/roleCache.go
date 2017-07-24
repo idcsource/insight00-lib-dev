@@ -20,6 +20,7 @@ func initRoleC(area, id string) (rolec *roleCache) {
 		area:           area,
 		id:             id,
 		exist:          false,
+		forwrite:       false,
 		be_delete:      TRAN_ROLE_BE_DELETE_NO,
 		be_change:      false,
 		tran_time:      time.Now(),
@@ -78,7 +79,7 @@ func (r *roleCache) askToGet(wait *cacheAskRole) (approved bool) {
 }
 
 // 处理请求释放的信号，等待队列空就返回true，否则返回false
-func (r *roleCache) askToRelease(wait *cacheAskRole) (approved bool) {
+func (r *roleCache) askToRelease() (approved bool) {
 	r.wait_line_lock.Lock()
 	defer r.wait_line_lock.Unlock()
 
@@ -95,6 +96,10 @@ func (r *roleCache) askToRelease(wait *cacheAskRole) (approved bool) {
 		approved = false
 		if thenext.forwrite == true {
 			r.tran_id = thenext.tran_id
+			r.forwrite = true
+		} else {
+			r.tran_id = ""
+			r.forwrite = false
 		}
 		r.tran_time = time.Now()
 

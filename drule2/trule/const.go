@@ -11,6 +11,7 @@ const (
 	TRANSACTION_SIGNAL_CHANNEL_LEN = 2   // 事务信号channel的大小
 	ROLE_CACHE_SIGNAL_CHANNEL_LEN  = 2   // 角色缓存信号channel的大小
 	ROLE_CACHE_CLEAN_CYCLE         = 200 // 角色缓存的清理周期，每几次有效的角色请求之后进行
+	ROLE_CACHE_CLEAN_TIME_OUT      = 600 // 超时的角色缓存时间，超时这段时间后就会被清理，单位秒
 )
 
 const (

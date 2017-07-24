@@ -19,20 +19,23 @@ import (
 
 // 单个角色缓存
 type roleCache struct {
-	// 角色所在分区
+	// 角色缓存处理锁，由roleCacheOp来操作
+	op_lock *sync.RWMutex
+	// 角色所在分区，roleCacheOp管理
 	area string
-	// 角色的id
+	// 角色的id，roleCacheOp管理
 	id string
-	// 角色是否真正存在
+	// 角色是否真正存在，roleCacheOp管理
 	exist bool
-	// 当前角色
+	// 当前角色，roleCacheOp管理
 	role *roles.RoleMiddleData
-	// 是否为写模式
+	// 是否为写模式，roleCacheOp管理
 	forwrite bool
-	// 被删除，TRAN_ROLE_BE_DELETE_*
+	// 被删除，TRAN_ROLE_BE_DELETE_*，roleCacheOp管理
 	be_delete uint8
-	// 被修改
+	// 被修改，roleCacheOp管理
 	be_change bool
+
 	// 占用的事务id
 	tran_id string
 	// 被事务的占用开始时间
@@ -41,8 +44,6 @@ type roleCache struct {
 	wait_line []*cacheAskRole
 	// 排队锁
 	wait_line_lock *sync.RWMutex
-	// 角色缓存处理锁，由roleCacheOp来操作
-	op_lock *sync.RWMutex
 }
 
 // 事务的等待角色排队

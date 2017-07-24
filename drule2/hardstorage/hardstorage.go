@@ -71,7 +71,7 @@ func (h *HardStorage) roleExist(area, roleid string) (have bool, filename string
 }
 
 // 读取角色的中间数据格式
-func (h *HardStorage) RoleReadMiddleData(area, roleid string) (rolemid roles.RoleMiddleData, exist bool, err error) {
+func (h *HardStorage) RoleReadMiddleData(area, roleid string) (rolemid *roles.RoleMiddleData, exist bool, err error) {
 	// 查看角色是否存在
 	have, f_name := h.roleExist(area, roleid)
 	if have == false {
@@ -126,7 +126,7 @@ func (h *HardStorage) RoleReadMiddleData(area, roleid string) (rolemid roles.Rol
 	}
 
 	// 合成中间数据
-	rolemid = roles.RoleMiddleData{
+	rolemid = &roles.RoleMiddleData{
 		Version:        f_version,
 		VersionChange:  false,
 		Relation:       f_relation,
@@ -205,7 +205,7 @@ func (h *HardStorage) RoleAddMiddleData(area string, mid roles.RoleMiddleData) (
 }
 
 // 存储一个角色角色的中间格式（不检查是否存在）
-func (h *HardStorage) RoleStoreMiddleData(area string, mid roles.RoleMiddleData) (err error) {
+func (h *HardStorage) RoleStoreMiddleData(area string, mid *roles.RoleMiddleData) (err error) {
 	// 检查区域是否合法
 	allow := CheckAreaName(area)
 	if allow == false {
@@ -223,7 +223,7 @@ func (h *HardStorage) RoleStoreMiddleData(area string, mid roles.RoleMiddleData)
 	// 获取文件名
 	_, f_name := h.roleExist(area, roleid)
 	// 去存
-	err = h.storeRoleMiddle(f_name, &mid)
+	err = h.storeRoleMiddle(f_name, mid)
 	if err != nil {
 		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: %v", err)
 	}
