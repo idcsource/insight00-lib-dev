@@ -78,14 +78,14 @@ func (t *Transaction) getRole(area, id string, forwrite bool) (rolec *roleCache,
 }
 
 // 获取一个角色（有可能是空的，这通常是用来新建一个角色），forwrite是true就是为了写
-func (t *Transaction) getRoleForNew(area, id string, forwrite bool) (rolec *roleCache, err error) {
+func (t *Transaction) getRoleForNew(area, id string) (rolec *roleCache, err error) {
 	// 构建信号
 	role_cache_sig := &roleCacheSig{
 		ask:      ROLE_CACHE_ASK_WRITE,
 		area:     area,
 		id:       id,
 		tranid:   t.id,
-		forwrite: forwrite,
+		forwrite: true,
 		ask_time: time.Now(),
 		re:       make(chan *roleCacheReturn),
 	}
@@ -98,16 +98,14 @@ func (t *Transaction) getRoleForNew(area, id string, forwrite bool) (rolec *role
 		return
 	}
 	rolec = sigre.role
-	// 如果是为了写，就加入自己的缓存
-	if forwrite == true {
-		t.role_cache_lock.Lock()
-		if _, have := t.role_cache[area]; have == false {
-			t.role_cache[area] = make(map[string]*roleCache)
-			t.role_cache_name[area] = make(map[string]bool)
-		}
-		t.role_cache[area][id] = rolec
-		t.role_cache_name[area][id] = true
-		t.role_cache_lock.Unlock()
+	// 加入自己的缓存
+	t.role_cache_lock.Lock()
+	if _, have := t.role_cache[area]; have == false {
+		t.role_cache[area] = make(map[string]*roleCache)
+		t.role_cache_name[area] = make(map[string]bool)
 	}
+	t.role_cache[area][id] = rolec
+	t.role_cache_name[area][id] = true
+	t.role_cache_lock.Unlock()
 	return
 }
