@@ -27,6 +27,7 @@ func initRoleC(area, id string) (rolec *roleCache) {
 		wait_line:      make([]*cacheAskRole, 0),
 		wait_line_lock: new(sync.RWMutex),
 		op_lock:        new(sync.RWMutex),
+		role_lock:      new(sync.RWMutex),
 	}
 	//go rolec.listen()
 	return

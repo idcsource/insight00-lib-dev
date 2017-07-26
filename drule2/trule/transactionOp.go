@@ -72,7 +72,9 @@ func (top *transactionOp) doSignal(sig *transactionSig) {
 	case TRANSACTION_ASK_BEGIN:
 		top.toBegin(sig)
 	case TRANSACTION_ASK_COMMIT:
+		top.toCommit(sig)
 	case TRANSACTION_ASK_ROLLBACK:
+		top.toRollback(sig)
 	case TRANSACTION_ASK_CLEAN:
 
 	}
@@ -83,6 +85,7 @@ func (top *transactionOp) toBegin(sig *transactionSig) {
 	unid := random.Unid(1, time.Now().String())
 	tran := initTransaction(unid, top.signal, top.roleCache)
 	top.transaction[unid] = tran
+	top.count_transaction++
 	go top.gotoBegin(sig, tran)
 }
 
@@ -93,4 +96,48 @@ func (top *transactionOp) gotoBegin(sig *transactionSig, tran *Transaction) {
 		tran:   tran,
 	}
 	sig.re <- re
+}
+
+// 处理commit信号
+func (top *transactionOp) toCommit(sig *transactionSig) {
+	tran, have := top.transaction[sig.id]
+	if have == false {
+		re := &transactionReturn{
+			status: TRAN_RETURN_HANDLE_ERROR,
+			err:    fmt.Errorf("The transaction not exist."),
+		}
+		sig.re <- re
+		return
+	}
+	tran.be_delete = true
+	delete(top.transaction, sig.id)
+	top.count_transaction--
+	go top.gotoCommit(sig, tran)
+}
+
+// 协程中的commit
+func (top *transactionOp) gotoCommit(sig *transactionSig, tran *Transaction) {
+
+}
+
+// 处理rollback信号
+func (top *transactionOp) toRollback(sig *transactionSig) {
+	tran, have := top.transaction[sig.id]
+	if have == false {
+		re := &transactionReturn{
+			status: TRAN_RETURN_HANDLE_ERROR,
+			err:    fmt.Errorf("The transaction not exist."),
+		}
+		sig.re <- re
+		return
+	}
+	tran.be_delete = true
+	delete(top.transaction, sig.id)
+	top.count_transaction--
+	go top.gotoRollback(sig, tran)
+}
+
+// 协程中的rollback
+func (top *transactionOp) gotoRollback(sig *transactionSig, tran *Transaction) {
+
 }

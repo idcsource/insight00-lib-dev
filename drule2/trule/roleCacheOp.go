@@ -184,6 +184,7 @@ func (rco *roleCacheOp) getRoleFromStorage(signal *roleCacheSig, rolec *roleCach
 		// 如果确定是没有
 		therole, exist, err := rco.local_store.RoleReadMiddleData(signal.area, signal.id)
 		if err != nil {
+			re.exist = false
 			if write == false {
 				re.err = err
 				re.status = ROLE_CACHE_RETURN_HANDLE_ERROR
@@ -192,6 +193,7 @@ func (rco *roleCacheOp) getRoleFromStorage(signal *roleCacheSig, rolec *roleCach
 				rco.clean_count++
 			}
 		} else if exist == false {
+			re.exist = false
 			if write == false {
 				re.err = fmt.Errorf("The Role not exist.")
 				re.status = ROLE_CACHE_RETURN_HANDLE_ERROR
@@ -200,6 +202,7 @@ func (rco *roleCacheOp) getRoleFromStorage(signal *roleCacheSig, rolec *roleCach
 				rco.clean_count++
 			}
 		} else {
+			re.exist = true
 			re.status = ROLE_CACHE_RETURN_HANDLE_OK
 			rolec.role = therole
 			rolec.exist = true
@@ -207,6 +210,7 @@ func (rco *roleCacheOp) getRoleFromStorage(signal *roleCacheSig, rolec *roleCach
 			rco.clean_count++
 		}
 	} else {
+		re.exist = true
 		re.status = ROLE_CACHE_RETURN_HANDLE_OK
 		re.role = rolec
 	}

@@ -29,11 +29,13 @@ type roleCache struct {
 	exist bool
 	// 当前角色，roleCacheOp管理
 	role *roles.RoleMiddleData
+	// 事务中操作的锁，由Transaction操作
+	role_lock *sync.RWMutex
 	// 是否为写模式，roleCacheOp管理
 	forwrite bool
-	// 被删除，TRAN_ROLE_BE_DELETE_*，roleCacheOp管理
+	// 被删除，TRAN_ROLE_BE_DELETE_*，roleCacheOp管理，由Transaction操作
 	be_delete uint8
-	// 被修改，roleCacheOp管理
+	// 被修改，roleCacheOp管理，由Transaction操作
 	be_change bool
 
 	// 占用的事务id
@@ -63,6 +65,7 @@ type cacheAskRole struct {
 // 角色信号的返回
 type roleCacheReturn struct {
 	status uint8      // 状态，ROLE_CACHE_RETURN_HANDLE_*
+	exist  bool       // 是否存在
 	err    error      // 错误
 	role   *roleCache // 获得这个角色
 }
@@ -107,12 +110,14 @@ type transactionReturn struct {
 type Transaction struct {
 	// 事务id
 	id string
-	// 事务内缓存
-	tran_cache map[string]*roleCache
-	// 事务内缓存锁
-	tran_cache_lock *sync.RWMutex
+	// 事务内角色缓存
+	role_cache map[string]map[string]*roleCache
+	// 事务内角色缓存名称
+	role_cache_name map[string]map[string]bool
+	// 事务内角色缓存锁
+	role_cache_lock *sync.RWMutex
 	// 缓存处理机的信号
-	role_cache chan *roleCacheSig
+	role_cache_sig chan *roleCacheSig
 	// 事务处理机的信号
 	tran_sig chan *transactionSig
 	// 事务的活动日期
