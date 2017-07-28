@@ -1,15 +1,16 @@
 // Copyright 2016-2017
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
-// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idcsource@gmail.com
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
-// Use of this source code is governed by GNU LGPL v3 license
+// This source code is governed by GNU LGPL v3 license
 
 package roles
 
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/idcsource/insight00-lib/iendecode"
 )
@@ -44,7 +45,7 @@ func EncodeRoleToMiddle(role Roleer) (mid RoleMiddleData, err error) {
 
 	// 这里是开始准备生成数据
 	mid.Data = RoleDataPoint{
-		Point: make(map[string][]byte),
+		Point: make(map[string]interface{}),
 	}
 
 	role_v := reflect.ValueOf(role).Elem()
@@ -60,6 +61,7 @@ func EncodeRoleToMiddle(role Roleer) (mid RoleMiddleData, err error) {
 			continue
 		}
 		field_name := field_t.Name
+		field_type := field_t.Type.String()
 		mid.Data.Point[field_name], err = iendecode.StructGobBytes(field_v.Interface())
 		if err != nil {
 			err = fmt.Errorf("roles[RoleMiddleData]EncodeRoleToMiddle: %v", err)
@@ -107,4 +109,16 @@ func DecodeMiddleToRole(mid RoleMiddleData, role Roleer) (err error) {
 	}
 
 	return
+}
+
+func typeWithIn(name string) (in bool) {
+	name = strings.ToLower(name)
+	types := []string{
+		"bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "complex64", "complex128", "string",
+	}
+	for _, the := range types {
+		if name == the {
+
+		}
+	}
 }

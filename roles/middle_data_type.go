@@ -1,9 +1,9 @@
 // Copyright 2016-2017
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
-// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idcsource
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
-// Use of this source code is governed by GNU LGPL v3 license
+// This source code is governed by GNU LGPL v3 license
 
 package roles
 
@@ -22,7 +22,7 @@ type RoleRelation struct {
 }
 
 type RoleDataPoint struct {
-	Point map[string][]byte
+	Point map[string]interface{}
 }
 
 // 角色的中期存储类型
