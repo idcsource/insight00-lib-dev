@@ -586,14 +586,14 @@ func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUp
 	return
 }
 
-func (r *RoleMiddleData) GetDataToByte(name string) (b []byte, err error) {
-	var find bool
-	b, find = r.Data.Point[name]
-	if find == false {
-		err = fmt.Errorf("roles[RoleMiddleData]GetDataToByte: Can not find the data.")
-	}
-	return
-}
+//func (r *RoleMiddleData) GetDataToByte(name string) (b []byte, err error) {
+//	var find bool
+//	b, find = r.Data.Point[name]
+//	if find == false {
+//		err = fmt.Errorf("roles[RoleMiddleData]GetDataToByte: Can not find the data.")
+//	}
+//	return
+//}
 
 // 中间类型的获取数据
 func (r *RoleMiddleData) GetData(name string, datas interface{}) (err error) {
@@ -610,7 +610,14 @@ func (r *RoleMiddleData) GetData(name string, datas interface{}) (err error) {
 		err = fmt.Errorf("roles[RoleMiddleData]GetData: Can not find the field %v", name)
 		return
 	}
-	err = iendecode.BytesGobStruct(r.Data.Point[name], datas)
+	datas_v := reflect.ValueOf(datas)
+	datas_t := datas_v.Type().String()
+	if in := typeWithIn(datas_t); in == true {
+		fv := reflect.ValueOf(r.Data.Point[name])
+		datas_v.Set(fv)
+	} else {
+		err = iendecode.BytesGobStruct(r.Data.Point[name].([]byte), datas)
+	}
 	if err != nil {
 		err = fmt.Errorf("roles[RoleMiddleData]GetData: %v", err)
 	}
@@ -619,19 +626,30 @@ func (r *RoleMiddleData) GetData(name string, datas interface{}) (err error) {
 
 // 往中间类型设置数据
 func (r *RoleMiddleData) SetData(name string, datas interface{}) (err error) {
-	data_b, err := iendecode.StructGobBytes(datas)
-	if err != nil {
-		err = fmt.Errorf("roles[RoleMiddleData]SetData: %v", err)
-		return
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("roles[RoleMiddle]SetData: %v", e)
+		}
+	}()
+	datas_v := reflect.ValueOf(datas)
+	datas_t := datas_v.Type().String()
+	if in := typeWithIn(datas_t); in == true {
+		r.Data.Point[name] = datas
+	} else {
+		data_b, err := iendecode.StructGobBytes(datas)
+		if err != nil {
+			err = fmt.Errorf("roles[RoleMiddleData]SetData: %v", err)
+			return err
+		}
+		r.Data.Point[name] = data_b
 	}
-	r.Data.Point[name] = data_b
 	r.DataChange = true
 	return
 }
 
 // 从[]byte设置数据点数据
-func (r *RoleMiddleData) SetDataFromByte(name string, data_b []byte) (err error) {
-	r.Data.Point[name] = data_b
-	r.DataChange = true
-	return
-}
+//func (r *RoleMiddleData) SetDataFromByte(name string, data_b []byte) (err error) {
+//	r.Data.Point[name] = data_b
+//	r.DataChange = true
+//	return
+//}

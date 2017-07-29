@@ -10,6 +10,7 @@ package roles
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/idcsource/insight00-lib/iendecode"
@@ -62,10 +63,14 @@ func EncodeRoleToMiddle(role Roleer) (mid RoleMiddleData, err error) {
 		}
 		field_name := field_t.Name
 		field_type := field_t.Type.String()
-		mid.Data.Point[field_name], err = iendecode.StructGobBytes(field_v.Interface())
-		if err != nil {
-			err = fmt.Errorf("roles[RoleMiddleData]EncodeRoleToMiddle: %v", err)
-			return
+		if in := typeWithIn(field_type); in == true {
+			mid.Data.Point[field_name] = field_v.Interface()
+		} else {
+			mid.Data.Point[field_name], err = iendecode.StructGobBytes(field_v.Interface())
+			if err != nil {
+				err = fmt.Errorf("roles[RoleMiddleData]EncodeRoleToMiddle: %v", err)
+				return
+			}
 		}
 	}
 
@@ -103,8 +108,14 @@ func DecodeMiddleToRole(mid RoleMiddleData, role Roleer) (err error) {
 			continue
 		}
 		field_name := field_t.Name
+		field_type := field_t.Type.String()
 		if _, find := mid.Data.Point[field_name]; find == true {
-			err = iendecode.BytesGobReflect(mid.Data.Point[field_name], field_v)
+			if in := typeWithIn(field_type); in == true {
+				fv := reflect.ValueOf(mid.Data.Point[field_name])
+				field_v.Set(fv)
+			} else {
+				err = iendecode.BytesGobReflect(mid.Data.Point[field_name].([]byte), field_v)
+			}
 		}
 	}
 
@@ -114,11 +125,24 @@ func DecodeMiddleToRole(mid RoleMiddleData, role Roleer) (err error) {
 func typeWithIn(name string) (in bool) {
 	name = strings.ToLower(name)
 	types := []string{
-		"bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "complex64", "complex128", "string",
+		"bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "complex64", "complex128", "string", "byte", "time.time",
 	}
 	for _, the := range types {
 		if name == the {
-
+			return true
+		}
+		if name == "[]"+the {
+			return true
+		}
+		if name == "*[]"+the {
+			return true
+		}
+		if name == "*"+the {
+			return true
+		}
+		if t, _ := regexp.MatchString(`map\[([^ ]+)\]`+the, name); t == true {
+			return true
 		}
 	}
+	return false
 }
