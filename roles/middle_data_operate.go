@@ -610,7 +610,7 @@ func (r *RoleMiddleData) GetData(name string, datas interface{}) (err error) {
 		err = fmt.Errorf("roles[RoleMiddleData]GetData: Can not find the field %v", name)
 		return
 	}
-	datas_v := reflect.ValueOf(datas)
+	datas_v := reflect.Indirect(reflect.ValueOf(datas))
 	datas_t := datas_v.Type().String()
 	if in := typeWithIn(datas_t); in == true {
 		fv := reflect.ValueOf(r.Data.Point[name])
