@@ -11,8 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-
-	"github.com/idcsource/insight00-lib/iendecode"
 )
 
 // 获取自己的版本
@@ -412,6 +410,58 @@ func (r *RoleMiddleData) SetFriendStatus(id string, bit int, value interface{}) 
 	return nil
 }
 
+// 设置朋友的状态属性，id：朋友的ID；bit：位，0到9；value值。
+func (r *RoleMiddleData) SetFriendStatusInt(id string, bit int, value int64) (err error) {
+	_, findf := r.Relation.Friends[id]
+	if findf == false {
+		r.Relation.Friends[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+	}
+	if bit > 9 {
+		return errors.New("The bit must less than 10.")
+	}
+	r.Relation.Friends[id].Int[bit] = value
+	return
+}
+
+// 设置朋友的状态属性，id：朋友的ID；bit：位，0到9；value值。
+func (r *RoleMiddleData) SetFriendStatusFloat(id string, bit int, value float64) (err error) {
+	_, findf := r.Relation.Friends[id]
+	if findf == false {
+		r.Relation.Friends[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+	}
+	if bit > 9 {
+		return errors.New("The bit must less than 10.")
+	}
+	r.Relation.Friends[id].Float[bit] = value
+	return
+}
+
+// 设置朋友的状态属性，id：朋友的ID；bit：位，0到9；value值。
+func (r *RoleMiddleData) SetFriendStatusComplex(id string, bit int, value complex128) (err error) {
+	_, findf := r.Relation.Friends[id]
+	if findf == false {
+		r.Relation.Friends[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+	}
+	if bit > 9 {
+		return errors.New("The bit must less than 10.")
+	}
+	r.Relation.Friends[id].Complex[bit] = value
+	return
+}
+
+// 设置朋友的状态属性，id：朋友的ID；bit：位，0到9；value值。
+func (r *RoleMiddleData) SetFriendStatusString(id string, bit int, value string) (err error) {
+	_, findf := r.Relation.Friends[id]
+	if findf == false {
+		r.Relation.Friends[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+	}
+	if bit > 9 {
+		return errors.New("The bit must less than 10.")
+	}
+	r.Relation.Friends[id].String[bit] = value
+	return
+}
+
 // 获取朋友的状态属性，id：朋友的ID；bit：位，0到9；value值，只接收int64、float64、complex128。
 func (r *RoleMiddleData) GetFriendStatus(id string, bit int, value interface{}) (have bool, err error) {
 	have = true
@@ -422,7 +472,7 @@ func (r *RoleMiddleData) GetFriendStatus(id string, bit int, value interface{}) 
 	}()
 	_, findf := r.Relation.Friends[id]
 	if findf == false {
-		//return fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: Role has no exist : " + id + " in " + r.Version.Id + " friend .")
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: Role has no exist : " + id + " in " + r.Version.Id + " friend .")
 		have = false
 		return
 	}
@@ -444,6 +494,74 @@ func (r *RoleMiddleData) GetFriendStatus(id string, bit int, value interface{}) 
 	default:
 		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The value's type must int64, float64, complex128 or string.")
 	}
+	return
+}
+
+// 获取朋友的状态属性，id：朋友的ID；bit：位，0到9。
+func (r *RoleMiddleData) GetFriendStatusInt(id string, bit int) (value int64, have bool, err error) {
+	_, findf := r.Relation.Friends[id]
+	if findf == false {
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: Role has no exist : " + id + " in " + r.Version.Id + " friend .")
+		have = false
+		return
+	}
+	if bit > 9 {
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The bit must less than 10.")
+		return
+	}
+	value = r.Relation.Friends[id].Int[bit]
+	have = true
+	return
+}
+
+// 获取朋友的状态属性，id：朋友的ID；bit：位，0到9。
+func (r *RoleMiddleData) GetFriendStatusFloat(id string, bit int) (value float64, have bool, err error) {
+	_, findf := r.Relation.Friends[id]
+	if findf == false {
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: Role has no exist : " + id + " in " + r.Version.Id + " friend .")
+		have = false
+		return
+	}
+	if bit > 9 {
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The bit must less than 10.")
+		return
+	}
+	value = r.Relation.Friends[id].Float[bit]
+	have = true
+	return
+}
+
+// 获取朋友的状态属性，id：朋友的ID；bit：位，0到9。
+func (r *RoleMiddleData) GetFriendStatusComplex(id string, bit int) (value complex128, have bool, err error) {
+	_, findf := r.Relation.Friends[id]
+	if findf == false {
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: Role has no exist : " + id + " in " + r.Version.Id + " friend .")
+		have = false
+		return
+	}
+	if bit > 9 {
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The bit must less than 10.")
+		return
+	}
+	value = r.Relation.Friends[id].Complex[bit]
+	have = true
+	return
+}
+
+// 获取朋友的状态属性，id：朋友的ID；bit：位，0到9。
+func (r *RoleMiddleData) GetFriendStatusString(id string, bit int) (value string, have bool, err error) {
+	_, findf := r.Relation.Friends[id]
+	if findf == false {
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: Role has no exist : " + id + " in " + r.Version.Id + " friend .")
+		have = false
+		return
+	}
+	if bit > 9 {
+		err = fmt.Errorf("roles[RoleMiddleData]GetFriendStatus: The bit must less than 10.")
+		return
+	}
+	value = r.Relation.Friends[id].String[bit]
+	have = true
 	return
 }
 
@@ -521,6 +639,122 @@ func (r *RoleMiddleData) SetContextStatus(contextname string, upordown ContextUp
 	return nil
 }
 
+// 设置上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值。
+func (r *RoleMiddleData) SetContextStatusInt(contextname string, upordown ContextUpDown, id string, bit int, value int64) (err error) {
+	if bit > 9 {
+		return fmt.Errorf("roles:[RoleMiddleData]SetContextStatusInt: The bit must less than 10.")
+	}
+	_, findc := r.Relation.Contexts[contextname]
+	if findc == false {
+		r.Relation.Contexts[contextname] = Context{
+			Up:   make(map[string]Status),
+			Down: make(map[string]Status),
+		}
+	}
+	if upordown == CONTEXT_UP {
+		_, findr := r.Relation.Contexts[contextname].Up[id]
+		if findr == false {
+			r.Relation.Contexts[contextname].Up[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+		}
+		r.Relation.Contexts[contextname].Up[id].Int[bit] = value
+	} else if upordown == CONTEXT_DOWN {
+		_, findr := r.Relation.Contexts[contextname].Down[id]
+		if findr == false {
+			r.Relation.Contexts[contextname].Down[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+		}
+		r.Relation.Contexts[contextname].Down[id].Int[bit] = value
+	}
+	r.RelationChange = true
+	return
+}
+
+// 设置上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值。
+func (r *RoleMiddleData) SetContextStatusFloat(contextname string, upordown ContextUpDown, id string, bit int, value float64) (err error) {
+	if bit > 9 {
+		return fmt.Errorf("roles:[RoleMiddleData]SetContextStatusFloat: The bit must less than 10.")
+	}
+	_, findc := r.Relation.Contexts[contextname]
+	if findc == false {
+		r.Relation.Contexts[contextname] = Context{
+			Up:   make(map[string]Status),
+			Down: make(map[string]Status),
+		}
+	}
+	if upordown == CONTEXT_UP {
+		_, findr := r.Relation.Contexts[contextname].Up[id]
+		if findr == false {
+			r.Relation.Contexts[contextname].Up[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+		}
+		r.Relation.Contexts[contextname].Up[id].Float[bit] = value
+	} else if upordown == CONTEXT_DOWN {
+		_, findr := r.Relation.Contexts[contextname].Down[id]
+		if findr == false {
+			r.Relation.Contexts[contextname].Down[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+		}
+		r.Relation.Contexts[contextname].Down[id].Float[bit] = value
+	}
+	r.RelationChange = true
+	return
+}
+
+// 设置上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值。
+func (r *RoleMiddleData) SetContextStatusComplex(contextname string, upordown ContextUpDown, id string, bit int, value complex128) (err error) {
+	if bit > 9 {
+		return fmt.Errorf("roles:[RoleMiddleData]SetContextStatusComplex: The bit must less than 10.")
+	}
+	_, findc := r.Relation.Contexts[contextname]
+	if findc == false {
+		r.Relation.Contexts[contextname] = Context{
+			Up:   make(map[string]Status),
+			Down: make(map[string]Status),
+		}
+	}
+	if upordown == CONTEXT_UP {
+		_, findr := r.Relation.Contexts[contextname].Up[id]
+		if findr == false {
+			r.Relation.Contexts[contextname].Up[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+		}
+		r.Relation.Contexts[contextname].Up[id].Complex[bit] = value
+	} else if upordown == CONTEXT_DOWN {
+		_, findr := r.Relation.Contexts[contextname].Down[id]
+		if findr == false {
+			r.Relation.Contexts[contextname].Down[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+		}
+		r.Relation.Contexts[contextname].Down[id].Complex[bit] = value
+	}
+	r.RelationChange = true
+	return
+}
+
+// 设置上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值。
+func (r *RoleMiddleData) SetContextStatusString(contextname string, upordown ContextUpDown, id string, bit int, value string) (err error) {
+	if bit > 9 {
+		return fmt.Errorf("roles:[RoleMiddleData]SetContextStatusString: The bit must less than 10.")
+	}
+	_, findc := r.Relation.Contexts[contextname]
+	if findc == false {
+		r.Relation.Contexts[contextname] = Context{
+			Up:   make(map[string]Status),
+			Down: make(map[string]Status),
+		}
+	}
+	if upordown == CONTEXT_UP {
+		_, findr := r.Relation.Contexts[contextname].Up[id]
+		if findr == false {
+			r.Relation.Contexts[contextname].Up[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+		}
+		r.Relation.Contexts[contextname].Up[id].String[bit] = value
+	} else if upordown == CONTEXT_DOWN {
+		_, findr := r.Relation.Contexts[contextname].Down[id]
+		if findr == false {
+			r.Relation.Contexts[contextname].Down[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+		}
+		r.Relation.Contexts[contextname].Down[id].String[bit] = value
+	}
+	r.RelationChange = true
+	return
+}
+
 // 获取上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9；value值，只接收int64、float64、complex128。
 func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUpDown, id string, bit int, value interface{}) (have bool, err error) {
 	have = true
@@ -586,6 +820,138 @@ func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUp
 	return
 }
 
+// 获取上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9。
+func (r *RoleMiddleData) GetContextStatusInt(contextname string, upordown ContextUpDown, id string, bit int) (value int64, have bool, err error) {
+	if bit > 9 {
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The bit must less than 10.")
+		return
+	}
+	_, findc := r.Relation.Contexts[contextname]
+	if findc == false {
+		have = false
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no context " + contextname + " in " + r.Version.Id + " .")
+		return
+	}
+	if upordown == CONTEXT_UP {
+		_, findr := r.Relation.Contexts[contextname].Up[id]
+		if findr == false {
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no up context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
+		}
+		value = r.Relation.Contexts[contextname].Up[id].Int[bit]
+	} else if upordown == CONTEXT_DOWN {
+		_, findr := r.Relation.Contexts[contextname].Down[id]
+		if findr == false {
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no down context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
+		}
+		value = r.Relation.Contexts[contextname].Down[id].Int[bit]
+	}
+	have = true
+	return
+}
+
+// 获取上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9。
+func (r *RoleMiddleData) GetContextStatusFloat(contextname string, upordown ContextUpDown, id string, bit int) (value float64, have bool, err error) {
+	if bit > 9 {
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The bit must less than 10.")
+		return
+	}
+	_, findc := r.Relation.Contexts[contextname]
+	if findc == false {
+		have = false
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no context " + contextname + " in " + r.Version.Id + " .")
+		return
+	}
+	if upordown == CONTEXT_UP {
+		_, findr := r.Relation.Contexts[contextname].Up[id]
+		if findr == false {
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no up context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
+		}
+		value = r.Relation.Contexts[contextname].Up[id].Float[bit]
+	} else if upordown == CONTEXT_DOWN {
+		_, findr := r.Relation.Contexts[contextname].Down[id]
+		if findr == false {
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no down context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
+		}
+		value = r.Relation.Contexts[contextname].Down[id].Float[bit]
+	}
+	have = true
+	return
+}
+
+// 获取上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9。
+func (r *RoleMiddleData) GetContextStatusComplex(contextname string, upordown ContextUpDown, id string, bit int) (value complex128, have bool, err error) {
+	if bit > 9 {
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The bit must less than 10.")
+		return
+	}
+	_, findc := r.Relation.Contexts[contextname]
+	if findc == false {
+		have = false
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no context " + contextname + " in " + r.Version.Id + " .")
+		return
+	}
+	if upordown == CONTEXT_UP {
+		_, findr := r.Relation.Contexts[contextname].Up[id]
+		if findr == false {
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no up context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
+		}
+		value = r.Relation.Contexts[contextname].Up[id].Complex[bit]
+	} else if upordown == CONTEXT_DOWN {
+		_, findr := r.Relation.Contexts[contextname].Down[id]
+		if findr == false {
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no down context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
+		}
+		value = r.Relation.Contexts[contextname].Down[id].Complex[bit]
+	}
+	have = true
+	return
+}
+
+// 获取上下文的状态属性，contextname：上下文名称；upordown：上游还是下游，使用常量CONTEXT_UP或CONTEXT_DOWN；id：角色ID；bit：位，0到9。
+func (r *RoleMiddleData) GetContextStatusString(contextname string, upordown ContextUpDown, id string, bit int) (value string, have bool, err error) {
+	if bit > 9 {
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The bit must less than 10.")
+		return
+	}
+	_, findc := r.Relation.Contexts[contextname]
+	if findc == false {
+		have = false
+		err = errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no context " + contextname + " in " + r.Version.Id + " .")
+		return
+	}
+	if upordown == CONTEXT_UP {
+		_, findr := r.Relation.Contexts[contextname].Up[id]
+		if findr == false {
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no up context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
+		}
+		value = r.Relation.Contexts[contextname].Up[id].String[bit]
+	} else if upordown == CONTEXT_DOWN {
+		_, findr := r.Relation.Contexts[contextname].Down[id]
+		if findr == false {
+			//return errors.New("roles[RoleMiddleData]GetContextStatus: The Role have no down context relationship " + id + " in " + contextname + " in " + r.Version.Id + " .")
+			have = false
+			return
+		}
+		value = r.Relation.Contexts[contextname].Down[id].String[bit]
+	}
+	have = true
+	return
+}
+
 //func (r *RoleMiddleData) GetDataToByte(name string) (b []byte, err error) {
 //	var find bool
 //	b, find = r.Data.Point[name]
@@ -596,53 +962,65 @@ func (r *RoleMiddleData) GetContextStatus(contextname string, upordown ContextUp
 //}
 
 // 中间类型的获取数据
-func (r *RoleMiddleData) GetData(name string, datas interface{}) (err error) {
-	// 拦截恐慌
-	defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("roles[RoleMiddle]GetData: %v", e)
-		}
-	}()
+//func (r *RoleMiddleData) GetData(name string, datas interface{}) (err error) {
+//	// 拦截恐慌
+//	defer func() {
+//		if e := recover(); e != nil {
+//			err = fmt.Errorf("roles[RoleMiddle]GetData: %v", e)
+//		}
+//	}()
 
+//	// 获取data的数据类型
+//	_, find := r.Data.Point[name]
+//	if find == false {
+//		err = fmt.Errorf("roles[RoleMiddleData]GetData: Can not find the field %v", name)
+//		return
+//	}
+//	datas_v := reflect.Indirect(reflect.ValueOf(datas))
+//	datas_t := datas_v.Type().String()
+//	if in := typeWithIn(datas_t); in == true {
+//		fv := reflect.ValueOf(r.Data.Point[name])
+//		datas_v.Set(fv)
+//	} else {
+//		err = iendecode.BytesGobStruct(r.Data.Point[name].([]byte), datas)
+//	}
+//	if err != nil {
+//		err = fmt.Errorf("roles[RoleMiddleData]GetData: %v", err)
+//	}
+//	return
+//}
+
+// 中间类型的获取数据
+func (r *RoleMiddleData) GetData(name string) (datas interface{}, err error) {
 	// 获取data的数据类型
-	_, find := r.Data.Point[name]
+	datas, find := r.Data.Point[name]
 	if find == false {
 		err = fmt.Errorf("roles[RoleMiddleData]GetData: Can not find the field %v", name)
 		return
-	}
-	datas_v := reflect.Indirect(reflect.ValueOf(datas))
-	datas_t := datas_v.Type().String()
-	if in := typeWithIn(datas_t); in == true {
-		fv := reflect.ValueOf(r.Data.Point[name])
-		datas_v.Set(fv)
-	} else {
-		err = iendecode.BytesGobStruct(r.Data.Point[name].([]byte), datas)
-	}
-	if err != nil {
-		err = fmt.Errorf("roles[RoleMiddleData]GetData: %v", err)
 	}
 	return
 }
 
 // 往中间类型设置数据
 func (r *RoleMiddleData) SetData(name string, datas interface{}) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("roles[RoleMiddle]SetData: %v", e)
-		}
-	}()
-	datas_v := reflect.ValueOf(datas)
-	datas_t := datas_v.Type().String()
-	if in := typeWithIn(datas_t); in == true {
-		r.Data.Point[name] = datas
-	} else {
-		data_b, err := iendecode.StructGobBytes(datas)
-		if err != nil {
-			err = fmt.Errorf("roles[RoleMiddleData]SetData: %v", err)
-			return err
-		}
-		r.Data.Point[name] = data_b
-	}
+	//	defer func() {
+	//		if e := recover(); e != nil {
+	//			err = fmt.Errorf("roles[RoleMiddle]SetData: %v", e)
+	//		}
+	//	}()
+	// datas_v := reflect.ValueOf(datas)
+	// datas_t := datas_v.Type().String()
+	r.Data.Point[name] = datas
+	//	if in := typeWithIn(datas_t); in == true {
+	//		r.Data.Point[name] = datas
+	//	} else {
+	//		data_b, err := iendecode.StructGobBytes(datas)
+	//		if err != nil {
+	//			err = fmt.Errorf("roles[RoleMiddleData]SetData: %v", err)
+	//			return err
+	//		}
+	//		r.Data.Point[name] = data_b
+	//	}
 	r.DataChange = true
 	return
 }

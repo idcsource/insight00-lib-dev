@@ -7,6 +7,10 @@
 
 package trule
 
+import (
+	_ "github.com/idcsource/insight00-lib/drule2/types"
+)
+
 // Begin a transaction
 func (t *TRule) Begin() (tran *Transaction, err error) {
 	transig := &transactionSig{

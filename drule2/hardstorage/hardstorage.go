@@ -1,9 +1,9 @@
 // Copyright 2016-2017
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
-// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idcsource@gmail.com
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
-// Use of this source code is governed by GNU LGPL v3 license
+// This source code is governed by GNU LGPL v3 license
 
 package hardstorage
 
@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	_ "github.com/idcsource/insight00-lib/drule2/types"
 	"github.com/idcsource/insight00-lib/iendecode"
 	"github.com/idcsource/insight00-lib/pubfunc"
 	"github.com/idcsource/insight00-lib/random"
@@ -167,7 +168,7 @@ func (h *HardStorage) RoleAdd(area string, role roles.Roleer) (err error) {
 		return
 	}
 	// 去存
-	err = h.storeRoleMiddle(f_name, &mid)
+	err = h.storeRoleMiddle(f_name, mid)
 	if err != nil {
 		err = fmt.Errorf("hardstorage[HardStorage]RoleStoreMiddleData: %v", err)
 	}
@@ -260,7 +261,7 @@ func (h *HardStorage) RoleUpdate(area string, role roles.Roleer) (err error) {
 	}
 
 	// 去存
-	err = h.storeRoleMiddle(f_name, &mid)
+	err = h.storeRoleMiddle(f_name, mid)
 	if err != nil {
 		err = fmt.Errorf("hardstorage[HardStorage]RoleUpdateMiddleData: %v", err)
 	}

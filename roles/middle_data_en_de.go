@@ -12,12 +12,10 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-
-	"github.com/idcsource/insight00-lib/iendecode"
 )
 
 // 编码角色，将角色编码为中期存储格式
-func EncodeRoleToMiddle(role Roleer) (mid RoleMiddleData, err error) {
+func EncodeRoleToMiddle(role Roleer) (mid *RoleMiddleData, err error) {
 	// 拦截恐慌
 	defer func() {
 		if e := recover(); e != nil {
@@ -25,7 +23,7 @@ func EncodeRoleToMiddle(role Roleer) (mid RoleMiddleData, err error) {
 		}
 	}()
 
-	mid = RoleMiddleData{
+	mid = &RoleMiddleData{
 		VersionChange:  true,
 		DataChange:     true,
 		RelationChange: true,
@@ -62,23 +60,24 @@ func EncodeRoleToMiddle(role Roleer) (mid RoleMiddleData, err error) {
 			continue
 		}
 		field_name := field_t.Name
-		field_type := field_t.Type.String()
-		if in := typeWithIn(field_type); in == true {
-			mid.Data.Point[field_name] = field_v.Interface()
-		} else {
-			mid.Data.Point[field_name], err = iendecode.StructGobBytes(field_v.Interface())
-			if err != nil {
-				err = fmt.Errorf("roles[RoleMiddleData]EncodeRoleToMiddle: %v", err)
-				return
-			}
-		}
+		// field_type := field_t.Type.String()
+		mid.Data.Point[field_name] = field_v.Interface()
+		//		if in := typeWithIn(field_type); in == true {
+		//			mid.Data.Point[field_name] = field_v.Interface()
+		//		} else {
+		//			mid.Data.Point[field_name], err = iendecode.StructGobBytes(field_v.Interface())
+		//			if err != nil {
+		//				err = fmt.Errorf("roles[RoleMiddleData]EncodeRoleToMiddle: %v", err)
+		//				return
+		//			}
+		//		}
 	}
 
 	return
 }
 
 // 解码角色，从中间编码转为角色
-func DecodeMiddleToRole(mid RoleMiddleData, role Roleer) (err error) {
+func DecodeMiddleToRole(mid *RoleMiddleData, role Roleer) (err error) {
 	// 拦截恐慌
 	defer func() {
 		if e := recover(); e != nil {
@@ -108,15 +107,17 @@ func DecodeMiddleToRole(mid RoleMiddleData, role Roleer) (err error) {
 			continue
 		}
 		field_name := field_t.Name
-		field_type := field_t.Type.String()
-		if _, find := mid.Data.Point[field_name]; find == true {
-			if in := typeWithIn(field_type); in == true {
-				fv := reflect.ValueOf(mid.Data.Point[field_name])
-				field_v.Set(fv)
-			} else {
-				err = iendecode.BytesGobReflect(mid.Data.Point[field_name].([]byte), field_v)
-			}
-		}
+		// field_type := field_t.Type.String()
+		fv := reflect.ValueOf(mid.Data.Point[field_name])
+		field_v.Set(fv)
+		//		if _, find := mid.Data.Point[field_name]; find == true {
+		//			if in := typeWithIn(field_type); in == true {
+		//				fv := reflect.ValueOf(mid.Data.Point[field_name])
+		//				field_v.Set(fv)
+		//			} else {
+		//				err = iendecode.BytesGobReflect(mid.Data.Point[field_name].([]byte), field_v)
+		//			}
+		//		}
 	}
 
 	return

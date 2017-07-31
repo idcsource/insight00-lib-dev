@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/idcsource/insight00-lib/roles"
 )
 
 // 初始化一个transaction
@@ -39,6 +41,100 @@ func (t *Transaction) ExistRole(area, id string) (exist bool, err error) {
 		err = fmt.Errorf("trule[Transaction]ExistRole: %v", err)
 	}
 	return
+}
+
+// Read a Role
+func (t *Transaction) ReadRole(area, id string, role roles.Roleer) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("trule[Transaction]ReadRole: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	rolec, exist, err := t.getRole(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transacion]ReadRole: %v", err)
+		return
+	}
+	if exist == false {
+		err = fmt.Errorf("trule[Transacion]ReadRole: The Role not exist.")
+		return
+	}
+	err = roles.DecodeMiddleToRole(rolec.role, role)
+	if err != nil {
+		err = fmt.Errorf("trule[Transacion]ReadRole: %v", err)
+	}
+	return
+}
+
+// Read Role's MiddleData
+func (t *Transaction) ReadRoleMiddleData(area, id string) (mid *roles.RoleMiddleData, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]ReadRoleMiddleData: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	rolec, exist, err := t.getRole(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("drule[Transacion]ReadRoleMiddleData: %v", err)
+		return
+	}
+	if exist == false {
+		err = fmt.Errorf("trule[Transacion]ReadRoleMiddleData: The Role not exist.")
+		return
+	}
+	mid = rolec.role
+	return
+}
+
+// Store Role
+func (t *Transaction) StoreRole(area string, role roles.Roleer) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("drule[Transaction]StoreRole: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	//	t.lock.RLock()
+	//	defer t.lock.RUnlock()
+	roleid := role.ReturnId()
+	rolec, err := t.getRoleForNew(area, roleid)
+	mid, err := roles.EncodeRoleToMiddle(role)
+	if err != nil {
+		return fmt.Errorf("drule[Transaction]StoreRole: %v", err)
+	}
+	rolec.role = mid
+	rolec.be_change = true
+	return nil
+}
+
+// Store Role from middle data type
+func (t *Transaction) StoreRoleFromMiddleData(area string, mid *roles.RoleMiddleData) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("drule[Transaction]StoreRoleFromMiddleData: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	//	t.lock.RLock()
+	//	defer t.lock.RUnlock()
+	roleid := mid.ReturnId()
+	rolec, err := t.getRoleForNew(area, roleid)
+	rolec.role = mid
+	rolec.be_change = true
+	return nil
+}
+
+// Delete a Role
+func (t *Transaction) DeleteRole(area, id string) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("drule[Transaction]DeleteRole: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	rolec, exist, err := t.getRole(area, id, true)
+	if err != nil {
+		return err
+	}
+	if exist == false {
+		return fmt.Errorf("drule[Transaction]DeleteRole: The Role not exist.")
+	}
+	rolec.be_delete = TRAN_ROLE_BE_DELETE_YES
+	rolec.be_change = true
+	return nil
 }
 
 // 获取一个角色，forwrite是true就是为了写
