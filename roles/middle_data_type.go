@@ -21,8 +21,13 @@ type RoleRelation struct {
 	Contexts map[string]Context // 上下文
 }
 
+type RoleData struct {
+	Point map[string]*RoleDataPoint
+}
+
 type RoleDataPoint struct {
-	Point map[string]interface{}
+	Type string
+	Data interface{}
 }
 
 // 角色的中期存储类型
@@ -31,6 +36,6 @@ type RoleMiddleData struct {
 	VersionChange  bool
 	Relation       RoleRelation
 	RelationChange bool
-	Data           RoleDataPoint
+	Data           RoleData
 	DataChange     bool
 }

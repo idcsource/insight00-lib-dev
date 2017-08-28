@@ -993,11 +993,12 @@ func (r *RoleMiddleData) GetContextStatusString(contextname string, upordown Con
 // 中间类型的获取数据
 func (r *RoleMiddleData) GetData(name string) (datas interface{}, err error) {
 	// 获取data的数据类型
-	datas, find := r.Data.Point[name]
+	datapoint, find := r.Data.Point[name]
 	if find == false {
 		err = fmt.Errorf("roles[RoleMiddleData]GetData: Can not find the field %v", name)
 		return
 	}
+	datas = datapoint.Data
 	return
 }
 
@@ -1010,7 +1011,7 @@ func (r *RoleMiddleData) SetData(name string, datas interface{}) (err error) {
 	//	}()
 	// datas_v := reflect.ValueOf(datas)
 	// datas_t := datas_v.Type().String()
-	r.Data.Point[name] = datas
+	r.Data.Point[name].Data = datas
 	//	if in := typeWithIn(datas_t); in == true {
 	//		r.Data.Point[name] = datas
 	//	} else {
@@ -1031,3 +1032,7 @@ func (r *RoleMiddleData) SetData(name string, datas interface{}) (err error) {
 //	r.DataChange = true
 //	return
 //}
+
+func (r *RoleMiddleData) EncodeBinary() (b []byte, len uint64, err error) {
+	return
+}

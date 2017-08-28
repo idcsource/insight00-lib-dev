@@ -43,8 +43,8 @@ func EncodeRoleToMiddle(role Roleer) (mid *RoleMiddleData, err error) {
 	}
 
 	// 这里是开始准备生成数据
-	mid.Data = RoleDataPoint{
-		Point: make(map[string]interface{}),
+	mid.Data = RoleData{
+		Point: make(map[string]*RoleDataPoint),
 	}
 
 	role_v := reflect.ValueOf(role).Elem()
@@ -60,8 +60,13 @@ func EncodeRoleToMiddle(role Roleer) (mid *RoleMiddleData, err error) {
 			continue
 		}
 		field_name := field_t.Name
+		field_type := field_t.Type.Name()
 		// field_type := field_t.Type.String()
-		mid.Data.Point[field_name] = field_v.Interface()
+		mid.Data.Point[field_name] = &RoleDataPoint{
+			Type: field_type,
+			Data: field_v.Interface(),
+		}
+
 		//		if in := typeWithIn(field_type); in == true {
 		//			mid.Data.Point[field_name] = field_v.Interface()
 		//		} else {
@@ -108,7 +113,7 @@ func DecodeMiddleToRole(mid *RoleMiddleData, role Roleer) (err error) {
 		}
 		field_name := field_t.Name
 		// field_type := field_t.Type.String()
-		fv := reflect.ValueOf(mid.Data.Point[field_name])
+		fv := reflect.ValueOf(mid.Data.Point[field_name].Data)
 		field_v.Set(fv)
 		//		if _, find := mid.Data.Point[field_name]; find == true {
 		//			if in := typeWithIn(field_type); in == true {
@@ -123,27 +128,28 @@ func DecodeMiddleToRole(mid *RoleMiddleData, role Roleer) (err error) {
 	return
 }
 
-func typeWithIn(name string) (in bool) {
+func typeWithIn(name string) (in bool, status uint8) {
 	name = strings.ToLower(name)
 	types := []string{
 		"bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "complex64", "complex128", "string", "byte", "time.time",
 	}
 	for _, the := range types {
 		if name == the {
-			return true
+			return true, 1
 		}
 		if name == "[]"+the {
-			return true
-		}
-		if name == "*[]"+the {
-			return true
+			return true, 2
 		}
 		if name == "*"+the {
-			return true
+			return true, 3
+		}
+
+		if name == "*[]"+the {
+			return true, 4
 		}
 		if t, _ := regexp.MatchString(`map\[([^ ]+)\]`+the, name); t == true {
-			return true
+			return true, 5
 		}
 	}
-	return false
+	return false, 0
 }

@@ -8,6 +8,6 @@
 package iendecode
 
 type BinaryCoder interface {
-	EncodeBinary() (b []byte, err error)
+	EncodeBinary() (b []byte, len uint64, err error)
 	DecodeBinary(b []byte) (err error)
 }
