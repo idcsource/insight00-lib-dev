@@ -7,10 +7,33 @@
 
 package roles
 
+import (
+	"github.com/idcsource/insight00-lib/iendecode"
+)
+
 // 角色的版本，包含版本号和Id
 type RoleVersion struct {
 	Version int
 	Id      string
+}
+
+func (r *RoleVersion) EncodeBinary() (b []byte, lens int64, err error) {
+	version_b := iendecode.Uint64ToBytes(uint64(r.Version))
+	id_b := []byte(r.Id)
+	//b = append(version_b, id_b...)
+	lens = int64(8 + len(id_b))
+	b = make([]byte, lens)
+	copy(b, version_b)
+	copy(b[8:], id_b)
+	return
+}
+
+func (r *RoleVersion) DecodeBinary(b []byte) (err error) {
+	version_b := b[0:8]
+	r.Version = int(iendecode.BytesToUint64(version_b))
+	id_b := b[8:]
+	r.Id = string(id_b)
+	return
 }
 
 // 角色的关系，包含了父、子、朋友、上下文
