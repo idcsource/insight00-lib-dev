@@ -136,6 +136,32 @@ func (c Context) DecodeBinary(b []byte) (err error) {
 	return
 }
 
+func (c Context) byteMap(b []byte) (m map[string]Status, err error) {
+	m = make(map[string]Status)
+	b_buf := bytes.NewBuffer(b)
+	var i uint64 = 0
+	b_len := uint64(len(b))
+	for {
+		if i >= b_len {
+			break
+		}
+		key_len_b := b_buf.Next(8)
+		key_len := iendecode.BytesToUint64(key_len_b)
+		key := b_buf.Next(int(key_len))
+		s_len_b := b_buf.Next(8)
+		s_len := iendecode.BytesToUint64(s_len_b)
+		s_b := b_buf.Next(int(s_len))
+		s := Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
+		err = s.DecodeBinary(s_b)
+		if err != nil {
+			return
+		}
+		m[string(key)] = s
+		i += 16 + key_len + s_len
+	}
+	return
+}
+
 // 状态的数据结构
 type Status struct {
 	Int     []int64
@@ -390,7 +416,7 @@ func (r *Role) AddFriend(id string, bind int64) error {
 		err := errors.New("This Role has already exist : " + id + " in " + r.Id + " friend .")
 		return err
 	}
-	r._friends[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10)}
+	r._friends[id] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
 	r._friends[id].Int[0] = bind
 	r._friends_changed = true
 	return nil
@@ -483,7 +509,7 @@ func (r *Role) AddContextUp(contextname, upname string, bind int64) {
 			Up:   make(map[string]Status),
 			Down: make(map[string]Status),
 		}
-		r._context[contextname].Up[upname] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10)}
+		r._context[contextname].Up[upname] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
 	}
 	r._context[contextname].Up[upname].Int[0] = bind
 	r._context_changed = true
@@ -497,7 +523,7 @@ func (r *Role) AddContextDown(contextname, downname string, bind int64) {
 			Up:   make(map[string]Status),
 			Down: make(map[string]Status),
 		}
-		r._context[contextname].Down[downname] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10)}
+		r._context[contextname].Down[downname] = Status{Int: make([]int64, 10), Float: make([]float64, 10), Complex: make([]complex128, 10), String: make([]string, 10)}
 	}
 	r._context[contextname].Down[downname].Int[0] = bind
 	r._context_changed = true
