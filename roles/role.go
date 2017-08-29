@@ -94,6 +94,48 @@ type Context struct {
 	Down map[string]Status
 }
 
+func (c Context) EncodeBinary() (b []byte, lens int64, err error) {
+	up_b, up_lens, err := c.mapByte(c.Up)
+	if err != nil {
+		return
+	}
+	down_b, down_lens, err := c.mapByte(c.Down)
+	if err != nil {
+		return
+	}
+	lens = up_lens + down_lens + 16
+	b = make([]byte, lens)
+	copy(b, iendecode.Uint64ToBytes(uint64(up_lens)))
+	copy(b[8:], up_b)
+	copy(b[up_lens+8:], iendecode.Uint64ToBytes(uint64(down_lens)))
+	copy(b[up_lens+16:], down_b)
+	return
+}
+
+func (c Context) mapByte(m map[string]Status) (b []byte, lens int64, err error) {
+	b_buf := bytes.Buffer{}
+	for key, _ := range m {
+		key_len := iendecode.Uint64ToBytes(uint64(len(key)))
+		b_buf.Write(key_len)
+		b_buf.Write([]byte(key))
+		var s_b []byte
+		var s_lens int64
+		s_b, s_lens, err = m[key].EncodeBinary()
+		if err != nil {
+			return
+		}
+		b_buf.Write(iendecode.Uint64ToBytes(uint64(s_lens)))
+		b_buf.Write(s_b)
+	}
+	lens = int64(b_buf.Len())
+	b = b_buf.Bytes()
+	return
+}
+
+func (c Context) DecodeBinary(b []byte) (err error) {
+	return
+}
+
 // 状态的数据结构
 type Status struct {
 	Int     []int64
@@ -102,7 +144,7 @@ type Status struct {
 	String  []string
 }
 
-func (s *Status) EncodeBinary() (b []byte, lens int64, err error) {
+func (s Status) EncodeBinary() (b []byte, lens int64, err error) {
 	var int_b []byte // 80
 	int_b, err = iendecode.ToBinary(s.Int)
 	if err != nil {
@@ -142,7 +184,7 @@ func (s *Status) EncodeBinary() (b []byte, lens int64, err error) {
 	return
 }
 
-func (s *Status) DecodeBinary(b []byte) (err error) {
+func (s Status) DecodeBinary(b []byte) (err error) {
 	err = iendecode.FromBinary(b[0:80], &s.Int)
 	if err != nil {
 		return
