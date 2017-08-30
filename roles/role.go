@@ -1,7 +1,7 @@
 // Copyright 2016
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
-// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idcsource@gmail.com
 // Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // Use of this source code is governed by GNU LGPL v3 license
 
@@ -132,7 +132,25 @@ func (c Context) mapByte(m map[string]Status) (b []byte, lens int64, err error) 
 	return
 }
 
-func (c Context) DecodeBinary(b []byte) (err error) {
+func (c *Context) DecodeBinary(b []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+	up_len := iendecode.BytesToUint64(b[0:8])
+	if err != nil {
+		return err
+	}
+	c.Up, err = c.byteMap(b[8 : 8+up_len])
+	if err != nil {
+		return err
+	}
+	down_len := iendecode.BytesToUint64(b[8+up_len : 8+up_len+8])
+	c.Down, err = c.byteMap(b[16+up_len : 16+up_len+down_len])
+	if err != nil {
+		return err
+	}
 	return
 }
 
@@ -210,7 +228,12 @@ func (s Status) EncodeBinary() (b []byte, lens int64, err error) {
 	return
 }
 
-func (s Status) DecodeBinary(b []byte) (err error) {
+func (s *Status) DecodeBinary(b []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
 	err = iendecode.FromBinary(b[0:80], &s.Int)
 	if err != nil {
 		return
