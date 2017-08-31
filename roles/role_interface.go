@@ -21,9 +21,9 @@ type Roleer interface {
 	// 新建自己的方法
 	New(id string)
 	// 获取自己的版本
-	Version() int
+	Version() uint32
 	// 设置自己的版本
-	SetVersion(version int)
+	SetVersion(version uint32)
 
 	// 返回角色自身的ID
 	ReturnId() string

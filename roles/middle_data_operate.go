@@ -14,12 +14,12 @@ import (
 )
 
 // 获取自己的版本
-func (r *RoleMiddleData) ReturnVersion() (version int) {
+func (r *RoleMiddleData) ReturnVersion() (version uint32) {
 	return r.Version.Version
 }
 
 // 设置自己的版本（通常这个是在存储（如HardStore）来处理的时候才需要）
-func (r *RoleMiddleData) SetVersion(version int) {
+func (r *RoleMiddleData) SetVersion(version uint32) {
 	r.Version.Version = version
 	r.VersionChange = true
 }

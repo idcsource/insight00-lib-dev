@@ -63,7 +63,7 @@ type Role struct {
 	// 角色ID
 	Id string
 	// 角色的版本号
-	_role_version int
+	_role_version uint32
 	// 父角色（拓扑结构层面）
 	_father string
 	// 虚拟的子角色群，只保存键名
@@ -138,6 +138,10 @@ func (c *Context) DecodeBinary(b []byte) (err error) {
 			return
 		}
 	}()
+
+	c.Up = make(map[string]Status)
+	c.Down = make(map[string]Status)
+
 	up_len := iendecode.BytesToUint64(b[0:8])
 	if err != nil {
 		return err
@@ -234,6 +238,12 @@ func (s *Status) DecodeBinary(b []byte) (err error) {
 			return
 		}
 	}()
+
+	s.Int = make([]int64, 10)
+	s.Float = make([]float64, 10)
+	s.Complex = make([]complex128, 10)
+	s.String = make([]string, 10)
+
 	err = iendecode.FromBinary(b[0:80], &s.Int)
 	if err != nil {
 		return
@@ -278,12 +288,12 @@ func (r *Role) New(id string) {
 }
 
 // 获取自己的版本
-func (r *Role) Version() (version int) {
+func (r *Role) Version() (version uint32) {
 	return r._role_version
 }
 
 // 设置自己的版本（通常这个是在存储（如HardStore）来处理的时候才需要甬道）
-func (r *Role) SetVersion(version int) {
+func (r *Role) SetVersion(version uint32) {
 	r._role_version = version
 }
 
