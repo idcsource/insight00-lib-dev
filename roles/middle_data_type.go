@@ -9,6 +9,7 @@ package roles
 
 import (
 	"bytes"
+	"regexp"
 
 	"github.com/idcsource/insight00-lib/iendecode"
 )
@@ -19,7 +20,12 @@ type RoleVersion struct {
 	Id      string
 }
 
-func (r *RoleVersion) EncodeBinary() (b []byte, lens int64, err error) {
+func (r RoleVersion) MarshalBinary() (b []byte, err error) {
+	b, _, err = r.EncodeBinary()
+	return
+}
+
+func (r RoleVersion) EncodeBinary() (b []byte, lens int64, err error) {
 	version_b := iendecode.Uint32ToBytes(r.Version)
 	id_b := []byte(r.Id)
 	//b = append(version_b, id_b...)
@@ -38,12 +44,21 @@ func (r *RoleVersion) DecodeBinary(b []byte) (err error) {
 	return
 }
 
+func (r *RoleVersion) UnmarshalBinary(data []byte) error {
+	return r.DecodeBinary(data)
+}
+
 // 角色的关系，包含了父、子、朋友、上下文
 type RoleRelation struct {
 	Father   string             // 父角色（拓扑结构层面）
 	Children []string           // 虚拟的子角色群，只保存键名
 	Friends  map[string]Status  // 虚拟的朋友角色群，只保存键名，其余与朋友角色群一致
 	Contexts map[string]Context // 上下文
+}
+
+func (r RoleRelation) MarshalBinary() (b []byte, err error) {
+	b, _, err = r.EncodeBinary()
+	return
 }
 
 func (r RoleRelation) EncodeBinary() (b []byte, lens int64, err error) {
@@ -110,6 +125,10 @@ func (r RoleRelation) EncodeBinary() (b []byte, lens int64, err error) {
 	return
 }
 
+func (r *RoleRelation) UnmarshalBinary(data []byte) error {
+	return r.DecodeBinary(data)
+}
+
 func (r *RoleRelation) DecodeBinary(b []byte) (err error) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -169,6 +188,61 @@ type RoleData struct {
 type RoleDataPoint struct {
 	Type string
 	Data interface{}
+}
+
+func (r RoleDataPoint) MarshalBinary() (b []byte, err error) {
+	b, _, err = r.EncodeBinary()
+	return
+}
+
+func (r RoleDataPoint) EncodeBinary() (b []byte, lens int64, err error) {
+	var b_buf bytes.Buffer
+	lens = 0
+	// the Type len + the Type string
+	type_b := []byte(r.Type)
+	type_b_len := int64(len(type_b))
+	b_buf.Write(iendecode.Int64ToBytes(type_b_len))
+	b_buf.Write(type_b)
+	lens += 8 + type_b_len
+
+	if r.Type == "[]byte" {
+		b_len := int64(len(r.Data.([]byte)))
+		lens += 8 + b_len
+		b_buf.Write(iendecode.Int64ToBytes(b_len))
+		b_buf.Write(r.Data.([]byte))
+	} else if t, _ := regexp.MatchString(`^\[\]`, r.Type); t == true {
+		var bs []byte
+
+		bs, err = iendecode.SliceToByte(r.Type, r.Data)
+		if err != nil {
+			return
+		}
+		bs_len := int64(len(bs))
+		b_buf.Write(iendecode.Int64ToBytes(bs_len))
+		b_buf.Write(bs)
+		lens += 8 + bs_len
+	} else if t, _ := regexp.MatchString(`map\[string\]`, r.Type); t == true {
+		// map[string]
+		var bs []byte
+		bs, err = iendecode.MapToByte(r.Type, r.Data)
+		if err != nil {
+			return
+		}
+		bs_len := int64(len(bs))
+		b_buf.Write(iendecode.Int64ToBytes(bs_len))
+		b_buf.Write(bs)
+		lens += 8 + bs_len
+	} else {
+		var bs []byte
+		bs, err = iendecode.SingleToByte(r.Type, r.Data)
+		bs_len := int64(len(bs))
+		b_buf.Write(iendecode.Int64ToBytes(bs_len))
+		b_buf.Write(bs)
+		lens += 8 + bs_len
+	}
+
+	b = b_buf.Bytes()
+	return
 }
 
 // 角色的中期存储类型

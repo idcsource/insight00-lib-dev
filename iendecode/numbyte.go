@@ -110,3 +110,22 @@ func BytesToUint8(buf []byte) uint8 {
 func BytesToInt8(b []byte) (i int8) {
 	return int8(b[0])
 }
+
+func BoolToBytes(bo bool) (b []byte) {
+	b = make([]byte, 1)
+	if bo == true {
+		b[0] = 1
+	} else {
+		b[0] = 0
+	}
+	return
+}
+
+func BytesToBool(b []byte) (bo bool) {
+	if b[0] == 1 {
+		bo = true
+	} else {
+		bo = false
+	}
+	return
+}
