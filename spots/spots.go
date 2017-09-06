@@ -717,7 +717,7 @@ func (s *Spots) MarshalBinary() (b []byte, err error) {
 	} else {
 		buf.Write(iendecode.Int64ToBytes(0))
 	}
-
+	b = buf.Bytes()
 	return
 }
 
