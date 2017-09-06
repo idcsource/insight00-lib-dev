@@ -695,17 +695,29 @@ func (s *Spots) MarshalBinary() (b []byte, err error) {
 	buf.Write(iendecode.Int64ToBytes(re_len))
 	buf.Write(re_b)
 	// body data
-	var bbody map[string][]byte
-	var body_b []byte
-	var body_len int64
-	bbody, err = s.Body.EncodeBbody()
-	if err != nil {
-		return
+	if s.Body != nil {
+		var bbody map[string][]byte
+		var body_b []byte
+		var body_len int64
+		bbody, err = s.Body.EncodeBbody()
+		if err != nil {
+			return
+		}
+		body_b = s.bbodyToBytes(bbody)
+		body_len = int64(len(body_b))
+		buf.Write(iendecode.Int64ToBytes(body_len))
+		buf.Write(body_b)
+	} else if s.is_bbody == true {
+		var body_b []byte
+		var body_len int64
+		body_b = s.bbodyToBytes(s.bbody)
+		body_len = int64(len(body_b))
+		buf.Write(iendecode.Int64ToBytes(body_len))
+		buf.Write(body_b)
+	} else {
+		buf.Write(iendecode.Int64ToBytes(0))
 	}
-	body_b = s.bbodyToBytes(bbody)
-	body_len = int64(len(body_b))
-	buf.Write(iendecode.Int64ToBytes(body_len))
-	buf.Write(body_b)
+
 	return
 }
 
@@ -808,11 +820,15 @@ func (s *Spots) UnmarshalBinary(b []byte) (err error) {
 	}
 	// bbody
 	bbody_len := iendecode.BytesToInt64(buf.Next(8))
-	err = s.bytesToBbody(buf.Next(int(bbody_len)))
-	if err != nil {
-		return
+	if bbody_len != 0 {
+		err = s.bytesToBbody(buf.Next(int(bbody_len)))
+		if err != nil {
+			return
+		}
+		s.is_bbody = true
+	} else {
+		s.is_bbody = false
 	}
-	s.is_bbody = true
 	return
 }
 
