@@ -210,10 +210,10 @@ func (r RoleDataPoint) EncodeBinary() (b []byte, lens int64, err error) {
 		lens += 8 + b_len
 		b_buf.Write(iendecode.Int64ToBytes(b_len))
 		b_buf.Write(r.Data.([]byte))
-	} else if t, _ := regexp.MatchString(`^\[\]`, r.Type); t == true {
+	} else if t, _ := regexp.MatchString(`^\[\](bool|int|uint|int8|uint8|int64|uint64|float64|complex128|string|time.Time)`, r.Type); t == true {
 		var bs []byte
 
-		bs, err = iendecode.SliceToByte(r.Type, r.Data)
+		bs, err = iendecode.SliceToBytes(r.Type, r.Data)
 		if err != nil {
 			return
 		}
@@ -221,10 +221,10 @@ func (r RoleDataPoint) EncodeBinary() (b []byte, lens int64, err error) {
 		b_buf.Write(iendecode.Int64ToBytes(bs_len))
 		b_buf.Write(bs)
 		lens += 8 + bs_len
-	} else if t, _ := regexp.MatchString(`map\[string\]`, r.Type); t == true {
+	} else if t, _ := regexp.MatchString(`map\[string\](string|time.Time|int64|uint64|float64|complex128)`, r.Type); t == true {
 		// map[string]
 		var bs []byte
-		bs, err = iendecode.MapToByte(r.Type, r.Data)
+		bs, err = iendecode.MapToBytes(r.Type, r.Data)
 		if err != nil {
 			return
 		}
@@ -234,7 +234,7 @@ func (r RoleDataPoint) EncodeBinary() (b []byte, lens int64, err error) {
 		lens += 8 + bs_len
 	} else {
 		var bs []byte
-		bs, err = iendecode.SingleToByte(r.Type, r.Data)
+		bs, err = iendecode.SingleToBytes(r.Type, r.Data)
 		bs_len := int64(len(bs))
 		b_buf.Write(iendecode.Int64ToBytes(bs_len))
 		b_buf.Write(bs)
@@ -242,6 +242,28 @@ func (r RoleDataPoint) EncodeBinary() (b []byte, lens int64, err error) {
 	}
 
 	b = b_buf.Bytes()
+	return
+}
+
+func (r *RoleDataPoint) UnmarshalBinary(data []byte) error {
+	return r.DecodeBinary(data)
+}
+
+func (r *RoleDataPoint) DecodeBinary(b []byte) (err error) {
+	b_buf := bytes.NewBuffer(b)
+	thetype_len := iendecode.BytesToInt64(b_buf.Next(8))
+	r.Type = string(b_buf.Next(int(thetype_len)))
+
+	b_len := iendecode.BytesToInt64(b_buf.Next(8))
+	if r.Type == "[]byte" {
+		r.Data = b_buf.Next(int(b_len))
+	} else if t, _ := regexp.MatchString(`^\[\](bool|int|uint|int8|uint8|int64|uint64|float64|complex128|string|time.Time)`, r.Type); t == true {
+		r.Data, err = iendecode.BytesToSlice(r.Type, b_buf.Next(int(b_len)))
+	} else if t, _ := regexp.MatchString(`map\[string\](string|time.Time|int64|uint64|float64|complex128)`, r.Type); t == true {
+		r.Data, err = iendecode.BytesToMap(r.Type, b_buf.Next(int(b_len)))
+	} else {
+		r.Data, err = iendecode.BytesToSingle(r.Type, b_buf.Next(int(b_len)))
+	}
 	return
 }
 
