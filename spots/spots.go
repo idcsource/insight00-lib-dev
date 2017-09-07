@@ -18,7 +18,7 @@ type Spots struct {
 	// ID
 	Id string
 	// Body
-	Body Bodyer
+	Body DataBodyer
 	// bbody
 	bbody    map[string][]byte
 	is_bbody bool
@@ -59,7 +59,23 @@ func NewSpot(id string) (spot *Spots) {
 	return
 }
 
-func NewSpotWithBody(id string, body Bodyer) (spot *Spots) {
+func NewEmptySpot() (spot *Spots) {
+	spot = &Spots{
+		bbody:            make(map[string][]byte),
+		is_bbody:         false,
+		children:         make([]string, 0),
+		friends:          make(map[string]Status),
+		context:          make(map[string]Context),
+		father_changed:   false,
+		children_changed: false,
+		friends_changed:  false,
+		context_changed:  false,
+		be_delete:        false,
+	}
+	return
+}
+
+func NewSpotWithBody(id string, body DataBodyer) (spot *Spots) {
 	spot = NewSpot(id)
 	spot.SetBody(body)
 	return
@@ -69,22 +85,23 @@ func (s *Spots) GetId() (id string) {
 	return s.Id
 }
 
-func (s *Spots) SetBody(body Bodyer) {
+func (s *Spots) SetBody(body DataBodyer) {
 	s.Body = body
 	s.is_bbody = false
 }
 
-func (s *Spots) BtoBbody(body Bodyer) (err error) {
+func (s *Spots) BtoDataBody(body DataBodyer) (err error) {
 	err = body.DecodeBbody(s.bbody)
 	if err != nil {
 		return
 	}
 	s.Body = body
+	s.bbody = make(map[string][]byte)
 	s.is_bbody = false
 	return
 }
 
-func (s *Spots) GetBody() (body Bodyer) {
+func (s *Spots) GetBody() (body DataBodyer) {
 	return s.Body
 }
 

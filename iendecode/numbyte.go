@@ -31,6 +31,14 @@ func Int64ToBytes(i int64) (b []byte) {
 	return
 }
 
+func IntToBytes(i int) (b []byte) {
+	return Int64ToBytes(int64(i))
+}
+
+func UintToBytes(i uint) (b []byte) {
+	return Uint64ToBytes(uint64(i))
+}
+
 // []byte转uint64
 func BytesToUint64(buf []byte) uint64 {
 	return binary.BigEndian.Uint64(buf)
@@ -39,6 +47,14 @@ func BytesToUint64(buf []byte) uint64 {
 func BytesToInt64(b []byte) (i int64) {
 	_ = b[7]
 	return int64(b[7]) | int64(b[6])<<8 | int64(b[5])<<16 | int64(b[4])<<24 | int64(b[3])<<32 | int64(b[2])<<40 | int64(b[1])<<48 | int64(b[0])<<56
+}
+
+func BytesToInt(b []byte) (i int) {
+	return int(BytesToInt64(b))
+}
+
+func BytesToUint(b []byte) (i uint) {
+	return uint(BytesToUint64(b))
 }
 
 // Uint32转[]byte

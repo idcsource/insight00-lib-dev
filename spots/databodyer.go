@@ -7,9 +7,7 @@
 
 package spots
 
-type Bodyer interface {
-	MarshalBinary() (data []byte, err error)
-	UnmarshalBinary(data []byte) error
+type DataBodyer interface {
 	Set(name string, data interface{}) error
 	Get(name string, data interface{}) error
 	DecodeBbody(b map[string][]byte) error
