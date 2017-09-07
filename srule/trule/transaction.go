@@ -109,6 +109,27 @@ func (t *Transaction) DeleteSpot(area, id string) (err error) {
 	return nil
 }
 
+func (t *Transaction) WriteFather(area, id, father string) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("drule[Transaction]WriteFather: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	spotc, exist, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]WriteFather:  %v", err)
+		return
+	}
+	if exist == false {
+		err = fmt.Errorf("drule[Transaction]WriteFather: The Spot not exist.")
+		return
+	}
+	spotc.spot_lock.Lock()
+	defer spotc.spot_lock.Unlock()
+	spotc.spot.SetFather(father)
+	spotc.be_change = true
+	return
+}
+
 // 获取一个角色，forwrite是true就是为了写
 func (t *Transaction) getSpot(area, id string, forwrite bool) (spotc *spotCache, exist bool, err error) {
 	// 构建信号

@@ -7,6 +7,31 @@
 
 package trule
 
+import (
+	"sync"
+
+	"github.com/idcsource/insight00-lib/ilogs"
+	"github.com/idcsource/insight00-lib/srule/hardstorage"
+)
+
+func NewTRule(local_store *hardstorage.HardStorage, log *ilogs.Logs) (t *TRule) {
+	t = &TRule{
+		local_store:        local_store,
+		log:                log,
+		spot_cache_sig:     make(chan *spotCacheSig),
+		transaction_signal: make(chan *transactionSig),
+		pausing_signal:     make(chan bool),
+		paused_signal:      make(chan bool),
+		work_status:        TRULE_RUN_PAUSED,
+		tran_wait:          new(sync.WaitGroup),
+	}
+	return
+}
+
+func (t *TRule) Start() {
+
+}
+
 // Begin a transaction
 func (t *TRule) Begin() (tran *Transaction, err error) {
 	transig := &transactionSig{

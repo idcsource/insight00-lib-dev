@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/idcsource/insight00-lib/cpool"
 	"github.com/idcsource/insight00-lib/ilogs"
 	"github.com/idcsource/insight00-lib/spots"
 	"github.com/idcsource/insight00-lib/srule/hardstorage"
@@ -143,8 +142,6 @@ type transactionOp struct {
 type TRule struct {
 	/* 下面是基础部分 */
 
-	// 配置信息
-	config *cpool.Block
 	// 本地存储
 	local_store *hardstorage.HardStorage
 	// 日志
