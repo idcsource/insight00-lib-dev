@@ -8,8 +8,8 @@
 package spots
 
 type DataBodyer interface {
-	Set(name string, data interface{}) error
-	Get(name string, data interface{}) error
+	//Set(name string, data interface{}) error
+	//Get(name string, data interface{}) error
 	DecodeBbody(b map[string][]byte) error
 	EncodeBbody() (b map[string][]byte, err error)
 }
