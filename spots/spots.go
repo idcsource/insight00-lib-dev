@@ -101,6 +101,17 @@ func (s *Spots) BtoDataBody(body DataBodyer) (err error) {
 	return
 }
 
+func (s *Spots) DataBodyToB() (err error) {
+	if s.bbody != nil {
+		s.bbody, err = s.Body.EncodeBbody()
+		if err == nil {
+			s.is_bbody = true
+		}
+		return
+	}
+	return
+}
+
 func (s *Spots) GetBody() (body DataBodyer) {
 	return s.Body
 }
@@ -687,6 +698,29 @@ func (s *Spots) GetContextStringStatus(contextname string, upordown ContextUpDow
 	return
 }
 
+func (s *Spots) SetBbody(name string, data []byte) (err error) {
+	if s.is_bbody == false {
+		err = fmt.Errorf("Not use Bbody.")
+		return
+	}
+	s.bbody[name] = data
+	return
+}
+
+func (s *Spots) GetBbody(name string) (data []byte, err error) {
+	if s.is_bbody == false {
+		err = fmt.Errorf("Not use Bbody.")
+		return
+	}
+	var have bool
+	data, have = s.bbody[name]
+	if have == false {
+		err = fmt.Errorf("The Bbody not exist.")
+		return
+	}
+	return
+}
+
 func (s *Spots) ReturnDelete() bool {
 	return s.be_delete
 }
@@ -712,7 +746,7 @@ func (s *Spots) MarshalBinary() (b []byte, err error) {
 	buf.Write(iendecode.Int64ToBytes(re_len))
 	buf.Write(re_b)
 	// body data
-	if s.Body != nil {
+	if s.Body != nil && s.is_bbody == false {
 		var bbody map[string][]byte
 		var body_b []byte
 		var body_len int64
