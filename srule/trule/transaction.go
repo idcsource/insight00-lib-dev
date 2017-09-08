@@ -123,10 +123,25 @@ func (t *Transaction) WriteFather(area, id, father string) (err error) {
 		err = fmt.Errorf("drule[Transaction]WriteFather: The Spot not exist.")
 		return
 	}
-	spotc.spot_lock.Lock()
-	defer spotc.spot_lock.Unlock()
+	//spotc.spot_lock.Lock()
+	//defer spotc.spot_lock.Unlock()
 	spotc.spot.SetFather(father)
 	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) Commit() (err error) {
+	transig := &transactionSig{
+		ask: TRANSACTION_ASK_COMMIT,
+		id:  t.id,
+		re:  make(chan *transactionReturn),
+	}
+	t.tran_sig <- transig
+	treturn := <-transig.re
+	if treturn.status != TRAN_RETURN_HANDLE_OK {
+		err = treturn.err
+		return
+	}
 	return
 }
 
@@ -144,6 +159,7 @@ func (t *Transaction) getSpot(area, id string, forwrite bool) (spotc *spotCache,
 	}
 	// 发送信号
 	t.spot_cache_sig <- spot_cache_sig
+
 	// 等待返回
 	sigre := <-spot_cache_sig.re
 	if sigre.status != SPOT_CACHE_RETURN_HANDLE_OK {

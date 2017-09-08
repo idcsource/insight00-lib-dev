@@ -117,7 +117,31 @@ func (top *transactionOp) toCommit(sig *transactionSig) {
 
 // 协程中的commit
 func (top *transactionOp) gotoCommit(sig *transactionSig, tran *Transaction) {
+	// 大量TODO
+	for area, sp := range tran.spot_cache {
+		for id, _ := range sp {
+			signal := &spotCacheSig{
+				ask:  SPOT_CACHE_ASK_STORE,
+				area: area,
+				id:   id,
+				//	re:   make(chan *spotCacheReturn),
+			}
+			top.spotCache <- signal
+			//<-signal.re
+			//			re := <-signal.re
+			//			if re.status == SPOT_CACHE_RETURN_HANDLE_ERROR {
+			//				top.log.ErrLog(re.err)
+			//			}
+		}
+	}
 
+	tran.spot_cache = nil
+
+	re := &transactionReturn{
+		status: TRAN_RETURN_HANDLE_OK,
+		tran:   tran,
+	}
+	sig.re <- re
 }
 
 // 处理rollback信号

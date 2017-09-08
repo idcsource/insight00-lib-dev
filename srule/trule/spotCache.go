@@ -52,7 +52,7 @@ func (s *spotCache) askToGet(wait *cacheAskSpot) (approved bool) {
 	defer s.wait_line_lock.Unlock()
 	towait := false
 	if wait.forwrite == true {
-		if s.tran_id == "" {
+		if s.tran_id == "" || s.tran_id == wait.tran_id {
 			s.tran_id = wait.tran_id
 			s.tran_time = time.Now()
 			s.forwrite = true

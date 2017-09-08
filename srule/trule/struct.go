@@ -149,8 +149,11 @@ type TRule struct {
 
 	/* 下面是事务相关部分 */
 
+	spot_cache_op *spotCacheOp
 	// 角色缓存的信号
 	spot_cache_sig chan *spotCacheSig
+
+	transcation_op *transactionOp
 	// 事务的信号
 	transaction_signal chan *transactionSig
 

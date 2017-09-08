@@ -15,11 +15,17 @@ import (
 )
 
 func NewTRule(local_store *hardstorage.HardStorage, log *ilogs.Logs) (t *TRule) {
+	spot_cache_op := initSpotCacheOp(local_store, log)
+	spot_cache_op_sig := spot_cache_op.ReturnSig()
+	tran_op := initTransactionOp(spot_cache_op_sig)
+	tran_op_sig := tran_op.ReturnSig()
 	t = &TRule{
 		local_store:        local_store,
 		log:                log,
-		spot_cache_sig:     make(chan *spotCacheSig),
-		transaction_signal: make(chan *transactionSig),
+		spot_cache_op:      spot_cache_op,
+		spot_cache_sig:     spot_cache_op_sig,
+		transcation_op:     tran_op,
+		transaction_signal: tran_op_sig,
 		pausing_signal:     make(chan bool),
 		paused_signal:      make(chan bool),
 		work_status:        TRULE_RUN_PAUSED,
@@ -28,7 +34,21 @@ func NewTRule(local_store *hardstorage.HardStorage, log *ilogs.Logs) (t *TRule) 
 	return
 }
 
-func (t *TRule) Start() {
+func (t *TRule) Start() (err error) {
+	t.spot_cache_op.Start()
+	err = t.transcation_op.Start()
+	if err != nil {
+		return
+	}
+	t.work_status = TRULE_RUN_RUNNING
+	return
+}
+
+func (t *TRule) Stop() {
+	t.work_status = TRULE_RUN_PAUSEING
+	t.transcation_op.Stop()
+	t.spot_cache_op.Stop()
+	t.work_status = TRULE_RUN_PAUSED
 
 }
 
