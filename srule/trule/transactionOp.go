@@ -163,5 +163,28 @@ func (top *transactionOp) toRollback(sig *transactionSig) {
 
 // 协程中的rollback
 func (top *transactionOp) gotoRollback(sig *transactionSig, tran *Transaction) {
+	for area, sp := range tran.spot_cache {
+		for id, _ := range sp {
+			signal := &spotCacheSig{
+				ask:  SPOT_CACHE_ASK_RESET,
+				area: area,
+				id:   id,
+				//	re:   make(chan *spotCacheReturn),
+			}
+			top.spotCache <- signal
+			//<-signal.re
+			//			re := <-signal.re
+			//			if re.status == SPOT_CACHE_RETURN_HANDLE_ERROR {
+			//				top.log.ErrLog(re.err)
+			//			}
+		}
+	}
 
+	tran.spot_cache = nil
+
+	re := &transactionReturn{
+		status: TRAN_RETURN_HANDLE_OK,
+		tran:   tran,
+	}
+	sig.re <- re
 }

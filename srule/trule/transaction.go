@@ -130,9 +130,129 @@ func (t *Transaction) WriteFather(area, id, father string) (err error) {
 	return
 }
 
+func (t *Transaction) ReadFather(area, id string) (father string, err error) {
+	if t.be_delete == true {
+		return "", fmt.Errorf("drule[Transaction]ReadFather: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]ReadFather: %v", err)
+		return
+	}
+	father = spotc.spot.GetFather()
+	return
+}
+
+func (t *Transaction) ResetFather(area, id string) (err error) {
+	return t.WriteFather(area, id, "")
+}
+
+func (t *Transaction) ReadChildren(area, id string) (children []string, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]ReadChildren: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]ReadChildren: %v", err)
+		return
+	}
+	children = spotc.spot.GetChildren()
+	return
+}
+
+func (t *Transaction) WriteChildren(area, id string, children []string) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]WriteChildren: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]WriteChildren: %v", err)
+		return
+	}
+	spotc.spot_lock.Lock()
+	defer spotc.spot_lock.Unlock()
+	spotc.spot.SetChildren(children)
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ResetChildren(area, id string) (err error) {
+	children := make([]string, 0)
+	return t.WriteChildren(area, id, children)
+}
+
+func (t *Transaction) WriteChild(area, id, child string) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("drule[Transaction]WriteChild: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]WriteChild: %v", err)
+		return
+	}
+	spotc.spot_lock.Lock()
+	defer spotc.spot_lock.Unlock()
+	spotc.spot.AddChild(child)
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) DeleteChild(area, id, child string) (err error) {
+	if t.be_delete == true {
+		return fmt.Errorf("drule[Transaction]DeleteChild: This transaction has been deleted.")
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]DeleteChild: %v", err)
+		return
+	}
+	spotc.spot_lock.Lock()
+	defer spotc.spot_lock.Unlock()
+	spotc.spot.DeleteChild(child)
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ExistChild(area, id, child string) (have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("drule[Transaction]ExistChild: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("drule[Transaction]ExistChild: %v", err)
+		return
+	}
+	have = spotc.spot.ExistChild(child)
+	return
+}
+
 func (t *Transaction) Commit() (err error) {
 	transig := &transactionSig{
 		ask: TRANSACTION_ASK_COMMIT,
+		id:  t.id,
+		re:  make(chan *transactionReturn),
+	}
+	t.tran_sig <- transig
+	treturn := <-transig.re
+	if treturn.status != TRAN_RETURN_HANDLE_OK {
+		err = treturn.err
+		return
+	}
+	return
+}
+
+func (t *Transaction) Rollback() (err error) {
+	transig := &transactionSig{
+		ask: TRANSACTION_ASK_ROLLBACK,
 		id:  t.id,
 		re:  make(chan *transactionReturn),
 	}
