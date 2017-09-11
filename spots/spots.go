@@ -81,6 +81,14 @@ func NewSpotWithBody(id string, body DataBodyer) (spot *Spots) {
 	return
 }
 
+func (s *Spots) UseBody() {
+	s.is_bbody = false
+}
+
+func (s *Spots) UseBbody() {
+	s.is_bbody = true
+}
+
 func (s *Spots) GetId() (id string) {
 	return s.Id
 }

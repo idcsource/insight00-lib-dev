@@ -7,12 +7,7 @@
 
 package trule
 
-import (
-	"github.com/idcsource/insight00-lib/spots"
-)
-
 type BbodyMarshaler interface {
-	spots.DataBodyer
 	BbodyMarshel(name string, data interface{}) (b []byte, err error)
 	BbodyUnmarshaler(name string, b []byte, data interface{}) (err error)
 }

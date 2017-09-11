@@ -75,7 +75,7 @@ func (t *Transaction) ReadSpotWithBody(area, id string, body spots.DataBodyer) (
 // Store Spot
 func (t *Transaction) StoreSpot(area string, spot *spots.Spots) (err error) {
 	if t.be_delete == true {
-		return fmt.Errorf("drule[Transaction]StoreSpot: This transaction has been deleted.")
+		return fmt.Errorf("trule[Transaction]StoreSpot: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
 	//	t.lock.RLock()
@@ -94,7 +94,7 @@ func (t *Transaction) StoreSpot(area string, spot *spots.Spots) (err error) {
 // Delete a Spot
 func (t *Transaction) DeleteSpot(area, id string) (err error) {
 	if t.be_delete == true {
-		return fmt.Errorf("drule[Transaction]DeleteSpot: This transaction has been deleted.")
+		return fmt.Errorf("trule[Transaction]DeleteSpot: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
 	spotc, exist, err := t.getSpot(area, id, true)
@@ -102,7 +102,7 @@ func (t *Transaction) DeleteSpot(area, id string) (err error) {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("drule[Transaction]DeleteSpot: The Spot not exist.")
+		return fmt.Errorf("trule[Transaction]DeleteSpot: The Spot not exist.")
 	}
 	spotc.be_delete = TRAN_SPOT_BE_DELETE_YES
 	spotc.be_change = true
@@ -111,16 +111,16 @@ func (t *Transaction) DeleteSpot(area, id string) (err error) {
 
 func (t *Transaction) WriteFather(area, id, father string) (err error) {
 	if t.be_delete == true {
-		return fmt.Errorf("drule[Transaction]WriteFather: This transaction has been deleted.")
+		return fmt.Errorf("trule[Transaction]WriteFather: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
 	spotc, exist, err := t.getSpot(area, id, true)
 	if err != nil {
-		err = fmt.Errorf("drule[Transaction]WriteFather:  %v", err)
+		err = fmt.Errorf("trule[Transaction]WriteFather:  %v", err)
 		return
 	}
 	if exist == false {
-		err = fmt.Errorf("drule[Transaction]WriteFather: The Spot not exist.")
+		err = fmt.Errorf("trule[Transaction]WriteFather: The Spot not exist.")
 		return
 	}
 	//spotc.spot_lock.Lock()
@@ -132,12 +132,12 @@ func (t *Transaction) WriteFather(area, id, father string) (err error) {
 
 func (t *Transaction) ReadFather(area, id string) (father string, err error) {
 	if t.be_delete == true {
-		return "", fmt.Errorf("drule[Transaction]ReadFather: This transaction has been deleted.")
+		return "", fmt.Errorf("trule[Transaction]ReadFather: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
 	spotc, _, err := t.getSpot(area, id, false)
 	if err != nil {
-		err = fmt.Errorf("drule[Transaction]ReadFather: %v", err)
+		err = fmt.Errorf("trule[Transaction]ReadFather: %v", err)
 		return
 	}
 	father = spotc.spot.GetFather()
@@ -150,13 +150,13 @@ func (t *Transaction) ResetFather(area, id string) (err error) {
 
 func (t *Transaction) ReadChildren(area, id string) (children []string, err error) {
 	if t.be_delete == true {
-		err = fmt.Errorf("drule[Transaction]ReadChildren: This transaction has been deleted.")
+		err = fmt.Errorf("trule[Transaction]ReadChildren: This transaction has been deleted.")
 		return
 	}
 	t.tran_time = time.Now()
 	spotc, _, err := t.getSpot(area, id, false)
 	if err != nil {
-		err = fmt.Errorf("drule[Transaction]ReadChildren: %v", err)
+		err = fmt.Errorf("trule[Transaction]ReadChildren: %v", err)
 		return
 	}
 	children = spotc.spot.GetChildren()
@@ -165,13 +165,13 @@ func (t *Transaction) ReadChildren(area, id string) (children []string, err erro
 
 func (t *Transaction) WriteChildren(area, id string, children []string) (err error) {
 	if t.be_delete == true {
-		err = fmt.Errorf("drule[Transaction]WriteChildren: This transaction has been deleted.")
+		err = fmt.Errorf("trule[Transaction]WriteChildren: This transaction has been deleted.")
 		return
 	}
 	t.tran_time = time.Now()
 	spotc, _, err := t.getSpot(area, id, true)
 	if err != nil {
-		err = fmt.Errorf("drule[Transaction]WriteChildren: %v", err)
+		err = fmt.Errorf("trule[Transaction]WriteChildren: %v", err)
 		return
 	}
 	spotc.spot_lock.Lock()
@@ -188,12 +188,12 @@ func (t *Transaction) ResetChildren(area, id string) (err error) {
 
 func (t *Transaction) WriteChild(area, id, child string) (err error) {
 	if t.be_delete == true {
-		return fmt.Errorf("drule[Transaction]WriteChild: This transaction has been deleted.")
+		return fmt.Errorf("trule[Transaction]WriteChild: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
 	spotc, _, err := t.getSpot(area, id, true)
 	if err != nil {
-		err = fmt.Errorf("drule[Transaction]WriteChild: %v", err)
+		err = fmt.Errorf("trule[Transaction]WriteChild: %v", err)
 		return
 	}
 	spotc.spot_lock.Lock()
@@ -205,12 +205,12 @@ func (t *Transaction) WriteChild(area, id, child string) (err error) {
 
 func (t *Transaction) DeleteChild(area, id, child string) (err error) {
 	if t.be_delete == true {
-		return fmt.Errorf("drule[Transaction]DeleteChild: This transaction has been deleted.")
+		return fmt.Errorf("trule[Transaction]DeleteChild: This transaction has been deleted.")
 	}
 	t.tran_time = time.Now()
 	spotc, _, err := t.getSpot(area, id, true)
 	if err != nil {
-		err = fmt.Errorf("drule[Transaction]DeleteChild: %v", err)
+		err = fmt.Errorf("trule[Transaction]DeleteChild: %v", err)
 		return
 	}
 	spotc.spot_lock.Lock()
@@ -222,16 +222,615 @@ func (t *Transaction) DeleteChild(area, id, child string) (err error) {
 
 func (t *Transaction) ExistChild(area, id, child string) (have bool, err error) {
 	if t.be_delete == true {
-		err = fmt.Errorf("drule[Transaction]ExistChild: This transaction has been deleted.")
+		err = fmt.Errorf("trule[Transaction]ExistChild: This transaction has been deleted.")
 		return
 	}
 	t.tran_time = time.Now()
 	spotc, _, err := t.getSpot(area, id, false)
 	if err != nil {
-		err = fmt.Errorf("drule[Transaction]ExistChild: %v", err)
+		err = fmt.Errorf("trule[Transaction]ExistChild: %v", err)
 		return
 	}
 	have = spotc.spot.ExistChild(child)
+	return
+}
+
+func (t *Transaction) ReadFriends(area, id string) (friends map[string]spots.Status, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadFriends: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadFriends: %v", err)
+		return
+	}
+	friends = spotc.spot.GetFriends()
+	return
+}
+
+func (t *Transaction) WriteFriends(area, id string, friends map[string]spots.Status) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteFriends: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteFriends: %v", err)
+		return
+	}
+	spotc.spot.SetFriends(friends)
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ResetFriends(area, id string) (err error) {
+	friends := make(map[string]spots.Status)
+	return t.WriteFriends(area, id, friends)
+}
+
+func (t *Transaction) WriteFriendIntStatus(area, id, friend string, bindbit int, value int64) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: %v", err)
+		return
+	}
+	err = spotc.spot.SetFriendIntStatus(id, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: %v", err)
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) WriteFriendFloatStatus(area, id, friend string, bindbit int, value float64) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: %v", err)
+		return
+	}
+	err = spotc.spot.SetFriendFloatStatus(id, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: %v", err)
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) WriteFriendComplexStatus(area, id, friend string, bindbit int, value complex128) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: %v", err)
+		return
+	}
+	err = spotc.spot.SetFriendComplexStatus(id, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: %v", err)
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) WriteFriendStringStatus(area, id, friend string, bindbit int, value string) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: %v", err)
+		return
+	}
+	err = spotc.spot.SetFriendStringStatus(id, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteFriendStatus: %v", err)
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ReadFriendIntStatus(area, id, friend string, bindbit int) (value int64, have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: %v", err)
+		return
+	}
+	value, have, err = spotc.spot.GetFriendIntStatus(friend, bindbit)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) ReadFriendFloatStatus(area, id, friend string, bindbit int) (value float64, have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: %v", err)
+		return
+	}
+	value, have, err = spotc.spot.GetFriendFloatStatus(friend, bindbit)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) ReadFriendComplexStatus(area, id, friend string, bindbit int) (value complex128, have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: %v", err)
+		return
+	}
+	value, have, err = spotc.spot.GetFriendComplexStatus(friend, bindbit)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) ReadFriendStringStatus(area, id, friend string, bindbit int) (value string, have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: %v", err)
+		return
+	}
+	value, have, err = spotc.spot.GetFriendStringStatus(friend, bindbit)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadFriendStatus: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) DeleteFriend(area, id, friend string) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]DeleteFriend: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]DeleteFriend: %v", err)
+		return
+	}
+	spotc.spot.DeleteFriend(friend)
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) CreateContext(area, id, contextname string) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]CreateContext: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]CreateContext: %v", err)
+		return
+	}
+	err = spotc.spot.NewContext(contextname)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]CreateContext: %v", err)
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ExistContext(area, id, contextname string) (have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ExistContext: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ExistContext: %v", err)
+		return
+	}
+	have = spotc.spot.ExistContext(contextname)
+	return
+}
+
+func (t *Transaction) DropContext(area, id, contextname string) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]DropContext: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]DropContext: %v", err)
+		return
+	}
+	spotc.spot.DelContext(contextname)
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ReadContext(area, id, contextname string) (context spots.Context, have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadContext: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContext: %v", err)
+		return
+	}
+	context, have = spotc.spot.GetContext(contextname)
+	return
+}
+
+func (t *Transaction) WriteContext(area, id, contextname string, context spots.Context) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteContext: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContext: %v", err)
+		return
+	}
+	spotc.spot.SetContext(contextname, context)
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) DeleteContextBind(area, id, contextname string, upordown spots.ContextUpDown, bindspot string) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]DeleteContextBind: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]DeleteContextBind: %v", err)
+		return
+	}
+	if upordown == spots.CONTEXT_UP {
+		spotc.spot.DelContextUp(contextname, bindspot)
+	} else if upordown == spots.CONTEXT_DOWN {
+		spotc.spot.DelContextDown(contextname, bindspot)
+	} else {
+		err = fmt.Errorf("trule[Transaction]DeleteContextBind: Must CONTEXT_UP or CONTEXT_DOWN.")
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ReadContextsName(area, id string) (names []string, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadContextsName: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContextsName: %v", err)
+		return
+	}
+	names = spotc.spot.GetContextsName()
+	return
+}
+
+func (t *Transaction) WriteContextIntStatus(area, id, contextname string, upordown spots.ContextUpDown, bindspotid string, bindbit int, value int64) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: %v", err)
+		return
+	}
+	err = spotc.spot.SetContextIntStatus(contextname, upordown, bindspotid, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: %v", err)
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) WriteContextFloatStatus(area, id, contextname string, upordown spots.ContextUpDown, bindspotid string, bindbit int, value float64) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: %v", err)
+		return
+	}
+	err = spotc.spot.SetContextFloatStatus(contextname, upordown, bindspotid, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: %v", err)
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) WriteContextComplexStatus(area, id, contextname string, upordown spots.ContextUpDown, bindspotid string, bindbit int, value complex128) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: %v", err)
+		return
+	}
+	err = spotc.spot.SetContextComplexStatus(contextname, upordown, bindspotid, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: %v", err)
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) WriteContextStringStatus(area, id, contextname string, upordown spots.ContextUpDown, bindspotid string, bindbit int, value string) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: %v", err)
+		return
+	}
+	err = spotc.spot.SetContextStringStatus(contextname, upordown, bindspotid, bindbit, value)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContextStatus: %v", err)
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ReadContextIntStatus(area, id, contextname string, upordown spots.ContextUpDown, bindspotid string, bindbit int) (value int64, have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: %v", err)
+		return
+	}
+	value, have, err = spotc.spot.GetContextIntStatus(contextname, upordown, bindspotid, bindbit)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) ReadContextFloatStatus(area, id, contextname string, upordown spots.ContextUpDown, bindspotid string, bindbit int) (value float64, have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: %v", err)
+		return
+	}
+	value, have, err = spotc.spot.GetContextFloatStatus(contextname, upordown, bindspotid, bindbit)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) ReadContextComplexStatus(area, id, contextname string, upordown spots.ContextUpDown, bindspotid string, bindbit int) (value complex128, have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: %v", err)
+		return
+	}
+	value, have, err = spotc.spot.GetContextComplexStatus(contextname, upordown, bindspotid, bindbit)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) ReadContextStringStatus(area, id, contextname string, upordown spots.ContextUpDown, bindspotid string, bindbit int) (value string, have bool, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: %v", err)
+		return
+	}
+	value, have, err = spotc.spot.GetContextStringStatus(contextname, upordown, bindspotid, bindbit)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContextStatus: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) WriteContexts(area, id string, contexts map[string]spots.Context) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteContexts: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteContexts: %v", err)
+		return
+	}
+	spotc.spot.SetContexts(contexts)
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ReadContexts(area, id string) (contexts map[string]spots.Context, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadContexts: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadContexts: %v", err)
+		return
+	}
+	contexts = spotc.spot.GetContexts()
+	return
+}
+
+func (t *Transaction) ResetContexts(area, id string) (err error) {
+	contexts := make(map[string]spots.Context)
+	return t.WriteContexts(area, id, contexts)
+}
+
+func (t *Transaction) WriteData(area, id, name string, data interface{}) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteData: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteData: %v", err)
+		return
+	}
+	if spotc.spot.Body == nil {
+		err = fmt.Errorf("trule[Transaction]WriteData: The data body not exist.")
+		return
+	}
+	err = spotc.spot.Body.Set(name, data)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteData: %v", err)
+		return
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) WriteDataToBbody(area, id string, prototype BbodyMarshaler, name string, data interface{}) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteDataToBbody: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteDataToBbody: %v", err)
+		return
+	}
+	bvalue, err := prototype.BbodyMarshel(name, data)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteDataToBbody: %v", err)
+		return
+	}
+	err = spotc.spot.SetBbody(name, bvalue)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteDataToBbody: %v", err)
+		return
+	}
+	spotc.be_change = true
+	return
+}
+
+func (t *Transaction) ReadData(area, id, name string, data interface{}) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadData: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadData: %v", err)
+		return
+	}
+	if spotc.spot.Body == nil {
+		err = fmt.Errorf("trule[Transaction]WriteData: The data body not exist.")
+		return
+	}
+	err = spotc.spot.Body.Get(name, data)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadData: %v", err)
+	}
+	return
+}
+
+func (t *Transaction) ReadDataFromBbody(area, id string, prototype BbodyMarshaler, name string, data interface{}) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadData: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadData: %v", err)
+		return
+	}
+	bvalue, err := spotc.spot.GetBbody(name)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadData: %v", err)
+		return
+	}
+	err = prototype.BbodyUnmarshaler(name, bvalue, data)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadData: %v", err)
+		return
+	}
 	return
 }
 
