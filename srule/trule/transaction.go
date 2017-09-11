@@ -786,6 +786,26 @@ func (t *Transaction) WriteDataToBbody(area, id string, prototype BbodyMarshaler
 	return
 }
 
+func (t *Transaction) WriteDataBytes(area, id string, name string, data []byte) (err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]WriteDataBytes: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+	spotc, _, err := t.getSpot(area, id, true)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteDataBytes: %v", err)
+		return
+	}
+	err = spotc.spot.SetBbody(name, bvalue)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]WriteDataBytes: %v", err)
+		return
+	}
+	spotc.be_change = true
+	return
+}
+
 func (t *Transaction) ReadData(area, id, name string, data interface{}) (err error) {
 	if t.be_delete == true {
 		err = fmt.Errorf("trule[Transaction]ReadData: This transaction has been deleted.")
@@ -811,24 +831,44 @@ func (t *Transaction) ReadData(area, id, name string, data interface{}) (err err
 
 func (t *Transaction) ReadDataFromBbody(area, id string, prototype BbodyMarshaler, name string, data interface{}) (err error) {
 	if t.be_delete == true {
-		err = fmt.Errorf("trule[Transaction]ReadData: This transaction has been deleted.")
+		err = fmt.Errorf("trule[Transaction]ReadDataFromBbody: This transaction has been deleted.")
 		return
 	}
 	t.tran_time = time.Now()
 
 	spotc, _, err := t.getSpot(area, id, false)
 	if err != nil {
-		err = fmt.Errorf("trule[Transaction]ReadData: %v", err)
+		err = fmt.Errorf("trule[Transaction]ReadDataFromBbody: %v", err)
 		return
 	}
 	bvalue, err := spotc.spot.GetBbody(name)
 	if err != nil {
-		err = fmt.Errorf("trule[Transaction]ReadData: %v", err)
+		err = fmt.Errorf("trule[Transaction]ReadDataFromBbody: %v", err)
 		return
 	}
 	err = prototype.BbodyUnmarshaler(name, bvalue, data)
 	if err != nil {
-		err = fmt.Errorf("trule[Transaction]ReadData: %v", err)
+		err = fmt.Errorf("trule[Transaction]ReadDataFromBbody: %v", err)
+		return
+	}
+	return
+}
+
+func (t *Transaction) ReadDataBytes(area, id string, name string) (data []byte, err error) {
+	if t.be_delete == true {
+		err = fmt.Errorf("trule[Transaction]ReadDataBytes: This transaction has been deleted.")
+		return
+	}
+	t.tran_time = time.Now()
+
+	spotc, _, err := t.getSpot(area, id, false)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadDataBytes: %v", err)
+		return
+	}
+	data, err := spotc.spot.GetBbody(name)
+	if err != nil {
+		err = fmt.Errorf("trule[Transaction]ReadDataBytes: %v", err)
 		return
 	}
 	return
