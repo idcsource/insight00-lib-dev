@@ -797,7 +797,7 @@ func (t *Transaction) WriteDataBytes(area, id string, name string, data []byte) 
 		err = fmt.Errorf("trule[Transaction]WriteDataBytes: %v", err)
 		return
 	}
-	err = spotc.spot.SetBbody(name, bvalue)
+	err = spotc.spot.SetBbody(name, data)
 	if err != nil {
 		err = fmt.Errorf("trule[Transaction]WriteDataBytes: %v", err)
 		return
@@ -866,7 +866,7 @@ func (t *Transaction) ReadDataBytes(area, id string, name string) (data []byte, 
 		err = fmt.Errorf("trule[Transaction]ReadDataBytes: %v", err)
 		return
 	}
-	data, err := spotc.spot.GetBbody(name)
+	data, err = spotc.spot.GetBbody(name)
 	if err != nil {
 		err = fmt.Errorf("trule[Transaction]ReadDataBytes: %v", err)
 		return
