@@ -16,6 +16,14 @@ Insight 0+0并不是以实现小说中描述的强大智能为目的，它只是
 
 ## 目前
 
+**—— 2017年9月12日 ——**
+
+所有和Role（角色）相关的package都将被废弃，涉及到的package包括：roles、rolesio、rcontrol、bridges、rolesplus、hardstore、drcm、drule、drule2。
+
+Spot将代替Role。
+
+其他被取代的package有：nst、smcs、spiders、spiders2、webs。
+
 **—— 2017年4月27日 ——**
 
 正在开发drule2包，也就是“分布式统治者v2”，开发完成将代替drule包。
@@ -105,35 +113,35 @@ nst，也就是Network Socket Transmission——网络套接字封装，它把go
 
 随机数与随机字符串生成。最重要目的是为角色生成40位字符串的非重复ID。
 
-### roles
+### roles (discard)
 
 基本角色接口与基本角色类型。基本角色主要负责保存角色与它的父子、朋友关系。
 
-### rolesio
+### rolesio (discard)
 
 角色存储接口与空存储类型。提供将角色关系以及角色信息保存进永久存储（如硬盘）的方式。
 
-### hardstore
+### hardstore (discard)
 
 硬存储库，实现rolesio的部分功能，将角色和角色关系保存进永久存储。
 
-### rcontrol
+### rcontrol (discard)
 
 角色控制器。负责生成角色、设置角色关系、调用存储。 **（可能在将来废弃）**
 
-### bridges
+### bridges (discard)
 
 数据交换桥。提供一个角色间数据传递的桥梁。交换桥为子进程运行，触发执行。 **（可能在将来废弃）**
 
-### rolesplus
+### rolesplus (discard)
 
 增强角色类型。提供了实体嵌入其他角色（指针）的基本功能。并提供了使用数据交换桥的方法。 **（可能在将来废弃）**
 
-### nst
+### nst (discard)
 
 网络通信封装。提供TCP的server和client。支持TLS加密。
 
-### smcs
+### smcs (discard)
 
 状态监控与配置蔓延。节点与中心间的沟通方式。 **（废弃，目前代码保留）**
 
@@ -149,7 +157,7 @@ nst，也就是Network Socket Transmission——网络套接字封装，它把go
 
 简单的管理运行日志和错误日志。
 
-### webs
+### webs (discard)
 
 一个无限级分类路由的HTTP服务器实现，从CoderG->Metropolis项目简化移植而来。 **（废弃，目前代码保留）**
 
@@ -157,11 +165,11 @@ nst，也就是Network Socket Transmission——网络套接字封装，它把go
 
 一个无限级分类路由的HTTP服务器实现，从CoderG->Metropolis项目简化移植而来。
 
-### spiders
+### spiders (discard)
 
 蜘蛛抓取器。注意：这部分还未完成。 **（废弃，目前代码保留）**
 
-### spiders2
+### spiders2 (discard)
 
 蜘蛛抓取器。注意：部分功能没有完成。 
 
@@ -169,10 +177,10 @@ nst，也就是Network Socket Transmission——网络套接字封装，它把go
 
 一个服务期间搬运“角色”的组件。
 
-### drcm
+### drcm (discard)
 
 分布式“角色”存储管理。 **（刚一出生就被drule所取代）**
 
-### drule
+### drule (discard)
 
 支持事务的分布式“角色”存储管理。
