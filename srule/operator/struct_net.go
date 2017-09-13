@@ -173,6 +173,56 @@ type O_Transaction struct {
 	PrepareIDs    []string // 准备的角色ID
 }
 
+func (o O_Transaction) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// InTransaction 1
+	InTransaction_b := iendecode.BoolToBytes(o.InTransaction)
+	buf.Write(InTransaction_b)
+
+	// TransactionId (40 or 0)
+	if o.InTransaction == true {
+		buf.Write([]byte(o.TransactionId))
+	}
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// PrepareIDs
+	prepare_ids_b := iendecode.SliceStringToBytes(o.PrepareIDs)
+	prepare_ids_b_len := len(prepare_ids_b)
+	buf.Write(iendecode.IntToBytes(prepare_ids_b_len))
+	buf.Write(prepare_ids_b)
+
+	data = buf.Bytes()
+	return
+}
+
+func (o *O_Transaction) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewBuffer(data)
+
+	// InTransaction 1
+	o.InTransaction = iendecode.BytesToBool(buf.Next(1))
+
+	// TransactionId (40 or 0)
+	if o.InTransaction == true {
+		o.TransactionId = string(buf.Next(40))
+	}
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// PrepareIDs
+	prepare_ids_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.PrepareIDs = iendecode.BytesToSliceString(buf.Next(prepare_ids_b_len))
+
+	return
+}
+
 // 角色的接收与发送格式
 type O_SpotSendAndReceive struct {
 	Area   string       // 区域
