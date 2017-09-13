@@ -26,14 +26,14 @@ func NewDRuleError() (err DRuleError) {
 	}
 }
 
-func (d DRuleError) MarshalBinary() (data []byte, err error) {
+func (errs DRuleError) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	// datastat 8
-	buf.Write(iendecode.UintToBytes(uint(d.Code)))
+	buf.Write(iendecode.UintToBytes(uint(errs.Code)))
 
 	// error
-	error_b := []byte(d.Err.Error())
+	error_b := []byte(errs.Err.Error())
 	error_b_len := len(error_b)
 	buf.Write(iendecode.IntToBytes(error_b_len))
 	buf.Write(error_b)
@@ -42,14 +42,14 @@ func (d DRuleError) MarshalBinary() (data []byte, err error) {
 	return
 }
 
-func (d *DRuleError) UnmarshalBinary(data []byte) (err error) {
+func (errs *DRuleError) UnmarshalBinary(data []byte) (err error) {
 	buf := bytes.NewBuffer(data)
 
-	d.Code = DRuleReturnStatus(iendecode.BytesToUint(buf.Next(8)))
+	errs.Code = DRuleReturnStatus(iendecode.BytesToUint(buf.Next(8)))
 
 	error_b_len := iendecode.BytesToInt(buf.Next(8))
 	error_str := string(buf.Next(error_b_len))
-	d.Err = fmt.Errorf(error_str)
+	errs.Err = fmt.Errorf(error_str)
 
 	return
 }
