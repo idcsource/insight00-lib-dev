@@ -8,7 +8,10 @@
 package operator
 
 import (
+	"bytes"
 	"fmt"
+
+	"github.com/idcsource/insight00-lib/iendecode"
 )
 
 type DRuleError struct {
@@ -21,6 +24,34 @@ func NewDRuleError() (err DRuleError) {
 		Code: DATA_NO_RETRUN,
 		Err:  nil,
 	}
+}
+
+func (d DRuleError) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// datastat 8
+	buf.Write(iendecode.UintToBytes(uint(d.Code)))
+
+	// error
+	error_b := []byte(d.Err.Error())
+	error_b_len := len(error_b)
+	buf.Write(iendecode.IntToBytes(error_b_len))
+	buf.Write(error_b)
+
+	data = buf.Bytes()
+	return
+}
+
+func (d *DRuleError) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewBuffer(data)
+
+	d.Code = DRuleReturnStatus(iendecode.BytesToUint(buf.Next(8)))
+
+	error_b_len := iendecode.BytesToInt(buf.Next(8))
+	error_str := string(buf.Next(error_b_len))
+	d.Err = fmt.Errorf(error_str)
+
+	return
 }
 
 // 返回错误
