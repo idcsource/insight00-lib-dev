@@ -138,6 +138,33 @@ type O_DRuleReceipt struct {
 	Error    string            // 返回的错误
 }
 
+func (o O_DRuleReceipt) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// datastat 8
+	buf.Write(iendecode.UintToBytes(uint(o.DataStat)))
+
+	// error
+	error_b := []byte(o.Error)
+	error_b_len := len(error_b)
+	buf.Write(iendecode.IntToBytes(error_b_len))
+	buf.Write(error_b)
+
+	data = buf.Bytes()
+	return
+}
+
+func (o *O_DRuleReceipt) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewBuffer(data)
+
+	o.DataStat = DRuleReturnStatus(iendecode.BytesToUint(buf.Next(8)))
+
+	error_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Error = string(buf.Next(error_b_len))
+
+	return
+}
+
 // 对事务的数据
 type O_Transaction struct {
 	TransactionId string   // 事务的ID
