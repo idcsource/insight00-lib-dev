@@ -26,7 +26,7 @@ func NewDRuleError() (err DRuleError) {
 	}
 }
 
-func (errs DRuleError) MarshalBinary() (data []byte, err error) {
+func (errs *DRuleError) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	// datastat 8
