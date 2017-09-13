@@ -138,7 +138,7 @@ type O_DRuleReceipt struct {
 	Error    string            // 返回的错误
 }
 
-func (o O_DRuleReceipt) MarshalBinary() (data []byte, err error) {
+func (o *O_DRuleReceipt) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	// datastat 8
