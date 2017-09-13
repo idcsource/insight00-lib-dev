@@ -8,6 +8,10 @@
 package operator
 
 const (
+	THE_NONE_UNID = "0000000000000000000000000000000000000000"
+)
+
+const (
 	// 运行状态
 	OPERATOR_RUN_NO       = iota // 未指定
 	OPERATOR_RUN_RUNNING         // 正在运行

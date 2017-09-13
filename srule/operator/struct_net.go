@@ -50,11 +50,11 @@ func (o O_OperatorSend) MarshalBinary() (data []byte, err error) {
 	in_transaction_b := iendecode.BoolToBytes(o.InTransaction)
 	buf.Write(in_transaction_b)
 
-	// TransactionId
-	transaction_id_b := []byte(o.TransactionId)
-	transaction_id_b_len := len(transaction_id_b)
-	buf.Write(iendecode.IntToBytes(transaction_id_b_len))
-	buf.Write(transaction_id_b)
+	if o.InTransaction == true {
+		// TransactionId(40 or 0)
+		transaction_id_b := []byte(o.TransactionId)
+		buf.Write(transaction_id_b)
+	}
 
 	// SpotId
 	spot_id_b := []byte(o.SpotId)
@@ -75,9 +75,60 @@ func (o O_OperatorSend) MarshalBinary() (data []byte, err error) {
 	buf.Write(user_b)
 
 	// Unid(40)
-	buf.Write([]byte(o.Unid))
+	unid_b := []byte(o.Unid)
+	unid_b_len := len(unid_b)
+	buf.Write(iendecode.IntToBytes(unid_b_len))
+	buf.Write(unid_b)
 
 	data = buf.Bytes()
+	return
+}
+
+func (o *O_OperatorSend) UnmarshalBinary(data []byte) (err error) {
+	buf := bytes.NewBuffer(data)
+
+	// 8
+	operate_zone_b := buf.Next(8)
+	o.OperateZone = OperateZone(iendecode.BytesToUint(operate_zone_b))
+
+	// 8
+	operate_b := buf.Next(8)
+	o.Operate = OperatorType(iendecode.BytesToUint(operate_b))
+
+	// OperatorName
+	operator_name_b_len := iendecode.BytesToInt(buf.Next(8))
+	operator_name_b := buf.Next(operator_name_b_len)
+	o.OperatorName = string(operator_name_b)
+
+	// InTransaction
+	o.InTransaction = iendecode.BytesToBool(buf.Next(1))
+
+	if o.InTransaction == true {
+		// TransactionId
+		transaction_id_b := buf.Next(40)
+		o.TransactionId = string(transaction_id_b)
+	}
+
+	// SpotId
+	spot_id_b_len := iendecode.BytesToInt(buf.Next(8))
+	spot_id_b := buf.Next(spot_id_b_len)
+	o.SpotId = string(spot_id_b)
+
+	// AreaId
+	area_id_b_len := iendecode.BytesToInt(buf.Next(8))
+	area_id_b := buf.Next(area_id_b_len)
+	o.AreaId = string(area_id_b)
+
+	// User
+	user_b_len := iendecode.BytesToInt(buf.Next(8))
+	user_b := buf.Next(user_b_len)
+	o.User = string(user_b)
+
+	// Unid(40)
+	unid_b_len := iendecode.BytesToInt(buf.Next(8))
+	unid_b := buf.Next(unid_b_len)
+	o.Unid = string(unid_b)
+
 	return
 }
 
