@@ -223,19 +223,112 @@ func (o *O_Transaction) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// 角色的接收与发送格式
+// Spot的接收与发送格式（后面跟真正的Spot数据）
 type O_SpotSendAndReceive struct {
-	Area   string       // 区域
-	RoleID string       // 角色的ID
-	IfHave bool         // 是否存在
-	Spot   *spots.Spots // 角色的身体
+	IfHave bool   // 是否存在
+	Area   string // 区域
+	SpotId string // Spot的ID
 }
 
-// 角色的father修改的数据格式
+func (o O_SpotSendAndReceive) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// IfHave 1
+	buf.Write(iendecode.BoolToBytes(o.IfHave))
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// SpotId
+	spotid_b := []byte(o.SpotId)
+	spotid_b_len := len(spotid_b)
+	buf.Write(iendecode.IntToBytes(spotid_b_len))
+	buf.Write(spotid_b)
+
+	data = buf.Bytes()
+	return
+}
+
+func (o *O_SpotSendAndReceive) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// IfHave 1
+	o.IfHave = iendecode.BytesToBool(buf.Next(1))
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// SpotId
+	spotid_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.SpotId = string(buf.Next(spotid_b_len))
+
+	return
+}
+
+// Spot的father修改的数据格式
 type O_SpotFatherChange struct {
 	Area   string
-	Id     string
+	SpotId string
 	Father string
+}
+
+func (o O_SpotFatherChange) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// SpotId
+	spotid_b := []byte(o.SpotId)
+	spotid_b_len := len(spotid_b)
+	buf.Write(iendecode.IntToBytes(spotid_b_len))
+	buf.Write(spotid_b)
+
+	// Father
+	father_b := []byte(o.Father)
+	father_b_len := len(father_b)
+	buf.Write(iendecode.IntToBytes(father_b_len))
+	buf.Write(father_b)
+
+	data = buf.Bytes()
+	return
+}
+
+func (o *O_SpotFatherChange) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// SpotId
+	spotid_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.SpotId = string(buf.Next(spotid_b_len))
+
+	// Father
+	father_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Father = string(buf.Next(father_b_len))
+
+	return
 }
 
 // 角色的所有子角色
