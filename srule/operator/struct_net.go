@@ -620,18 +620,108 @@ type O_SpotAndFriend_Data struct {
 	String  string     // 单一修改的string
 }
 
-// 角色的单个上下文关系的网络数据格式
+func (o O_SpotAndFriend_Data) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Single 1
+	single_b := iendecode.Uint8ToBytes(uint8(o.Single))
+	buf.Write(single_b)
+
+	if o.Single == spots.STATUS_VALUE_TYPE_NULL {
+		// Status
+		var status_b []byte
+		status_b, err = o.Status.MarshalBinary()
+		if err != nil {
+			return
+		}
+		status_b_len := len(status_b)
+		buf.Write(iendecode.IntToBytes(status_b_len))
+		buf.Write(status_b)
+	} else {
+		// Bit 8
+		buf.Write(iendecode.IntToBytes(o.Bit))
+		if o.Single == spots.STATUS_VALUE_TYPE_INT {
+			// Int 8
+			buf.Write(iendecode.Int64ToBytes(o.Int))
+		} else if o.Single == spots.STATUS_VALUE_TYPE_FLOAT {
+			// Float 8
+			var float_b []byte
+			float_b, err = iendecode.ToBinary(o.Float)
+			if err != nil {
+				return
+			}
+			buf.Write(float_b)
+		} else if o.Single == spots.STATUS_VALUE_TYPE_COMPLEX {
+			// Complex 16
+			var complex_b []byte
+			complex_b, err = iendecode.ToBinary(o.Complex)
+			if err != nil {
+				return
+			}
+			buf.Write(complex_b)
+		} else {
+			// String
+			string_b := []byte(o.String)
+			string_b_len := len(string_b)
+			buf.Write(iendecode.IntToBytes(string_b_len))
+			buf.Write(string_b)
+		}
+	}
+
+	return buf.Bytes(), err
+}
+
+func (o *O_SpotAndFriend_Data) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Single 1
+	o.Single = spots.StatusValueType(iendecode.BytesToUint8(buf.Next(1)))
+
+	if o.Single == spots.STATUS_VALUE_TYPE_NULL {
+		// Status
+		status_b_len := iendecode.BytesToInt(buf.Next(8))
+		status := spots.NewStatus()
+		err = status.UnmarshalBinary(buf.Next(status_b_len))
+		if err != nil {
+			return
+		}
+		o.Status = status
+	} else {
+		// Bit 8
+		o.Bit = iendecode.BytesToInt(buf.Next(8))
+		if o.Single == spots.STATUS_VALUE_TYPE_INT {
+			// Int 8
+			o.Int = iendecode.BytesToInt64(buf.Next(8))
+		} else if o.Single == spots.STATUS_VALUE_TYPE_FLOAT {
+			// Float 8
+			err = iendecode.FromBinary(buf.Next(8), &o.Float)
+		} else if o.Single == spots.STATUS_VALUE_TYPE_COMPLEX {
+			// Complex 16
+			err = iendecode.FromBinary(buf.Next(16), &o.Complex)
+		} else {
+			// String
+			str_b_len := iendecode.BytesToInt(buf.Next(8))
+			o.String = string(buf.Next(str_b_len))
+		}
+	}
+
+	return
+}
+
+// Spot的单个上下文关系的网络数据格式
 type O_SpotAndContext struct {
-	Area string
-	Id   string
-	// 上下文的名字
-	Context string
-	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
-	UpOrDown spots.ContextUpDown
-	// 要操作的绑定角色的ID
-	BindRole string
-	// 存在否
-	Exist bool
+	Area     string
+	SpotId   string
+	Context  string              // 上下文的名字
+	UpOrDown spots.ContextUpDown // 这是spots包中的CONTEXT_UP或CONTEXT_DOWN
+	BindSpot string              // 要操作的绑定Spot的ID
+	Exist    bool                // 存在否
 }
 
 // 角色的全部上下文
