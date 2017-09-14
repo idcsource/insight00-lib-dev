@@ -85,6 +85,12 @@ func (o O_OperatorSend) MarshalBinary() (data []byte, err error) {
 }
 
 func (o *O_OperatorSend) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
 	buf := bytes.NewBuffer(data)
 
 	// 8
@@ -155,6 +161,12 @@ func (o *O_DRuleReceipt) MarshalBinary() (data []byte, err error) {
 }
 
 func (o *O_DRuleReceipt) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
 	buf := bytes.NewBuffer(data)
 
 	o.DataStat = DRuleReturnStatus(iendecode.BytesToUint(buf.Next(8)))
@@ -202,6 +214,12 @@ func (o O_Transaction) MarshalBinary() (data []byte, err error) {
 }
 
 func (o *O_Transaction) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
 	buf := bytes.NewBuffer(data)
 
 	// InTransaction 1
@@ -530,27 +548,76 @@ func (o *O_SpotAndFriends) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// 角色的单个朋友角色关系的网络数据格式
+// Spot的单个朋友关系的网络数据格式
 type O_SpotAndFriend struct {
 	Area   string
-	Id     string
+	SpotId string
 	Friend string
-	Bind   int64
-	// 要求的是否存在
-	Exist  bool
-	Status spots.Status
-	// 单一的绑定属性修改，1为int，2为float，3为complex
-	Single spots.StatusValueType
-	// 单一的绑定修改所对应的位置，也就是0到9
-	Bit int
-	// 单一修改的Int
-	Int int64
-	// 单一修改的Float
-	Float float64
-	// 单一修改的Complex
-	Complex complex128
-	// 单一修改的string
-	String string
+	Exist  bool // 要求的是否存在
+}
+
+func (o O_SpotAndFriend) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// SpotId
+	spotid_b := []byte(o.SpotId)
+	spotid_b_len := len(spotid_b)
+	buf.Write(iendecode.IntToBytes(spotid_b_len))
+	buf.Write(spotid_b)
+
+	// Friend
+	friend_b := []byte(o.Friend)
+	friend_b_len := len(friend_b)
+	buf.Write(iendecode.IntToBytes(friend_b_len))
+	buf.Write(friend_b)
+
+	// Exist 1
+	buf.Write(iendecode.BoolToBytes(o.Exist))
+
+	return buf.Bytes(), err
+}
+
+func (o *O_SpotAndFriend) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// SpotId
+	spotid_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.SpotId = string(buf.Next(spotid_b_len))
+
+	// Friend
+	friend_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Friend = string(buf.Next(friend_b_len))
+
+	// Exist 1
+	o.Exist = iendecode.BytesToBool(buf.Next(1))
+
+	return
+}
+
+type O_SpotAndFriend_Data struct {
+	Single  spots.StatusValueType // 单一的绑定属性修改，1为int，2为float，3为complex
+	Status  spots.Status
+	Bit     int        // 单一的绑定修改所对应的位置，也就是0到9
+	Int     int64      // 单一修改的Int
+	Float   float64    // 单一修改的Float
+	Complex complex128 // 单一修改的Complex
+	String  string     // 单一修改的string
 }
 
 // 角色的单个上下文关系的网络数据格式
