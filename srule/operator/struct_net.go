@@ -331,26 +331,203 @@ func (o *O_SpotFatherChange) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// 角色的所有子角色
+// Spot的所有子Spot
 type O_SpotAndChildren struct {
 	Area     string
-	Id       string
+	SpotId   string
 	Children []string
 }
 
-// 角色的单个子角色关系的网络数据格式
-type O_SpotAndChild struct {
-	Area  string
-	Id    string
-	Child string
-	Exist bool
+func (o O_SpotAndChildren) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// SpotId
+	spotid_b := []byte(o.SpotId)
+	spotid_b_len := len(spotid_b)
+	buf.Write(iendecode.IntToBytes(spotid_b_len))
+	buf.Write(spotid_b)
+
+	// Children
+	children_b := iendecode.SliceStringToBytes(o.Children)
+	children_b_len := len(children_b)
+	buf.Write(iendecode.IntToBytes(children_b_len))
+	buf.Write(children_b)
+
+	data = buf.Bytes()
+	return
 }
 
-// 角色的所有朋友
+func (o *O_SpotAndChildren) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// SpotId
+	spotid_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.SpotId = string(buf.Next(spotid_b_len))
+
+	// Children
+	children_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Children = iendecode.BytesToSliceString(buf.Next(children_b_len))
+
+	return
+}
+
+// Spot的单个子Spot关系的网络数据格式
+type O_SpotAndChild struct {
+	Area   string
+	SpotId string
+	Child  string
+	Exist  bool
+}
+
+func (o O_SpotAndChild) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// SpotId
+	spotid_b := []byte(o.SpotId)
+	spotid_b_len := len(spotid_b)
+	buf.Write(iendecode.IntToBytes(spotid_b_len))
+	buf.Write(spotid_b)
+
+	// Child
+	child_b := []byte(o.Child)
+	child_b_len := len(child_b)
+	buf.Write(iendecode.IntToBytes(child_b_len))
+	buf.Write(child_b)
+
+	// Exist 1
+	buf.Write(iendecode.BoolToBytes(o.Exist))
+
+	return buf.Bytes(), err
+}
+
+func (o *O_SpotAndChild) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// SpotId
+	spotid_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.SpotId = string(buf.Next(spotid_b_len))
+
+	// Child
+	child_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Child = string(buf.Next(child_b_len))
+
+	// Exist 1
+	o.Exist = iendecode.BytesToBool(buf.Next(1))
+
+	return
+}
+
+// Spot的所有朋友
 type O_SpotAndFriends struct {
 	Area    string
-	Id      string
+	SpotId  string
 	Friends map[string]spots.Status
+}
+
+func (o O_SpotAndFriends) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// SpotId
+	spotid_b := []byte(o.SpotId)
+	spotid_b_len := len(spotid_b)
+	buf.Write(iendecode.IntToBytes(spotid_b_len))
+	buf.Write(spotid_b)
+
+	// Friends
+	thecount := len(o.Friends)
+	buf.Write(iendecode.IntToBytes(thecount))
+	for key, _ := range o.Friends {
+
+		key_b := []byte(key)
+		key_b_len := len(key_b)
+		buf.Write(iendecode.IntToBytes(key_b_len))
+		buf.Write(key_b)
+
+		var value_b []byte
+		value_b, err = o.Friends[key].MarshalBinary()
+		if err != nil {
+			return
+		}
+		value_b_len := len(value_b)
+		buf.Write(iendecode.IntToBytes(value_b_len))
+		buf.Write(value_b)
+	}
+
+	return buf.Bytes(), err
+}
+
+func (o *O_SpotAndFriends) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	o.Friends = make(map[string]spots.Status)
+	buf := bytes.NewBuffer(data)
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// SpotId
+	spotid_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.SpotId = string(buf.Next(spotid_b_len))
+
+	// Friends
+	thecount := iendecode.BytesToInt(buf.Next(8))
+	for i := 0; i < thecount; i++ {
+		key_b_len := iendecode.BytesToInt(buf.Next(8))
+		key := string(buf.Next(key_b_len))
+
+		value_b_len := iendecode.BytesToInt(buf.Next(8))
+		value := spots.NewStatus()
+		err = value.UnmarshalBinary(buf.Next(value_b_len))
+		if err != nil {
+			return
+		}
+		o.Friends[key] = value
+	}
+
+	return
 }
 
 // 角色的单个朋友角色关系的网络数据格式
