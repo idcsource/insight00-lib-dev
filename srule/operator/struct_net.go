@@ -724,43 +724,288 @@ type O_SpotAndContext struct {
 	Exist    bool                // 存在否
 }
 
-// 角色的全部上下文
+func (o O_SpotAndContext) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// SpotId
+	spotid_b := []byte(o.SpotId)
+	spotid_b_len := len(spotid_b)
+	buf.Write(iendecode.IntToBytes(spotid_b_len))
+	buf.Write(spotid_b)
+
+	// Context
+	context_b := []byte(o.Context)
+	context_b_len := len(context_b)
+	buf.Write(iendecode.IntToBytes(context_b_len))
+	buf.Write(context_b)
+
+	// UpOrDown uint8 1
+	buf.Write(iendecode.Uint8ToBytes(uint8(o.UpOrDown)))
+
+	// BindSpot
+	bindspot_b := []byte(o.BindSpot)
+	bindspot_b_len := len(bindspot_b)
+	buf.Write(iendecode.IntToBytes(bindspot_b_len))
+	buf.Write(bindspot_b)
+
+	// Exist bool 1
+	buf.Write(iendecode.BoolToBytes(o.Exist))
+
+	return buf.Bytes(), err
+}
+
+func (o *O_SpotAndContext) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// SpotId
+	spotid_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.SpotId = string(buf.Next(spotid_b_len))
+
+	// Context
+	context_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Context = string(buf.Next(context_b_len))
+
+	// UpOrDown uint8 1
+	o.UpOrDown = spots.ContextUpDown(iendecode.BytesToUint8(buf.Next(1)))
+
+	// BindSpot
+	bindspot_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.BindSpot = string(buf.Next(bindspot_b_len))
+
+	// Exist 1
+	o.Exist = iendecode.BytesToBool(buf.Next(1))
+
+	return
+}
+
+// Spot的单个上下文关系数据的网络数据格式
+type O_SpotAndContext_Data struct {
+	Type        uint8                 // 1为单一绑定，2为单一Status，3为一个Context，4为Gather
+	Single      spots.StatusValueType // 单一的绑定属性修改
+	Status      spots.Status          // 一个的状态位结构
+	ContextBody spots.Context         // 上下文的结构
+	Gather      []string              // 名字等的集合
+	Bit         int                   // 单一的绑定修改所对应的位置，也就是0到9
+	Int         int64                 // 单一修改的Int
+	Float       float64               // 单一修改的Float
+	Complex     complex128            // 单一修改的Complex
+	String      string                // 单一修改的string
+}
+
+func (o O_SpotAndContext_Data) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Type 1
+	type_b := iendecode.Uint8ToBytes(o.Type)
+	buf.Write(type_b)
+
+	if o.Type == 1 {
+		// Bit 8
+		buf.Write(iendecode.IntToBytes(o.Bit))
+		if o.Single == spots.STATUS_VALUE_TYPE_INT {
+			// Int 8
+			buf.Write(iendecode.Int64ToBytes(o.Int))
+		} else if o.Single == spots.STATUS_VALUE_TYPE_FLOAT {
+			// Float 8
+			var float_b []byte
+			float_b, err = iendecode.ToBinary(o.Float)
+			if err != nil {
+				return
+			}
+			buf.Write(float_b)
+		} else if o.Single == spots.STATUS_VALUE_TYPE_COMPLEX {
+			// Complex 16
+			var complex_b []byte
+			complex_b, err = iendecode.ToBinary(o.Complex)
+			if err != nil {
+				return
+			}
+			buf.Write(complex_b)
+		} else {
+			// String
+			string_b := []byte(o.String)
+			string_b_len := len(string_b)
+			buf.Write(iendecode.IntToBytes(string_b_len))
+			buf.Write(string_b)
+		}
+	} else if o.Type == 2 {
+		// Status
+		var status_b []byte
+		status_b, err = o.Status.MarshalBinary()
+		if err != nil {
+			return
+		}
+		status_b_len := len(status_b)
+		buf.Write(iendecode.IntToBytes(status_b_len))
+		buf.Write(status_b)
+	} else if o.Type == 3 {
+		// ContextBody
+		var context_b []byte
+		context_b, err = o.ContextBody.MarshalBinary()
+		if err != nil {
+			return
+		}
+		context_b_len := len(context_b)
+		buf.Write(iendecode.IntToBytes(context_b_len))
+		buf.Write(context_b)
+	} else if o.Type == 4 {
+		// Gather
+		gather_b := iendecode.SliceStringToBytes(o.Gather)
+		gather_b_len := len(gather_b)
+		buf.Write(iendecode.IntToBytes(gather_b_len))
+		buf.Write(gather_b)
+	}
+
+	return buf.Bytes(), err
+}
+
+func (o *O_SpotAndContext_Data) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Single 1
+	o.Type = iendecode.BytesToUint8(buf.Next(1))
+
+	if o.Type == 1 {
+		// Bit 8
+		o.Bit = iendecode.BytesToInt(buf.Next(8))
+		if o.Single == spots.STATUS_VALUE_TYPE_INT {
+			// Int 8
+			o.Int = iendecode.BytesToInt64(buf.Next(8))
+		} else if o.Single == spots.STATUS_VALUE_TYPE_FLOAT {
+			// Float 8
+			err = iendecode.FromBinary(buf.Next(8), &o.Float)
+		} else if o.Single == spots.STATUS_VALUE_TYPE_COMPLEX {
+			// Complex 16
+			err = iendecode.FromBinary(buf.Next(16), &o.Complex)
+		} else {
+			// String
+			str_b_len := iendecode.BytesToInt(buf.Next(8))
+			o.String = string(buf.Next(str_b_len))
+		}
+	} else if o.Type == 2 {
+		// Status
+		status_b_len := iendecode.BytesToInt(buf.Next(8))
+		o.Status = spots.NewStatus()
+		err = o.Status.UnmarshalBinary(buf.Next(status_b_len))
+		if err != nil {
+			return
+		}
+	} else if o.Type == 3 {
+		// ContextBody
+		context_b_len := iendecode.BytesToInt(buf.Next(8))
+		o.ContextBody = spots.NewContext()
+		err = o.ContextBody.UnmarshalBinary(buf.Next(context_b_len))
+		if err != nil {
+			return
+		}
+	} else if o.Type == 4 {
+		// Gather
+		gather_b_len := iendecode.BytesToInt(buf.Next(8))
+		o.Gather = iendecode.BytesToSliceString(buf.Next(gather_b_len))
+	}
+
+	return
+}
+
+// Spot的全部上下文
 type O_SpotAndContexts struct {
 	Area     string
-	Id       string
+	SpotId   string
 	Contexts map[string]spots.Context
 }
 
-// 角色的单个上下文关系数据的网络数据格式
-type O_SpotAndContext_Data struct {
-	Area string
-	Id   string
-	// 上下文的名字
-	Context string
-	// 要求的上下文是否存在
-	Exist bool
-	// 这是roles包中的CONTEXT_UP或CONTEXT_DOWN
-	UpOrDown spots.ContextUpDown
-	// 要操作的绑定角色的ID
-	BindRole string
-	// 一个的状态位结构
-	Status spots.Status
-	// 上下文的结构
-	ContextBody spots.Context
-	// 名字等的集合
-	Gather []string
-	// 单一的绑定属性修改，1为int，2为float，3为complex
-	Single spots.StatusValueType
-	// 单一的绑定修改所对应的位置，也就是0到9
-	Bit int
-	// 单一修改的Int
-	Int int64
-	// 单一修改的Float
-	Float float64
-	// 单一修改的Complex
-	Complex complex128
-	// 单一修改的string
-	String string
+func (o O_SpotAndContexts) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// SpotId
+	spotid_b := []byte(o.SpotId)
+	spotid_b_len := len(spotid_b)
+	buf.Write(iendecode.IntToBytes(spotid_b_len))
+	buf.Write(spotid_b)
+
+	// Contexts
+	contexts_count := len(o.Contexts)
+	buf.Write(iendecode.IntToBytes(contexts_count))
+	for key, _ := range o.Contexts {
+		key_b := []byte(key)
+		key_b_len := len(key_b)
+		buf.Write(iendecode.IntToBytes(key_b_len))
+		buf.Write(key_b)
+
+		var value_b []byte
+		value_b, err = o.Contexts[key].MarshalBinary()
+		if err != nil {
+			return
+		}
+		value_b_len := len(value_b)
+		buf.Write(iendecode.IntToBytes(value_b_len))
+		buf.Write(value_b)
+	}
+
+	return buf.Bytes(), err
+}
+
+func (o *O_SpotAndContexts) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// SpotId
+	spotid_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.SpotId = string(buf.Next(spotid_b_len))
+
+	// Contexts
+	o.Contexts = make(map[string]spots.Context)
+	thecount := iendecode.BytesToInt(buf.Next(8))
+	for i := 0; i < thecount; i++ {
+		key_b_len := iendecode.BytesToInt(buf.Next(8))
+		key := string(buf.Next(key_b_len))
+		thecontext := spots.NewContext()
+		value_b_len := iendecode.BytesToInt(buf.Next(8))
+		err = thecontext.UnmarshalBinary(buf.Next(value_b_len))
+		if err != nil {
+			return
+		}
+		o.Contexts[key] = thecontext
+	}
+
+	return
 }
 
 // 角色的单个数据的数据体的网络格式
