@@ -1008,16 +1008,69 @@ func (o *O_SpotAndContexts) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
-// 角色的单个数据的数据体的网络格式
-type O_SpotData_Data struct {
-	Area string
-	Id   string
-	// 数据点的名字
-	Name string
-	// 数据类型
-	Type string
-	// 数据的字节流
-	Data []byte
+// Spot的单个数据的数据体的网络格式
+type O_SpotData struct {
+	Area   string
+	SpotId string
+	Name   string // 数据点的名字
+	Data   []byte // 数据的字节流
+}
+
+func (o O_SpotData) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Area
+	area_b := []byte(o.Area)
+	area_b_len := len(area_b)
+	buf.Write(iendecode.IntToBytes(area_b_len))
+	buf.Write(area_b)
+
+	// SpotId
+	spotid_b := []byte(o.SpotId)
+	spotid_b_len := len(spotid_b)
+	buf.Write(iendecode.IntToBytes(spotid_b_len))
+	buf.Write(spotid_b)
+
+	// Name
+	name_b := []byte(o.Name)
+	name_b_len := len(name_b)
+	buf.Write(iendecode.IntToBytes(name_b_len))
+	buf.Write(name_b)
+
+	// Data
+	data_len := len(o.Data)
+	buf.Write(iendecode.IntToBytes(data_len))
+	buf.Write(o.Data)
+
+	return buf.Bytes(), err
+}
+
+func (o *O_SpotData) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// SpotId
+	spotid_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.SpotId = string(buf.Next(spotid_b_len))
+
+	// Name
+	name_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Name = string(buf.Next(name_b_len))
+
+	// Data
+	data_len := iendecode.BytesToInt(buf.Next(8))
+	o.Data = buf.Next(data_len)
+
+	return
 }
 
 // 区域
@@ -1025,6 +1078,50 @@ type O_Area struct {
 	AreaName string
 	Rename   string
 	Exist    bool
+}
+
+func (o O_Area) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// AreaName
+	area_name_b := []byte(o.AreaName)
+	area_name_b_len := len(area_name_b)
+	buf.Write(iendecode.IntToBytes(area_name_b_len))
+	buf.Write(area_name_b)
+
+	// Rename
+	rename_b := []byte(o.Rename)
+	rename_b_len := len(rename_b)
+	buf.Write(iendecode.IntToBytes(rename_b_len))
+	buf.Write(rename_b)
+
+	// Exist bool 1
+	buf.Write(iendecode.BoolToBytes(o.Exist))
+
+	return buf.Bytes(), err
+}
+
+func (o *O_Area) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// AreaName
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.AreaName = string(buf.Next(area_b_len))
+
+	// Rename
+	rename_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Rename = string(buf.Next(rename_b_len))
+
+	// Exist
+	o.Exist = iendecode.BytesToBool(buf.Next(1))
+
+	return
 }
 
 // 来往网络的用户信息
