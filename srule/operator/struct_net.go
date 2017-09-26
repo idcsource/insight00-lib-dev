@@ -1133,13 +1133,190 @@ type O_DRuleUser struct {
 	Unid      string        // 唯一码
 }
 
+type O_DRuleUserKeep struct {
+	UserName string // 用户名
+	Unid     string // 唯一码(sha1 40)
+}
+
+func (o O_DRuleUserKeep) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// UserName
+	username_b := []byte(o.UserName)
+	username_b_len := len(username_b)
+	buf.Write(iendecode.IntToBytes(username_b_len))
+	buf.Write(username_b)
+
+	// Unid sha1 40
+	buf.Write([]byte(o.Unid))
+
+	return buf.Bytes(), err
+}
+
+func (o *O_DRuleUserKeep) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// UserName
+	username_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.UserName = string(buf.Next(username_b_len))
+
+	// Unid sha1 40
+	o.Unid = string(buf.Next(40))
+
+	return
+}
+
+type O_DRuleUserLog struct {
+	UserName string // 用户名
+	Password string // 密码(sha1 40)
+}
+
+func (o O_DRuleUserLog) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// UserName
+	username_b := []byte(o.UserName)
+	username_b_len := len(username_b)
+	buf.Write(iendecode.IntToBytes(username_b_len))
+	buf.Write(username_b)
+
+	// Password sha1 40
+	buf.Write([]byte(o.Password))
+
+	return buf.Bytes(), err
+}
+
+func (o *O_DRuleUserLog) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// UserName
+	username_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.UserName = string(buf.Next(username_b_len))
+
+	// Password sha1 40
+	o.Password = string(buf.Next(40))
+
+	return
+}
+
+type O_DRuleUserReg struct {
+	UserName string // 用户名
+	Password string // 密码(sha1 40)
+	Email    string // 邮箱
+}
+
+func (o O_DRuleUserReg) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// UserName
+	username_b := []byte(o.UserName)
+	username_b_len := len(username_b)
+	buf.Write(iendecode.IntToBytes(username_b_len))
+	buf.Write(username_b)
+
+	// Password sha1 40
+	buf.Write([]byte(o.Password))
+
+	// Email
+	email_b := []byte(o.Email)
+	email_b_len := len(email_b)
+	buf.Write(iendecode.IntToBytes(email_b_len))
+	buf.Write(email_b)
+
+	return buf.Bytes(), err
+}
+
+func (o *O_DRuleUserReg) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// UserName
+	username_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.UserName = string(buf.Next(username_b_len))
+
+	// Password sha1 40
+	o.Password = string(buf.Next(40))
+
+	// Email
+	email_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Email = string(buf.Next(email_b_len))
+
+	return
+}
+
 // 用户和区域的权限
 type O_Area_User struct {
 	UserName string // 用户名
 	Area     string // 区域名
-	WRable   bool   // true为读权限，false为写权限
 	Add      bool   // true为增加，false为减少
+	WRable   bool   // true为读权限，false为写权限
+}
 
+func (o O_Area_User) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// UserName
+	username_b := []byte(o.UserName)
+	username_b_len := len(username_b)
+	buf.Write(iendecode.IntToBytes(username_b_len))
+	buf.Write(username_b)
+
+	// Area
+	area_name_b := []byte(o.Area)
+	area_name_b_len := len(area_name_b)
+	buf.Write(iendecode.IntToBytes(area_name_b_len))
+	buf.Write(area_name_b)
+
+	// Add 1
+	buf.Write(iendecode.BoolToBytes(o.Add))
+
+	// WRable 1
+	buf.Write(iendecode.BoolToBytes(o.WRable))
+
+	return buf.Bytes(), err
+}
+
+func (o *O_Area_User) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Username
+	username_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.UserName = string(buf.Next(username_b_len))
+
+	// Area
+	area_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Area = string(buf.Next(area_b_len))
+
+	// Add 1
+	o.Add = iendecode.BytesToBool(buf.Next(1))
+
+	// WRable 1
+	o.Add = iendecode.BytesToBool(buf.Next(1))
+
+	return
 }
 
 // 远端操作者的记录
