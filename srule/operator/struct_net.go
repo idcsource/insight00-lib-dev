@@ -1325,8 +1325,78 @@ type O_DRuleOperator struct {
 	Address  string // 地址与端口
 	ConnNum  int    // 连接数
 	TLS      bool   // 是否加密
-	Username string // 用户名
+	UserName string // 用户名
 	Password string // 密码
+}
+
+func (o O_DRuleOperator) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Name
+	name_b := []byte(o.Name)
+	name_b_len := len(name_b)
+	buf.Write(iendecode.IntToBytes(name_b_len))
+	buf.Write(name_b)
+
+	// Address
+	address_b := []byte(o.Address)
+	address_b_len := len(address_b)
+	buf.Write(iendecode.IntToBytes(address_b_len))
+	buf.Write(address_b)
+
+	// ConnNum 8
+	buf.Write(iendecode.IntToBytes(o.ConnNum))
+
+	// TLS 1
+	buf.Write(iendecode.BoolToBytes(o.TLS))
+
+	// UserName
+	username_b := []byte(o.UserName)
+	username_b_len := len(username_b)
+	buf.Write(iendecode.IntToBytes(username_b_len))
+	buf.Write(username_b)
+
+	// Password sha1 40
+	password_b := []byte(o.Password)
+	password_b_len := len(password_b)
+	buf.Write(iendecode.IntToBytes(password_b_len))
+	buf.Write(password_b)
+
+	return buf.Bytes(), err
+}
+
+func (o *O_DRuleOperator) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Name
+	name_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Name = string(buf.Next(name_b_len))
+
+	// Address
+	address_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Address = string(buf.Next(address_b_len))
+
+	// ConnNum
+	o.ConnNum = iendecode.BytesToInt(buf.Next(8))
+
+	// TLS
+	o.TLS = iendecode.BytesToBool(buf.Next(1))
+
+	// Username
+	username_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.UserName = string(buf.Next(username_b_len))
+
+	// Password
+	password_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Password = string(buf.Next(password_b_len))
+
+	return
 }
 
 // 蔓延到其他drule上的区域
