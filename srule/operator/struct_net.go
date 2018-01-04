@@ -1406,3 +1406,76 @@ type O_AreasRouter struct {
 	Mirrors  []string            // string为drule的名字
 	Chars    map[string][]string // 如果mirror为false，则看这个根据不同的字母进行路由，第一个stirng为首字母，第二个string为operator的名称
 }
+
+func (o O_AreasRouter) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// AreaName
+	areaname_b := []byte(o.AreaName)
+	areaname_b_len := len(areaname_b)
+	buf.Write(iendecode.IntToBytes(areaname_b_len))
+	buf.Write(areaname_b)
+
+	// Mirror 1
+	buf.Write(iendecode.BoolToBytes(o.Mirror))
+
+	// Mirrors
+	mirrors_b := iendecode.SliceStringToBytes(o.Mirrors)
+	mirrors_b_len := len(mirrors_b)
+	buf.Write(iendecode.IntToBytes(mirrors_b_len))
+	buf.Write(mirrors_b)
+
+	// Chars
+	chars_count := len(o.Chars)
+	buf.Write(iendecode.IntToBytes(chars_count))
+	for key, _ := range o.Chars {
+		key_b := []byte(key)
+		key_b_len := len(key_b)
+		buf.Write(iendecode.IntToBytes(key_b_len))
+		buf.Write(key_b)
+
+		value_b := iendecode.SliceStringToBytes(o.Chars[key])
+		value_b_len := len(value_b)
+		buf.Write(iendecode.IntToBytes(value_b_len))
+		buf.Write(value_b)
+	}
+
+	return buf.Bytes(), err
+}
+
+func (o *O_AreasRouter) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// AreaName
+	areaname_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.AreaName = string(buf.Next(areaname_b_len))
+
+	// Mirror
+	o.Mirror = iendecode.BytesToBool(buf.Next(1))
+
+	// Mirrors
+	mirrors_b_len := iendecode.BytesToInt(buf.Next(8))
+	o.Mirrors = iendecode.BytesToSliceString(buf.Next(mirrors_b_len))
+
+	// Chars
+	thecount := iendecode.BytesToInt(buf.Next(8))
+	for i := 0; i < thecount; i++ {
+		key_b_len := iendecode.BytesToInt(buf.Next(8))
+		key := string(buf.Next(key_b_len))
+
+		value_b_len := iendecode.BytesToInt(buf.Next(8))
+		value := iendecode.BytesToSliceString(buf.Next(value_b_len))
+		if err != nil {
+			return
+		}
+		o.Chars[key] = value
+	}
+
+	return
+}
