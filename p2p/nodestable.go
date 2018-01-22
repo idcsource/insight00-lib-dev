@@ -8,7 +8,10 @@
 package p2p
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/lukechampine/randmap"
 )
 
 // The node type
@@ -86,11 +89,31 @@ func (n *NodesTable) OutputTable() (s string) {
 }
 
 // Random return some nodes status.
-func (n *NodesTable) Random(c uint) (o []*NodeStatus) {
+func (n *NodesTable) Random(c int) (o map[string]*NodeStatus, err error) {
+	lenc := len(n.Table)
+	if lenc < c {
+		err = fmt.Errorf("The c much bigger.")
+		return
+	}
+	if lenc == c {
+		o = n.Table
+		return
+	}
+	o = make(map[string]*NodeStatus)
+	for {
+		k := randmap.Key(n.Table).(string)
+		o[k] = n.Table[k]
+		if len(o) == c {
+			break
+		}
+	}
+
 	return
 }
 
 // Delete node which was not connect (The Failure >= some number).
 func (n *NodesTable) Delete(hash string) {
-
+	if _, ok := n.Table[hash]; ok == true {
+		delete(n.Table, hash)
+	}
 }
