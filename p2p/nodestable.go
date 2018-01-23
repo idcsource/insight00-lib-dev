@@ -2,7 +2,7 @@
 // CoderG the 2016 project
 // Insight 0+0 [ 洞悉 0+0 ]
 // InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idcsource@gmail.com
-// Normal Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
+// Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // This source code is governed by GNU LGPL v3 license
 
 package p2p
@@ -43,7 +43,7 @@ func NewNodesTable() *NodesTable {
 
 // Add the node status information to the table.
 //
-// The s' every line is like this: hash,ip,port,type.
+// Ths s is a nodes table file. The s' every line is like this: hash,ip,port,type.
 func (n *NodesTable) AddToTable(s string) {
 	thesplit := strings.Split(s, "\n")
 	for line := range thesplit {
