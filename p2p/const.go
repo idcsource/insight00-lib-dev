@@ -14,8 +14,10 @@ const (
 type P2Poperate uint
 
 const (
-	P2P_OPERATE_NOTHING  P2Poperate = iota // P2P Operate do nothing.
-	P2P_OPERATE_OK                         // P2P Operate status ok.
-	P2P_OPERATE_ERR                        // P2P Operate status err.
-	P2P_OPERATE_DISCOVER                   // P2P Operate discover nodes.
+	P2P_OPERATE_NOTHING          P2Poperate = iota // P2P Operate do nothing.
+	P2P_OPERATE_OK                                 // P2P Operate status ok.
+	P2P_OPERATE_ERR                                // P2P Operate status err.
+	P2P_OPERATE_NODES_DISCOVER                     // P2P Operate discover nodes.
+	P2P_OPERATE_MESSAGE_REQUEST                    // P2P Operate send one message to nodes.
+	P2P_OPERATE_MESSAGE_RESPONSE                   // P2P Operate message response.
 )

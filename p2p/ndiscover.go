@@ -77,10 +77,66 @@ func (o *NDiscoverResult) UnmarshalBinary(data []byte) (err error) {
 	return
 }
 
+// This is local nodes' information.
+type SelfNodesInfo struct {
+	Hash string   // Self identity hashid.
+	Port string   // Self service port.
+	Type NodeType // The node type.
+}
+
+func (o SelfNodesInfo) MarshalBinary() (data []byte, err error) {
+	var buf bytes.Buffer
+
+	// Hash
+	hash_b := []byte(o.Hash)
+	hash_b_len := len(hash_b)
+	hash_b_len_b := iendecode.IntToBytes(hash_b_len)
+	buf.Write(hash_b_len_b)
+	buf.Write(hash_b)
+
+	// Port
+	port_b := []byte(o.Port)
+	port_b_len := len(port_b)
+	port_b_len_b := iendecode.IntToBytes(port_b_len)
+	buf.Write(port_b_len_b)
+	buf.Write(port_b)
+
+	// Type
+	buf.Write(iendecode.UintToBytes(uint(o.Type)))
+
+	data = buf.Bytes()
+	return
+}
+
+func (o *SelfNodesInfo) UnmarshalBinary(data []byte) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			return
+		}
+	}()
+
+	buf := bytes.NewBuffer(data)
+
+	// Hash
+	hash_b_len := iendecode.BytesToInt(buf.Next(8))
+	hash_b := buf.Next(hash_b_len)
+	o.Hash = string(hash_b)
+
+	// Port
+	port_b_len := iendecode.BytesToInt(buf.Next(8))
+	port_b := buf.Next(port_b_len)
+	o.Port = string(port_b)
+
+	// Type
+	o.Type = NodeType(iendecode.BytesToUint(buf.Next(8)))
+
+	return
+}
+
 // Discover nodes table from one node.
 //
-// The nt is nodes table file.
-func NodesDiscover(ip, port string) (nt string, err error) {
+// The nt is nodes table file. self is local nodes identity hashid and service port.
+func NodesDiscover(ip, port string, self SelfNodesInfo) (nt string, err error) {
 	addr := ip + ":" + port
 	client, err := nst2.NewClient(addr, 1, true)
 	if err != nil {
@@ -90,8 +146,15 @@ func NodesDiscover(ip, port string) (nt string, err error) {
 	if err != nil {
 		return
 	}
-	send_operate := iendecode.UintToBytes(uint(P2P_OPERATE_DISCOVER))
-	red_zip, err := pro.SendAndReturn(send_operate) // send P2P_OPERATE_DISCOVER
+
+	send_operate := iendecode.UintToBytes(uint(P2P_OPERATE_NODES_DISCOVER))
+	self_b, err := self.MarshalBinary()
+	if err != nil {
+		return
+	}
+	send_operate = append(send_operate, self_b...)
+
+	red_zip, err := pro.SendAndReturn(send_operate) // send P2P_OPERATE_NODES_DISCOVER and SelfNodesInfo
 	if err != nil {
 		return
 	}

@@ -32,6 +32,15 @@ func NewTransmissionTLS(conn *tls.Conn) *Transmission {
 	return &Transmission{tls: true, conn_tls: conn, buf: 1024}
 }
 
+func (t *Transmission) RemoteAddr() (addr net.Addr) {
+	if t.tls == false {
+		addr = t.conn.RemoteAddr()
+	} else {
+		addr = t.conn_tls.RemoteAddr()
+	}
+	return
+}
+
 // 设置缓冲大小
 func (t *Transmission) SetBuf(buf int) {
 	t.buf = buf

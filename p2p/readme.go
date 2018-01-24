@@ -5,5 +5,5 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // This source code is governed by GNU LGPL v3 license
 
-// This is Insight 0+0 P2P Network.
+// This is Insight 0+0 simple P2P Network.
 package p2p

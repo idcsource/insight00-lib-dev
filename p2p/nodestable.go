@@ -35,10 +35,21 @@ type NodeStatus struct {
 // The nodes table. The string is node's hash.
 type NodesTable struct {
 	Table map[string]*NodeStatus
+	File  string // the local nodes table file.
 }
 
 func NewNodesTable() *NodesTable {
 	return &NodesTable{Table: make(map[string]*NodeStatus)}
+}
+
+// Set the table file, if the file can not create or access, return error.
+func (n *NodesTable) SetTableFile(filename string) (err error) {
+	return
+}
+
+// Return the number of nodes in the table.
+func (n *NodesTable) ReturnCount() (count int) {
+	return len(n.Table)
 }
 
 // Add the node status information to the table.
@@ -70,6 +81,17 @@ func (n *NodesTable) AddToTable(s string) {
 	}
 }
 
+// Add one node status to table.
+func (n *NodesTable) AddOneNode(hash, ip, port string, thetype NodeType) {
+	n.Table[hash] = &NodeStatus{
+		Hash:    hash,
+		Ip:      ip,
+		Port:    port,
+		Type:    thetype,
+		Failure: 0,
+	}
+}
+
 // Return all table nodes status to a string.
 //
 // It like:
@@ -92,7 +114,7 @@ func (n *NodesTable) OutputTable() (s string) {
 func (n *NodesTable) Random(c int) (o map[string]*NodeStatus, err error) {
 	lenc := len(n.Table)
 	if lenc < c {
-		err = fmt.Errorf("The c much bigger.")
+		err = fmt.Errorf("The c too big.")
 		return
 	}
 	if lenc == c {
